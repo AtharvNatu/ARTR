@@ -1,0 +1,3 @@
+#include "Window.h"
+
+ADN_ICON ICON Arch.ico
