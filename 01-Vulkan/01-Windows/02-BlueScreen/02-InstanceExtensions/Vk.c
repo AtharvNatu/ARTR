@@ -1,7 +1,7 @@
 #include <Windows.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "Window.h"
+#include "Vk.h"
 
 #define WIN_WIDTH   800
 #define WIN_HEIGHT  600
@@ -14,6 +14,10 @@ HWND ghwnd = FALSE;
 BOOL gbFullScreen = FALSE;
 BOOL gbActiveWindow = FALSE;
 FILE *gpFile = NULL;
+WINDOWPLACEMENT wpPrev;
+DWORD dwStyle;
+
+const char* gpSzAppName = "ARTR";
 
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
@@ -28,7 +32,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     WNDCLASSEX wndclass;
     HWND hwnd;
     MSG msg;
-    TCHAR szAppName[] = TEXT("MyWindow");
+    TCHAR szAppName[255];
     BOOL bDone = FALSE;
     int iRetVal = 0;
 
@@ -40,7 +44,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
         exit(EXIT_FAILURE);
     }
     else
-        fprintf(gpFile, "Log File Created Successfully ...\n");
+        fprintf(gpFile, "Program Started Successfully => WinMain()\n");
+
+    wsprintf(szAppName, TEXT("%s"), gpSzAppName);
 
     // Initialization of WNDCLASSEX Structure
     wndclass.cbSize = sizeof(WNDCLASSEX);
@@ -67,7 +73,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Base Code"),
+        TEXT("Atharv Natu : Vulkan"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -84,8 +90,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     //! Initialize
     iRetVal = initialize();
 
-    // Show Window
+    // Show and Update Window
     ShowWindow(hwnd, iCmdShow);
+    UpdateWindow(hwnd);
 
     // Bring the window to foreground and set focus
     SetForegroundWindow(hwnd);
@@ -130,11 +137,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
     // Function Declarations
     void ToggleFullScreen(void);
     void resize(int, int);
+    void uninitialize(void);
 
     // Code
     switch(iMsg)
     {
         case WM_CREATE:
+            memset(&wpPrev, 0, sizeof(WINDOWPLACEMENT));
+            wpPrev.length = sizeof(WINDOWPLACEMENT);
         break;
 
         case WM_SETFOCUS:
@@ -145,7 +155,22 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
             gbActiveWindow = FALSE;
         break;
 
-        case WM_ERASEBKGND:
+        case WM_SIZE:
+            resize(LOWORD(wParam), HIWORD(wParam));
+        break;
+
+        case WM_KEYDOWN:
+
+            switch(wParam)
+            {
+                case 27:
+                    DestroyWindow(hwnd);
+                break;
+
+                default:
+                break;
+            }
+
         break;
 
         case WM_CHAR:
@@ -163,26 +188,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
         break;
 
-        case WM_KEYDOWN:
-
-            switch(wParam)
-            {
-                case 27:
-                    DestroyWindow(hwnd);
-                break;
-
-                default:
-                break;
-            }
-
-        break;
-
-        case WM_SIZE:
-            resize(LOWORD(lParam), HIWORD(lParam));
-        break;
-
         case WM_CLOSE:
-            DestroyWindow(hwnd);
+            uninitialize();
         break;
 
         case WM_DESTROY:
@@ -199,13 +206,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 void ToggleFullScreen(void)
 {
     // Variable Declarations
-    static DWORD dwStyle;
-    static WINDOWPLACEMENT wp;
     MONITORINFO mi;
 
     // Code
-    wp.length = sizeof(WINDOWPLACEMENT);
-
     if (gbFullScreen == FALSE)
     {
         dwStyle = GetWindowLong(ghwnd, GWL_STYLE);
@@ -214,7 +217,7 @@ void ToggleFullScreen(void)
         {
             mi.cbSize = sizeof(MONITORINFO);
 
-            if (GetWindowPlacement(ghwnd, &wp) && GetMonitorInfo(MonitorFromWindow(ghwnd, MONITORINFOF_PRIMARY), &mi))
+            if (GetWindowPlacement(ghwnd, &wpPrev) && GetMonitorInfo(MonitorFromWindow(ghwnd, MONITORINFOF_PRIMARY), &mi))
             {
                 SetWindowLong(ghwnd, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
                 SetWindowPos(
@@ -235,7 +238,7 @@ void ToggleFullScreen(void)
     else
     {
         SetWindowLong(ghwnd, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
-        SetWindowPlacement(ghwnd, &wp);
+        SetWindowPlacement(ghwnd, &wpPrev);
         SetWindowPos(
             ghwnd, 
             HWND_TOP,
@@ -291,7 +294,7 @@ void uninitialize(void)
 
     if (gpFile)
     {
-        fprintf(gpFile, "Log File Closed Successfully ...");
+        fprintf(gpFile, "Program Terminated Successfully => uninitialize()\n");
         fclose(gpFile);
         gpFile = NULL;
     }
