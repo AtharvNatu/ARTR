@@ -31,6 +31,9 @@ const char *gpSzAppName = "ARTR";
 uint32_t enabledInstanceExtensionCount = 0;
 const char *enabledInstanceExtensionNames_array[2]; //* -> VK_KHR_SURFACE_EXTENSTION_NAME & VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 
+//? Vulkan Instance
+VkInstance vkInstance = VK_NULL_HANDLE;
+
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
 {
@@ -85,7 +88,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Instance Extension"),
+        TEXT("Atharv Natu : Vulkan Instance"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -277,17 +280,17 @@ void ToggleFullScreen(void)
 VkResult initialize(void)
 {
     // Function Declarations
-    VkResult fillInstanceExtensionNames(void);
+    VkResult createVulkanInstance(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    vkResult = fillInstanceExtensionNames();
+    vkResult = createVulkanInstance();
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => fillInstanceExtensionNames() Failed !!!\n", __func__);
+        fprintf(gpFile, "%s() => createVulkanInstance() Failed !!!\n", __func__);
     else
-        fprintf(gpFile, "%s() => fillInstanceExtensionNames() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => createVulkanInstance() Succeeded\n", __func__);
 
     return vkResult;
 }
@@ -324,6 +327,14 @@ void uninitialize(void)
         ghwnd = NULL;
     }
 
+    //* Step-5 of Instance Creation
+    if (vkInstance)
+    {
+        vkDestroyInstance(vkInstance, NULL);
+        vkInstance = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyInstance() Succeeded\n", __func__);
+    }
+
     if (gpFile)
     {
         fprintf(gpFile, "%s() => Program Terminated Successfully\n", __func__);
@@ -333,6 +344,70 @@ void uninitialize(void)
 }
 
 //! Definition of Vulkan Related Functions
+
+VkResult createVulkanInstance(void)
+{
+    // Function Declarations
+    VkResult fillInstanceExtensionNames(void);
+
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+
+    //* Step - 1
+    vkResult = fillInstanceExtensionNames();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => fillInstanceExtensionNames() Failed !!!\n", __func__);
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }      
+    else
+        fprintf(gpFile, "%s() => fillInstanceExtensionNames() Succeeded\n", __func__);
+
+    //* Step - 2
+    VkApplicationInfo vkApplicationInfo;
+    memset((void*)&vkApplicationInfo, 0, sizeof(VkApplicationInfo));
+    vkApplicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    vkApplicationInfo.pNext = NULL;
+    vkApplicationInfo.pApplicationName = gpSzAppName;
+    vkApplicationInfo.applicationVersion = 1;
+    vkApplicationInfo.pEngineName = gpSzAppName;
+    vkApplicationInfo.engineVersion = 1;
+    vkApplicationInfo.apiVersion = VK_API_VERSION_1_4;
+
+    //* Step - 3
+    VkInstanceCreateInfo vkInstanceCreateInfo;
+    memset((void*)&vkInstanceCreateInfo, 0, sizeof(VkInstanceCreateInfo));
+    vkInstanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    vkInstanceCreateInfo.pNext = NULL;
+    vkInstanceCreateInfo.pApplicationInfo = &vkApplicationInfo;
+    vkInstanceCreateInfo.enabledExtensionCount = enabledInstanceExtensionCount;
+    vkInstanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensionNames_array;
+
+    //* Step - 4
+    vkResult = vkCreateInstance(&vkInstanceCreateInfo, NULL, &vkInstance);
+    if (vkResult == VK_ERROR_INCOMPATIBLE_DRIVER)
+    {
+        fprintf(gpFile, "%s() => vkCreateInstance() Failed Due To Incompatible Driver : %d!!!\n", __func__, vkResult);
+        return vkResult;
+    } 
+    else if (vkResult == VK_ERROR_EXTENSION_NOT_PRESENT)
+    {
+        fprintf(gpFile, "%s() => vkCreateInstance() Failed Becase Required Extension Is Not Present : %d!!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkCreateInstance() Failed : %d!!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else 
+        fprintf(gpFile, "%s() => vkCreateInstance() Succeeded\n", __func__);
+
+    return vkResult;
+}
+
 VkResult fillInstanceExtensionNames(void)
 {
     // Variable Declarations
@@ -464,4 +539,5 @@ VkResult fillInstanceExtensionNames(void)
 
     return vkResult;
 }
+
 
