@@ -42,6 +42,10 @@ VkPhysicalDevice vkPhysicalDevice_selected = VK_NULL_HANDLE;
 uint32_t graphicsQueueFamilyIndex_selected = UINT32_MAX;
 VkPhysicalDeviceMemoryProperties vkPhysicalDeviceMemoryProperties;
 
+//* Step - 1
+uint32_t physicalDeviceCount = 0;
+VkPhysicalDevice *vkPhysicalDevice_array = NULL;
+
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
 {
@@ -96,7 +100,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Physical Device"),
+        TEXT("Atharv Natu : Print Vulkan Info"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -291,6 +295,7 @@ VkResult initialize(void)
     VkResult createVulkanInstance(void);
     VkResult getSupportedSurface(void);
     VkResult getPhysicalDevice(void);
+    VkResult printVkInfo(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -315,6 +320,13 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => getPhysicalDevice() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => getPhysicalDevice() Succeeded\n", __func__);
+
+    //! Print Vulkan Info
+    vkResult = printVkInfo();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => printVkInfo() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => printVkInfo() Succeeded\n", __func__);
 
     return vkResult;
 }
@@ -605,8 +617,7 @@ VkResult getPhysicalDevice(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
-    uint32_t physicalDeviceCount = 0;
-
+    
     // Code
 
     //* Step - 2
@@ -626,7 +637,6 @@ VkResult getPhysicalDevice(void)
     }
 
     //* Step - 3
-    VkPhysicalDevice *vkPhysicalDevice_array = NULL;
     vkPhysicalDevice_array = (VkPhysicalDevice*)malloc(physicalDeviceCount * sizeof(VkPhysicalDevice));
     if (vkPhysicalDevice_array == NULL)
     {
@@ -717,15 +727,8 @@ VkResult getPhysicalDevice(void)
 
     //* Step - 5.10
     if (bFound == VK_TRUE)
-    {
         fprintf(gpFile, "%s() => Succeeded To Obtain Graphics Supported Physical Device\n", __func__);
-        if (vkPhysicalDevice_array)
-        {
-            free(vkPhysicalDevice_array);
-            fprintf(gpFile, "%s() => free() Succeeded For vkPhysicalDevice_array\n", __func__);
-            vkPhysicalDevice_array = NULL;
-        }
-    }
+
     //* Step - 6
     else
     {
@@ -765,3 +768,76 @@ VkResult getPhysicalDevice(void)
     return vkResult;
 }
 
+VkResult printVkInfo(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    fprintf(gpFile, "\nVULKAN INFORMATION\n");
+    fprintf(gpFile, "------------------------------------------------------------------------------------------------\n");
+    
+    //* Step - 3.1
+    for (uint32_t i = 0; i < physicalDeviceCount; i++)
+    {
+        //* Step - 3.2
+        VkPhysicalDeviceProperties vkPhysicalDeviceProperties;
+        memset(&vkPhysicalDeviceProperties, 0, sizeof(VkPhysicalDeviceProperties));
+        vkGetPhysicalDeviceProperties(vkPhysicalDevice_array[i], &vkPhysicalDeviceProperties);
+
+        //* Step - 3.3
+        uint32_t majorVersion = VK_API_VERSION_MAJOR(vkPhysicalDeviceProperties.apiVersion);
+        uint32_t minorVersion = VK_API_VERSION_MINOR(vkPhysicalDeviceProperties.apiVersion);
+        uint32_t patchVersion = VK_API_VERSION_PATCH(vkPhysicalDeviceProperties.apiVersion);
+        fprintf(gpFile, "Vulkan API Version : %u.%u.%u\n", majorVersion, minorVersion, patchVersion);
+
+        //* Step - 3.4
+        fprintf(gpFile, "Device Name : %s\n", vkPhysicalDeviceProperties.deviceName);
+
+        //* Step - 3.5
+        switch(vkPhysicalDeviceProperties.deviceType)
+        {
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                fprintf(gpFile, "Device Type : Integrated GPU (iGPU)\n");
+            break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                fprintf(gpFile, "Device Type : Discrete GPU (dGPU)\n");
+            break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                fprintf(gpFile, "Device Type : Virtual GPU (vGPU)\n");
+            break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                fprintf(gpFile, "Device Type : CPU\n");
+            break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_OTHER:
+                fprintf(gpFile, "Device Type : Other\n");
+            break;
+
+            default:
+                fprintf(gpFile, "Device Type : UNKNOWN\n");
+            break;
+        }
+
+        //* Step - 3.6
+        fprintf(gpFile, "Vendor ID : 0x%4x\n", vkPhysicalDeviceProperties.vendorID);
+
+        //* Step - 3.7
+        fprintf(gpFile, "Device ID : 0x%4x\n", vkPhysicalDeviceProperties.deviceID);
+    }
+
+    fprintf(gpFile, "------------------------------------------------------------------------------------------------\n\n");
+
+    //* Step - 3.8
+    if (vkPhysicalDevice_array)
+    {
+        free(vkPhysicalDevice_array);
+        fprintf(gpFile, "%s() => free() Succeeded For vkPhysicalDevice_array\n", __func__);
+        vkPhysicalDevice_array = NULL;
+    }
+
+    return vkResult;
+}
