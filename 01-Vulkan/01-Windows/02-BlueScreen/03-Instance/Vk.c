@@ -29,7 +29,7 @@ const char *gpSzAppName = "ARTR";
 
 //? Instance Extension Related Variables
 uint32_t enabledInstanceExtensionCount = 0;
-const char *enabledInstanceExtensionNames_array[2]; //* -> VK_KHR_SURFACE_EXTENSTION_NAME & VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+const char *enabledInstanceExtensionNames_array[2]; //* -> VK_KHR_SURFACE_EXTENSION_NAME & VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 
 //? Vulkan Instance
 VkInstance vkInstance = VK_NULL_HANDLE;

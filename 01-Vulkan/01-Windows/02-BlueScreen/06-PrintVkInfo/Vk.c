@@ -29,7 +29,7 @@ const char *gpSzAppName = "ARTR";
 
 //? Instance Extension Related Variables
 uint32_t enabledInstanceExtensionCount = 0;
-const char *enabledInstanceExtensionNames_array[2]; //* -> VK_KHR_SURFACE_EXTENSTION_NAME & VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+const char *enabledInstanceExtensionNames_array[2]; //* -> VK_KHR_SURFACE_EXTENSION_NAME & VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 
 //? Vulkan Instance
 VkInstance vkInstance = VK_NULL_HANDLE;
@@ -594,7 +594,7 @@ VkResult getSupportedSurface(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 2
-    memset(&vkWin32SurfaceCreateInfoKHR, 0, sizeof(VkWin32SurfaceCreateInfoKHR));
+    memset((void*)&vkWin32SurfaceCreateInfoKHR, 0, sizeof(VkWin32SurfaceCreateInfoKHR));
 
     //* Step - 3
     vkWin32SurfaceCreateInfoKHR.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -744,14 +744,14 @@ VkResult getPhysicalDevice(void)
     }
     
     //* Step - 7
-    memset(&vkPhysicalDeviceMemoryProperties, 0, sizeof(VkPhysicalDeviceMemoryProperties));
+    memset((void*)&vkPhysicalDeviceMemoryProperties, 0, sizeof(VkPhysicalDeviceMemoryProperties));
 
     //* Step - 8
     vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice_selected, &vkPhysicalDeviceMemoryProperties);
 
     //* Step - 9
     VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures_array;
-    memset(&vkPhysicalDeviceFeatures_array, 0, sizeof(VkPhysicalDeviceFeatures));
+    memset((void*)&vkPhysicalDeviceFeatures_array, 0, sizeof(VkPhysicalDeviceFeatures));
     vkGetPhysicalDeviceFeatures(vkPhysicalDevice_selected, &vkPhysicalDeviceFeatures_array);
 
     //* Step - 10
@@ -782,7 +782,7 @@ VkResult printVkInfo(void)
     {
         //* Step - 3.2
         VkPhysicalDeviceProperties vkPhysicalDeviceProperties;
-        memset(&vkPhysicalDeviceProperties, 0, sizeof(VkPhysicalDeviceProperties));
+        memset((void*)&vkPhysicalDeviceProperties, 0, sizeof(VkPhysicalDeviceProperties));
         vkGetPhysicalDeviceProperties(vkPhysicalDevice_array[i], &vkPhysicalDeviceProperties);
 
         //* Step - 3.3

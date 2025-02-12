@@ -29,7 +29,7 @@ const char *gpSzAppName = "ARTR";
 
 //? Instance Extension Related Variables
 uint32_t enabledInstanceExtensionCount = 0;
-const char *enabledInstanceExtensionNames_array[2]; //* -> VK_KHR_SURFACE_EXTENSTION_NAME & VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+const char *enabledInstanceExtensionNames_array[2]; //* -> VK_KHR_SURFACE_EXTENSION_NAME & VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 
 //? Vulkan Instance
 VkInstance vkInstance = VK_NULL_HANDLE;
@@ -610,7 +610,7 @@ VkResult getSupportedSurface(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 2
-    memset(&vkWin32SurfaceCreateInfoKHR, 0, sizeof(VkWin32SurfaceCreateInfoKHR));
+    memset((void*)&vkWin32SurfaceCreateInfoKHR, 0, sizeof(VkWin32SurfaceCreateInfoKHR));
 
     //* Step - 3
     vkWin32SurfaceCreateInfoKHR.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -760,14 +760,14 @@ VkResult getPhysicalDevice(void)
     }
     
     //* Step - 7
-    memset(&vkPhysicalDeviceMemoryProperties, 0, sizeof(VkPhysicalDeviceMemoryProperties));
+    memset((void*)&vkPhysicalDeviceMemoryProperties, 0, sizeof(VkPhysicalDeviceMemoryProperties));
 
     //* Step - 8
     vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice_selected, &vkPhysicalDeviceMemoryProperties);
 
     //* Step - 9
     VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures_array;
-    memset(&vkPhysicalDeviceFeatures_array, 0, sizeof(VkPhysicalDeviceFeatures));
+    memset((void*)&vkPhysicalDeviceFeatures_array, 0, sizeof(VkPhysicalDeviceFeatures));
     vkGetPhysicalDeviceFeatures(vkPhysicalDevice_selected, &vkPhysicalDeviceFeatures_array);
 
     //* Step - 10
@@ -798,7 +798,7 @@ VkResult printVkInfo(void)
     {
         //* Step - 3.2
         VkPhysicalDeviceProperties vkPhysicalDeviceProperties;
-        memset(&vkPhysicalDeviceProperties, 0, sizeof(VkPhysicalDeviceProperties));
+        memset((void*)&vkPhysicalDeviceProperties, 0, sizeof(VkPhysicalDeviceProperties));
         vkGetPhysicalDeviceProperties(vkPhysicalDevice_array[i], &vkPhysicalDeviceProperties);
 
         //* Step - 3.3
@@ -860,7 +860,6 @@ VkResult printVkInfo(void)
 
 VkResult fillDeviceExtensionNames(void)
 {
-    // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
     // Code
@@ -944,7 +943,7 @@ VkResult fillDeviceExtensionNames(void)
         if (strcmp(deviceExtensionNames_array[i], VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
         {
             vulkanSwapchainExtensionFound = VK_TRUE;
-            enabledInstanceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+            enabledDeviceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
         }
     }
 
@@ -972,7 +971,7 @@ VkResult fillDeviceExtensionNames(void)
 
     //* Step - 8
     for (uint32_t i = 0; i < enabledDeviceExtensionCount; i++)
-        fprintf(gpFile, "%s() => Enabled Vulkan Device Extension Name : %s\n", __func__, enabledInstanceExtensionNames_array[i]);
+        fprintf(gpFile, "%s() => Enabled Vulkan Device Extension Name : %s\n", __func__, enabledDeviceExtensionNames_array[i]);
 
     return vkResult;
 

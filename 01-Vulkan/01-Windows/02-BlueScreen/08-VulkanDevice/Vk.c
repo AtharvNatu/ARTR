@@ -42,6 +42,16 @@ VkPhysicalDevice vkPhysicalDevice_selected = VK_NULL_HANDLE;
 uint32_t graphicsQueueFamilyIndex_selected = UINT32_MAX;
 VkPhysicalDeviceMemoryProperties vkPhysicalDeviceMemoryProperties;
 
+uint32_t physicalDeviceCount = 0;
+VkPhysicalDevice *vkPhysicalDevice_array = NULL;
+
+//? Device Extensions Related Variables
+uint32_t enabledDeviceExtensionCount = 0;
+const char *enabledDeviceExtensionNames_array[1]; //* -> VK_KHR_SWAPCHAIN_EXTENSTION_NAME
+
+//? Vulkan Device Creation Related Variables
+VkDevice vkDevice = VK_NULL_HANDLE;
+
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
 {
@@ -96,7 +106,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Physical Device"),
+        TEXT("Atharv Natu : Vulkan Logical Device"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -174,7 +184,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
     switch(iMsg)
     {
         case WM_CREATE:
-            memset(&wpPrev, 0, sizeof(WINDOWPLACEMENT));
+            memset((void*)&wpPrev, 0, sizeof(WINDOWPLACEMENT));
             wpPrev.length = sizeof(WINDOWPLACEMENT);
         break;
 
@@ -291,6 +301,8 @@ VkResult initialize(void)
     VkResult createVulkanInstance(void);
     VkResult getSupportedSurface(void);
     VkResult getPhysicalDevice(void);
+    VkResult printVkInfo(void);
+    VkResult createVulkanDevice(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -315,6 +327,20 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => getPhysicalDevice() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => getPhysicalDevice() Succeeded\n", __func__);
+
+    //! Print Vulkan Info
+    vkResult = printVkInfo();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => printVkInfo() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => printVkInfo() Succeeded\n", __func__);
+
+    //! Create Vulkan Device
+    vkResult = createVulkanDevice();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => createVulkanDevice() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => createVulkanDevice() Succeeded\n", __func__);
 
     return vkResult;
 }
@@ -351,9 +377,19 @@ void uninitialize(void)
         ghwnd = NULL;
     }
 
+    //* Step - 5 of Device Creation (Destroy Vulkan Device)
+    if (vkDevice)
+    {
+        vkDeviceWaitIdle(vkDevice);
+        fprintf(gpFile, "%s() => vkDeviceWaitIdle() Succeeded\n", __func__);
+        vkDestroyDevice(vkDevice, NULL);
+        vkDevice = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyDevice() Succeeded\n", __func__);
+    }
+
     //* No need to destroy selected physical device
 
-    //* Step-5 of Presentation Surface
+    //* Step - 5 of Presentation Surface
     if (vkSurfaceKHR)
     {
         vkDestroySurfaceKHR(vkInstance, vkSurfaceKHR, NULL);
@@ -361,7 +397,7 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroySurfaceKHR() Succeeded\n", __func__);
     }
 
-    //* Step-5 of Instance Creation
+    //* Step - 5 of Instance Creation
     if (vkInstance)
     {
         vkDestroyInstance(vkInstance, NULL);
@@ -506,7 +542,7 @@ VkResult fillInstanceExtensionNames(void)
 
         memcpy(instanceExtensionNames_array[i], vkExtensionProperties_array[i].extensionName, strlen(vkExtensionProperties_array[i].extensionName) + 1);
 
-        fprintf(gpFile, "%s() => Vulkan Extension Name : %s\n", __func__, instanceExtensionNames_array[i]);
+        fprintf(gpFile, "%s() => Vulkan Instance Extension Name : %s\n", __func__, instanceExtensionNames_array[i]);
     }
 
     //* Step - 4
@@ -605,8 +641,7 @@ VkResult getPhysicalDevice(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
-    uint32_t physicalDeviceCount = 0;
-
+    
     // Code
 
     //* Step - 2
@@ -626,7 +661,6 @@ VkResult getPhysicalDevice(void)
     }
 
     //* Step - 3
-    VkPhysicalDevice *vkPhysicalDevice_array = NULL;
     vkPhysicalDevice_array = (VkPhysicalDevice*)malloc(physicalDeviceCount * sizeof(VkPhysicalDevice));
     if (vkPhysicalDevice_array == NULL)
     {
@@ -717,15 +751,8 @@ VkResult getPhysicalDevice(void)
 
     //* Step - 5.10
     if (bFound == VK_TRUE)
-    {
         fprintf(gpFile, "%s() => Succeeded To Obtain Graphics Supported Physical Device\n", __func__);
-        if (vkPhysicalDevice_array)
-        {
-            free(vkPhysicalDevice_array);
-            fprintf(gpFile, "%s() => free() Succeeded For vkPhysicalDevice_array\n", __func__);
-            vkPhysicalDevice_array = NULL;
-        }
-    }
+
     //* Step - 6
     else
     {
@@ -765,3 +792,243 @@ VkResult getPhysicalDevice(void)
     return vkResult;
 }
 
+VkResult printVkInfo(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    fprintf(gpFile, "\nVULKAN INFORMATION\n");
+    fprintf(gpFile, "------------------------------------------------------------------------------------------------\n");
+    
+    //* Step - 3.1
+    for (uint32_t i = 0; i < physicalDeviceCount; i++)
+    {
+        //* Step - 3.2
+        VkPhysicalDeviceProperties vkPhysicalDeviceProperties;
+        memset((void*)&vkPhysicalDeviceProperties, 0, sizeof(VkPhysicalDeviceProperties));
+        vkGetPhysicalDeviceProperties(vkPhysicalDevice_array[i], &vkPhysicalDeviceProperties);
+
+        //* Step - 3.3
+        uint32_t majorVersion = VK_API_VERSION_MAJOR(vkPhysicalDeviceProperties.apiVersion);
+        uint32_t minorVersion = VK_API_VERSION_MINOR(vkPhysicalDeviceProperties.apiVersion);
+        uint32_t patchVersion = VK_API_VERSION_PATCH(vkPhysicalDeviceProperties.apiVersion);
+        fprintf(gpFile, "Vulkan API Version : %u.%u.%u\n", majorVersion, minorVersion, patchVersion);
+
+        //* Step - 3.4
+        fprintf(gpFile, "Device Name : %s\n", vkPhysicalDeviceProperties.deviceName);
+
+        //* Step - 3.5
+        switch(vkPhysicalDeviceProperties.deviceType)
+        {
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                fprintf(gpFile, "Device Type : Integrated GPU (iGPU)\n");
+            break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                fprintf(gpFile, "Device Type : Discrete GPU (dGPU)\n");
+            break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                fprintf(gpFile, "Device Type : Virtual GPU (vGPU)\n");
+            break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                fprintf(gpFile, "Device Type : CPU\n");
+            break;
+
+            case VK_PHYSICAL_DEVICE_TYPE_OTHER:
+                fprintf(gpFile, "Device Type : Other\n");
+            break;
+
+            default:
+                fprintf(gpFile, "Device Type : UNKNOWN\n");
+            break;
+        }
+
+        //* Step - 3.6
+        fprintf(gpFile, "Vendor ID : 0x%4x\n", vkPhysicalDeviceProperties.vendorID);
+
+        //* Step - 3.7
+        fprintf(gpFile, "Device ID : 0x%4x\n", vkPhysicalDeviceProperties.deviceID);
+    }
+
+    fprintf(gpFile, "------------------------------------------------------------------------------------------------\n\n");
+
+    //* Step - 3.8
+    if (vkPhysicalDevice_array)
+    {
+        free(vkPhysicalDevice_array);
+        fprintf(gpFile, "%s() => free() Succeeded For vkPhysicalDevice_array\n", __func__);
+        vkPhysicalDevice_array = NULL;
+    }
+
+    return vkResult;
+}
+
+VkResult fillDeviceExtensionNames(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+
+    //* Step - 1
+    uint32_t deviceExtensionCount = 0;
+    vkResult = vkEnumerateDeviceExtensionProperties(vkPhysicalDevice_selected, NULL, &deviceExtensionCount, NULL);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => Call 1 : vkEnumerateDeviceExtensionProperties() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => Call 1 : vkEnumerateDeviceExtensionProperties() Succeeded\n", __func__);
+
+    //* Step - 2
+    VkExtensionProperties *vkExtensionProperties_array = NULL;
+    vkExtensionProperties_array = (VkExtensionProperties*)malloc(deviceExtensionCount * sizeof(VkExtensionProperties));
+    if (vkExtensionProperties_array == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For vkExtensionProperties_array !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    vkResult = vkEnumerateDeviceExtensionProperties(vkPhysicalDevice_selected, NULL, &deviceExtensionCount, vkExtensionProperties_array);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => Call 2 : vkEnumerateDeviceExtensionProperties() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => Call 2 : vkEnumerateDeviceExtensionProperties() Succeeded\n", __func__);
+
+    //* Step - 3
+    char **deviceExtensionNames_array = NULL;
+    deviceExtensionNames_array = (char**)malloc(sizeof(char*) * deviceExtensionCount);
+    if (deviceExtensionNames_array == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For deviceExtensionNames_array !!!\n", __func__);
+        if (vkExtensionProperties_array)
+        {
+            free(vkExtensionProperties_array);
+            vkExtensionProperties_array = NULL;
+        }
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    for (uint32_t i = 0; i < deviceExtensionCount; i++)
+    {
+        deviceExtensionNames_array[i] = (char*)malloc(sizeof(char) * (strlen(vkExtensionProperties_array[i].extensionName) + 1));
+        if (deviceExtensionNames_array[i] == NULL)
+        {
+            fprintf(gpFile, "%s() => malloc() Failed For deviceExtensionNames_array[%d] !!!\n", __func__, i);
+            if (deviceExtensionNames_array)
+            {
+                free(deviceExtensionNames_array);
+                deviceExtensionNames_array = NULL;
+            }
+            if (vkExtensionProperties_array)
+            {
+                free(vkExtensionProperties_array);
+                vkExtensionProperties_array = NULL;
+            }
+            return VK_ERROR_OUT_OF_HOST_MEMORY;
+        }
+
+        memcpy(deviceExtensionNames_array[i], vkExtensionProperties_array[i].extensionName, strlen(vkExtensionProperties_array[i].extensionName) + 1);
+
+        fprintf(gpFile, "%s() => Vulkan Device Extension Name : %s\n", __func__, deviceExtensionNames_array[i]);
+    }
+
+    fprintf(gpFile, "\n------------------------------------------------------------------------------------------------\n");
+    fprintf(gpFile, "%s() => Vulkan Device Extension Count : %d\n", __func__, deviceExtensionCount);
+    fprintf(gpFile, "------------------------------------------------------------------------------------------------\n\n");
+
+    //* Step - 4
+    if (vkExtensionProperties_array)
+    {
+        free(vkExtensionProperties_array);
+        vkExtensionProperties_array = NULL;
+    }
+
+    //* Step - 5
+    VkBool32 vulkanSwapchainExtensionFound = VK_FALSE;
+    for (uint32_t i = 0; i < deviceExtensionCount; i++)
+    {
+        if (strcmp(deviceExtensionNames_array[i], VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+        {
+            vulkanSwapchainExtensionFound = VK_TRUE;
+            enabledDeviceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+        }
+    }
+
+    //* Step - 6
+    if (deviceExtensionNames_array)
+    {
+        for (uint32_t i = 0; i < deviceExtensionCount; i++)
+        {
+            free(deviceExtensionNames_array[i]);
+            deviceExtensionNames_array[i] = NULL;
+        }
+        free(deviceExtensionNames_array);
+        deviceExtensionNames_array = NULL;
+    }
+    
+    //* Step - 7
+    if (vulkanSwapchainExtensionFound == VK_FALSE)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => VK_KHR_SWAPCHAIN_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => VK_KHR_SWAPCHAIN_EXTENSION_NAME Extension Found\n", __func__);
+
+    //* Step - 8
+    for (uint32_t i = 0; i < enabledDeviceExtensionCount; i++)
+        fprintf(gpFile, "%s() => Enabled Vulkan Device Extension Name : %s\n", __func__, enabledDeviceExtensionNames_array[i]);
+
+    return vkResult;
+
+}
+
+VkResult createVulkanDevice(void)
+{
+    // Function Declaration
+    VkResult fillDeviceExtensionNames(void);
+
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+
+    //* Step - 1
+    vkResult = fillDeviceExtensionNames();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => fillDeviceExtensionNames() Failed : %d !!!\n", __func__, vkResult);
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }      
+    else
+        fprintf(gpFile, "%s() => fillDeviceExtensionNames() Succeeded\n", __func__);
+
+    
+    //* Step - 2
+    VkDeviceCreateInfo vkDeviceCreateInfo;
+    memset((void*)&vkDeviceCreateInfo, 0, sizeof(VkDeviceCreateInfo));
+    vkDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    vkDeviceCreateInfo.pNext = NULL;
+    vkDeviceCreateInfo.flags = 0;
+    vkDeviceCreateInfo.enabledExtensionCount = enabledDeviceExtensionCount;
+    vkDeviceCreateInfo.ppEnabledExtensionNames = enabledDeviceExtensionNames_array;
+    vkDeviceCreateInfo.pEnabledFeatures = NULL;
+    //? Deprecated in Vulkan Spec
+    vkDeviceCreateInfo.enabledLayerCount = 0;
+    vkDeviceCreateInfo.ppEnabledLayerNames = NULL;
+
+    //* Step - 3
+    vkResult = vkCreateDevice(vkPhysicalDevice_selected, &vkDeviceCreateInfo, NULL, &vkDevice);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkCreateDevice() Failed : %d !!!\n", __func__, vkResult);
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }      
+    else
+        fprintf(gpFile, "%s() => vkCreateDevice() Succeeded\n", __func__);
+
+    return vkResult;
+}
