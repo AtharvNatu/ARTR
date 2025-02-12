@@ -1002,6 +1002,7 @@ VkResult createVulkanDevice(void)
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
+    float queuePriorities[1] = { 1.0f };
 
     // Code
 
@@ -1024,8 +1025,8 @@ VkResult createVulkanDevice(void)
     vkDeviceQueueCreateInfo.pNext = NULL;
     vkDeviceQueueCreateInfo.flags = 0;
     vkDeviceQueueCreateInfo.queueFamilyIndex = graphicsQueueFamilyIndex_selected;
-    vkDeviceQueueCreateInfo.queueCount = 1;             //* Total Queues to be created
-    vkDeviceQueueCreateInfo.pQueuePriorities = NULL;    //* Default priority
+    vkDeviceQueueCreateInfo.queueCount = 1;
+    vkDeviceQueueCreateInfo.pQueuePriorities = queuePriorities;
 
     VkDeviceCreateInfo vkDeviceCreateInfo;
     memset((void*)&vkDeviceCreateInfo, 0, sizeof(VkDeviceCreateInfo));
