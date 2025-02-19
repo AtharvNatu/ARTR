@@ -1191,12 +1191,21 @@ VkResult getPhysicalDevicePresentMode(void)
         if (vkPresentModeKHR_array[i] == VK_PRESENT_MODE_MAILBOX_KHR)
         {
             vkPresentModeKHR = VK_PRESENT_MODE_MAILBOX_KHR;
+            fprintf(gpFile, "\n------------------------------------------------------------------------------------------------\n");
+            fprintf(gpFile, "Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR");
+            fprintf(gpFile, "\n------------------------------------------------------------------------------------------------\n");
             break;
         }
     }
 
     if (vkPresentModeKHR != VK_PRESENT_MODE_MAILBOX_KHR)
+    {
         vkPresentModeKHR = VK_PRESENT_MODE_FIFO_KHR;
+        fprintf(gpFile, "\n------------------------------------------------------------------------------------------------\n");
+        fprintf(gpFile, "Vulkan Physical Device Present Mode : VK_PRESENT_MODE_FIFO_KHR");
+        fprintf(gpFile, "\n------------------------------------------------------------------------------------------------\n\n");
+    }
+        
 
     //* Step - 5
     if (vkPresentModeKHR_array)

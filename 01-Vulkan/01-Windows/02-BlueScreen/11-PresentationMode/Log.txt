@@ -305,6 +305,10 @@ getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceF
 initialize() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
 getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
 getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+
+------------------------------------------------------------------------------------------------
+Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
+------------------------------------------------------------------------------------------------
 getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
 initialize() => getPhysicalDevicePresentMode() Succeeded
 WinMain() => initialize() Succeeded
