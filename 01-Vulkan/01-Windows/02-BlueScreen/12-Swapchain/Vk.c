@@ -1268,7 +1268,7 @@ VkResult createSwapchain(VkBool32 vsync)
     {
         vkExtent2D_swapchain.width = vkSurfaceCapabilitiesKHR.currentExtent.width;
         vkExtent2D_swapchain.height = vkSurfaceCapabilitiesKHR.currentExtent.height;
-        fprintf(gpFile, "%s() => Swapchain Image Width x Swapchain Image Height = %d x %d\n", __func__, vkExtent2D_swapchain.width, vkExtent2D_swapchain.height);
+        fprintf(gpFile, "%s() => [If Block] => Swapchain Image Width x Swapchain Image Height = %d x %d\n", __func__, vkExtent2D_swapchain.width, vkExtent2D_swapchain.height);
     }
     else
     {
@@ -1289,7 +1289,7 @@ VkResult createSwapchain(VkBool32 vsync)
             min(vkSurfaceCapabilitiesKHR.maxImageExtent.height, vkExtent2D.height)
         );
 
-        fprintf(gpFile, "%s() => Swapchain Image Width x Swapchain Image Height = %d x %d\n", __func__, vkExtent2D_swapchain.width, vkExtent2D_swapchain.height);
+        fprintf(gpFile, "%s() => [Else Block] => Swapchain Image Width x Swapchain Image Height = %d x %d\n", __func__, vkExtent2D_swapchain.width, vkExtent2D_swapchain.height);
     }
 
     //* Step - 5
