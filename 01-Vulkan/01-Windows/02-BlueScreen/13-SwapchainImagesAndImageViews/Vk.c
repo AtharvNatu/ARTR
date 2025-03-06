@@ -68,6 +68,11 @@ VkExtent2D vkExtent2D_swapchain;
 int winWidth = WIN_WIDTH;
 int winHeight = WIN_HEIGHT;
 
+//? Swapchain Images and Image Views
+uint32_t swapchainImageCount = UINT32_MAX;
+VkImage *swapchainImage_array = NULL;
+VkImageView *swapchainImageView_array = NULL;
+
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
 {
@@ -122,7 +127,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Swapchain"),
+        TEXT("Atharv Natu : Vulkan Swapchain Images and Image Views"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -321,6 +326,7 @@ VkResult initialize(void)
     VkResult createVulkanDevice(void);
     void getDeviceQueue(void);
     VkResult createSwapchain(VkBool32);
+    VkResult createImagesAndImageViews(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -373,6 +379,19 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createSwapchain() Succeeded\n", __func__);
+
+    //! Create Swapchain Image and Image Views
+    vkResult = createImagesAndImageViews();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createImagesAndImageViews() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+    {
+        fprintf(gpFile, "%s() => createImagesAndImageViews() Succeeded\n", __func__);
+    }
     
     return vkResult;
 }
@@ -408,12 +427,26 @@ void uninitialize(void)
         DestroyWindow(ghwnd);
         ghwnd = NULL;
     }
-    
+
     //* Step - 5 of Device Creation (Destroy Vulkan Device)
+    //! vkDeviceWaitIdle(vkDevice) should be the 1st API to maintain synchronization
     if (vkDevice)
     {
         vkDeviceWaitIdle(vkDevice);
         fprintf(gpFile, "%s() => vkDeviceWaitIdle() Succeeded\n", __func__);
+    }
+
+    //* Step - 7 of Swapchain Image and Image Views
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+        vkDestroyImageView(vkDevice, swapchainImageView_array[i], NULL);
+    fprintf(gpFile, "%s() => vkDestroyImageView() Succeeded\n", __func__);
+
+    //* Step - 8 of Swapchain Image and Image Views
+    if (swapchainImageView_array)
+    {
+        free(swapchainImageView_array);
+        swapchainImageView_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For swapchainImageView_array\n", __func__);
     }
 
     //* Step - 10 of Swapchain (Destroy Swapchain)
@@ -1346,5 +1379,82 @@ VkResult createSwapchain(VkBool32 vsync)
 
 
     return VK_SUCCESS;
+}
+
+VkResult createImagesAndImageViews(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+
+    //* Step - 1
+    vkResult = vkGetSwapchainImagesKHR(vkDevice, vkSwapchainKHR, &swapchainImageCount, NULL);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => Call 1 : vkGetSwapchainImagesKHR() Failed : %d !!!\n", __func__, vkResult);
+    else if (swapchainImageCount == 0)
+    {
+        fprintf(gpFile, "%s() => Call 1 : vkGetSwapchainImagesKHR() Returned 0 Images !!!\n", __func__);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = %d\n", __func__, swapchainImageCount);
+
+
+    //* Step - 2
+    swapchainImage_array = (VkImage*)malloc(swapchainImageCount * sizeof(VkImage));
+    if (swapchainImage_array == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For swapchainImage_array !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    //* Step - 3
+    vkResult = vkGetSwapchainImagesKHR(vkDevice, vkSwapchainKHR, &swapchainImageCount, swapchainImage_array);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => Call 2 : vkGetSwapchainImagesKHR() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => Call 2 : vkGetSwapchainImagesKHR() Succeeded\n", __func__);
+
+
+    //* Step - 4
+    swapchainImageView_array = (VkImageView*)malloc(swapchainImageCount * sizeof(VkImageView));
+    if (swapchainImageView_array == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For swapchainImageView_array !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    //* Step - 5
+    VkImageViewCreateInfo vkImageViewCreateInfo;
+    memset((void*)&vkImageViewCreateInfo, 0, sizeof(VkImageViewCreateInfo));
+    vkImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    vkImageViewCreateInfo.pNext = NULL;
+    vkImageViewCreateInfo.flags = 0;
+    vkImageViewCreateInfo.format = vkFormat_color;
+    vkImageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+    vkImageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+    vkImageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+    vkImageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+    vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    vkImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+    vkImageViewCreateInfo.subresourceRange.levelCount = 1;
+    vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+    vkImageViewCreateInfo.subresourceRange.layerCount = 1;
+    vkImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+
+    //* Step - 6
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    {
+        vkImageViewCreateInfo.image = swapchainImage_array[i];
+        vkResult = vkCreateImageView(vkDevice, &vkImageViewCreateInfo, NULL, &swapchainImageView_array[i]);
+        if (vkResult != VK_SUCCESS)
+            fprintf(gpFile, "%s() => vkCreateImageView() Failed For Index : %d, Error Code : %d !!!\n", __func__, i, vkResult);
+        else
+            fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For Index : %d\n", __func__, i);
+    }
+
+    return vkResult;
 }
 
