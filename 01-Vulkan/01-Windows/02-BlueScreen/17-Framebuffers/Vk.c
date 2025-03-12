@@ -79,6 +79,12 @@ VkCommandPool vkCommandPool = VK_NULL_HANDLE;
 //? Command Buffer
 VkCommandBuffer *vkCommandBuffer_array = NULL;
 
+//? Render Pass
+VkRenderPass vkRenderPass = VK_NULL_HANDLE;
+
+//? Frame Buffer
+VkFramebuffer *vkFramebuffer_array = NULL;
+
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
 {
@@ -133,7 +139,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Command Buffer"),
+        TEXT("Atharv Natu : Vulkan Frame Buffers"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -335,6 +341,8 @@ VkResult initialize(void)
     VkResult createImagesAndImageViews(void);
     VkResult createCommandPool(void);
     VkResult createCommandBuffers(void);
+    VkResult createRenderPass(void);
+    VkResult createFramebuffers(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -420,6 +428,28 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createCommandBuffers() Succeeded\n", __func__);
+
+    //! Create Render Pass
+    vkResult = createRenderPass();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createRenderPass() Succeeded\n", __func__);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createRenderPass() Succeeded\n", __func__);
+
+    //! Create Framebuffers
+    vkResult = createFramebuffers();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createFramebuffers() Succeeded\n", __func__);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createFramebuffers() Succeeded\n", __func__);
     
     return vkResult;
 }
@@ -462,6 +492,25 @@ void uninitialize(void)
     {
         vkDeviceWaitIdle(vkDevice);
         fprintf(gpFile, "%s() => vkDeviceWaitIdle() Succeeded\n", __func__);
+    }
+
+    //* Step - 5 of Frame Buffer
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+        vkDestroyFramebuffer(vkDevice, vkFramebuffer_array[i], NULL);
+
+    if (vkFramebuffer_array)
+    {
+        free(vkFramebuffer_array);
+        vkFramebuffer_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For vkFramebuffer_array\n", __func__);
+    }
+
+    //* Step - 6 of Render Pass
+    if (vkRenderPass)
+    {
+        vkDestroyRenderPass(vkDevice, vkRenderPass, NULL);
+        vkRenderPass = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyRenderPass() Succeeded\n", __func__);
     }
 
     //* Step - 5 of Command Buffer
@@ -1564,4 +1613,112 @@ VkResult createCommandBuffers(void)
     return vkResult;
 }
 
+VkResult createRenderPass(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    //* Step - 1
+
+    //! Color Attachment (Graphics Pipeline)
+    VkAttachmentDescription vkAttachmentDescription_array[1];
+    memset((void*)vkAttachmentDescription_array, 0, sizeof(VkAttachmentDescription) * _ARRAYSIZE(vkAttachmentDescription_array));
+    vkAttachmentDescription_array[0].flags = 0;
+    vkAttachmentDescription_array[0].format = vkFormat_color;
+    vkAttachmentDescription_array[0].samples = VK_SAMPLE_COUNT_1_BIT; //* No MSAA
+    vkAttachmentDescription_array[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    vkAttachmentDescription_array[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    vkAttachmentDescription_array[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    vkAttachmentDescription_array[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vkAttachmentDescription_array[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vkAttachmentDescription_array[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    //* Step - 2
+    VkAttachmentReference vkAttachmentReference;
+    memset((void*)&vkAttachmentReference, 0, sizeof(VkAttachmentReference));
+    vkAttachmentReference.attachment = 0;   //* 0 specifies 0th index in above array
+    vkAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    //* Step - 3
+    VkSubpassDescription vkSubpassDescription;
+    memset((void*)&vkSubpassDescription, 0, sizeof(VkSubpassDescription));
+    vkSubpassDescription.flags = 0;
+    vkSubpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    vkSubpassDescription.inputAttachmentCount = 0;
+    vkSubpassDescription.pInputAttachments = NULL;
+    vkSubpassDescription.colorAttachmentCount = _ARRAYSIZE(vkAttachmentDescription_array);
+    vkSubpassDescription.pColorAttachments = &vkAttachmentReference;
+    vkSubpassDescription.pDepthStencilAttachment = NULL;
+    vkSubpassDescription.pPreserveAttachments = NULL;
+    vkSubpassDescription.pResolveAttachments = NULL;
+
+    //* Step - 4
+    VkRenderPassCreateInfo vkRenderPassCreateInfo;
+    memset((void*)&vkRenderPassCreateInfo, 0, sizeof(VkRenderPassCreateInfo));
+    vkRenderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    vkRenderPassCreateInfo.pNext = NULL;
+    vkRenderPassCreateInfo.flags = 0;
+    vkRenderPassCreateInfo.attachmentCount = _ARRAYSIZE(vkAttachmentDescription_array);
+    vkRenderPassCreateInfo.pAttachments = vkAttachmentDescription_array;
+    vkRenderPassCreateInfo.subpassCount = 1;
+    vkRenderPassCreateInfo.pSubpasses = &vkSubpassDescription;
+    vkRenderPassCreateInfo.dependencyCount = 0;
+    vkRenderPassCreateInfo.pDependencies = NULL;
+
+    //* Step - 5
+    vkResult = vkCreateRenderPass(vkDevice, &vkRenderPassCreateInfo, NULL, &vkRenderPass);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateRenderPass() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateRenderPass() Succeeded\n", __func__);
+
+    return vkResult;
+}
+
+VkResult createFramebuffers(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    //* Step - 1
+    VkImageView vkImageView_attachments_array[1];
+    memset((void*)vkImageView_attachments_array, 0, sizeof(VkImageView) * _ARRAYSIZE(vkImageView_attachments_array));
+
+    //* Step - 2
+    VkFramebufferCreateInfo vkFramebufferCreateInfo;
+    memset((void*)&vkFramebufferCreateInfo, 0, sizeof(VkFramebufferCreateInfo));
+    vkFramebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    vkFramebufferCreateInfo.flags = 0;
+    vkFramebufferCreateInfo.pNext = NULL;
+    vkFramebufferCreateInfo.attachmentCount = _ARRAYSIZE(vkImageView_attachments_array);
+    vkFramebufferCreateInfo.pAttachments = vkImageView_attachments_array;
+    vkFramebufferCreateInfo.renderPass = vkRenderPass;
+    vkFramebufferCreateInfo.width = vkExtent2D_swapchain.width;
+    vkFramebufferCreateInfo.height = vkExtent2D_swapchain.height;
+    vkFramebufferCreateInfo.layers = 1;
+
+    //* Step - 3
+    vkFramebuffer_array = (VkFramebuffer*)malloc(sizeof(VkFramebuffer) * swapchainImageCount);
+    if (vkFramebuffer_array == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For vkFramebuffer_array !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    //* Step - 4
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    {
+        vkImageView_attachments_array[0] = swapchainImageView_array[i];
+
+        vkResult = vkCreateFramebuffer(vkDevice, &vkFramebufferCreateInfo, NULL, &vkFramebuffer_array[i]);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => vkCreateFramebuffer() Failed For Index : %d, Reason : %d !!!\n", __func__, i, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+    }
+
+    return vkResult;
+}
 

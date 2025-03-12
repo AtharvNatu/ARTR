@@ -1495,7 +1495,7 @@ VkResult createCommandPool(void)
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkCreateCommandPool() Failed : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateCommandPool() Succeeded\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateCommandPool() Succeeded\n", __func__);
 
     return vkResult;
 }
