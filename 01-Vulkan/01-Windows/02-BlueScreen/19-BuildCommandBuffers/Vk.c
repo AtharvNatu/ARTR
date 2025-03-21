@@ -85,6 +85,14 @@ VkRenderPass vkRenderPass = VK_NULL_HANDLE;
 //? Frame Buffer
 VkFramebuffer *vkFramebuffer_array = NULL;
 
+//? Fences and Semaphores
+VkSemaphore vkSemaphore_backBuffer = VK_NULL_HANDLE;
+VkSemaphore vkSemaphore_renderComplete = VK_NULL_HANDLE;
+VkFence *vkFence_array = NULL;
+
+//? Clear Color Values
+VkClearColorValue vkClearColorValue;
+
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
 {
@@ -139,7 +147,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Frame Buffers"),
+        TEXT("Atharv Natu : Vulkan Build Command Buffers"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -343,6 +351,9 @@ VkResult initialize(void)
     VkResult createCommandBuffers(void);
     VkResult createRenderPass(void);
     VkResult createFramebuffers(void);
+    VkResult createSemaphores(void);
+    VkResult createFences(void);
+    VkResult buildCommandBuffers(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -450,6 +461,45 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createFramebuffers() Succeeded\n", __func__);
+
+    //! Create Semaphores
+    vkResult = createSemaphores();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createSemaphores() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createSemaphores() Succeeded\n", __func__);
+
+    //! Create Fences
+    vkResult = createFences();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createFences() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createFences() Succeeded\n", __func__);
+
+    //! Initialize Clear Color Values
+    memset((void*)&vkClearColorValue, 0, sizeof(VkClearColorValue));
+    vkClearColorValue.float32[0] = 0.0f;
+    vkClearColorValue.float32[1] = 0.0f;
+    vkClearColorValue.float32[2] = 1.0f;
+    vkClearColorValue.float32[3] = 1.0f;    //! Analogous to glClearColor()
+
+    vkResult = buildCommandBuffers();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => buildCommandBuffers() Failed\n", __func__);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => buildCommandBuffers() Succeeded\n", __func__);
     
     return vkResult;
 }
@@ -494,6 +544,33 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDeviceWaitIdle() Succeeded\n", __func__);
     }
 
+    //* Step - 7 of Fences and Semaphores
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    {
+        vkDestroyFence(vkDevice, vkFence_array[i], NULL);
+        fprintf(gpFile, "%s() => vkDestroyFence() Succeeded For Index : %d\n", __func__, i);
+    }
+    if (vkFence_array)
+    {
+        free(vkFence_array);
+        vkFence_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For vkFence_array\n", __func__);
+    }
+
+    if (vkSemaphore_renderComplete)
+    {
+        vkDestroySemaphore(vkDevice, vkSemaphore_renderComplete, NULL);
+        fprintf(gpFile, "%s() => vkDestroySemaphore() Succeeded For vkSemaphore_renderComplete\n", __func__);
+        vkSemaphore_renderComplete = VK_NULL_HANDLE;
+    }
+
+    if (vkSemaphore_backBuffer)
+    {
+        vkDestroySemaphore(vkDevice, vkSemaphore_backBuffer, NULL);
+        fprintf(gpFile, "%s() => vkDestroySemaphore() Succeeded For vkSemaphore_backBuffer\n", __func__);
+        vkSemaphore_backBuffer = VK_NULL_HANDLE;
+    }
+
     //* Step - 5 of Frame Buffer
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
@@ -506,7 +583,6 @@ void uninitialize(void)
         vkFramebuffer_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkFramebuffer_array\n", __func__);
     }
-
 
     //* Step - 6 of Render Pass
     if (vkRenderPass)
@@ -1725,3 +1801,148 @@ VkResult createFramebuffers(void)
     return vkResult;
 }
 
+VkResult createSemaphores(void)
+{
+    // Code
+    VkResult vkResult = VK_SUCCESS;
+
+    //* Step - 2
+    VkSemaphoreCreateInfo vkSemaphoreCreateInfo;
+    memset((void*)&vkSemaphoreCreateInfo, 0, sizeof(VkSemaphoreCreateInfo));
+    vkSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    vkSemaphoreCreateInfo.flags = 0;    //! Must Be 0 (Reserved)
+    vkSemaphoreCreateInfo.pNext = NULL;
+
+    //* Step - 3
+    vkResult = vkCreateSemaphore(vkDevice, &vkSemaphoreCreateInfo, NULL, &vkSemaphore_backBuffer);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkCreateSemaphore() Failed For vkSemaphore_backBuffer : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+
+    vkResult = vkCreateSemaphore(vkDevice, &vkSemaphoreCreateInfo, NULL, &vkSemaphore_renderComplete);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkCreateSemaphore() Failed For vkSemaphore_renderComplete : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+
+    return vkResult;
+}
+
+VkResult createFences(void)
+{
+    // Code
+    VkResult vkResult = VK_SUCCESS;
+
+    //* Step - 4
+    VkFenceCreateInfo vkFenceCreateInfo;
+    memset((void*)&vkFenceCreateInfo, 0, sizeof(VkFenceCreateInfo));
+    vkFenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    vkFenceCreateInfo.pNext = NULL;
+    vkFenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    //* Step - 5
+    vkFence_array = (VkFence*)malloc(sizeof(VkFence) * swapchainImageCount);
+    if (vkFence_array == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For vkFence_array !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    //* Step - 6
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    {
+        vkResult = vkCreateFence(vkDevice, &vkFenceCreateInfo, NULL, &vkFence_array[i]);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => vkCreateFence() Failed For Index : %d, Reason : %d\n", __func__, i, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        else
+            fprintf(gpFile, "%s() => vkCreateFence() Succeeded For Index : %d\n", __func__, i);
+    }
+
+    return vkResult;
+}
+
+VkResult buildCommandBuffers(void)
+{
+    // Code
+    VkResult vkResult = VK_SUCCESS;
+
+    //! Loop per swapchain image
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    {
+        //* Step - 1 => Reset Command Buffer
+        vkResult = vkResetCommandBuffer(vkCommandBuffer_array[i], 0);   //! 0 specifies not to release the resources
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => vkResetCommandBuffer() Failed For Index : %d, Reason : %d\n", __func__, i, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        else
+            fprintf(gpFile, "%s() => vkResetCommandBuffer() Succeeded For Index : %d\n", __func__, i);
+
+        //* Step - 2
+        VkCommandBufferBeginInfo vkCommandBufferBeginInfo;
+        memset((void*)&vkCommandBufferBeginInfo, 0, sizeof(VkCommandBufferBeginInfo));
+        vkCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        vkCommandBufferBeginInfo.pNext = NULL;
+        vkCommandBufferBeginInfo.flags = 0;     //! 0 specifies that we will use only the primary command buffer, and not going to use this command buffer simultaneously between multiple threads
+
+        //* Step - 3
+        vkResult = vkBeginCommandBuffer(vkCommandBuffer_array[i], &vkCommandBufferBeginInfo);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => vkBeginCommandBuffer() Failed For Index : %d, Reason : %d\n", __func__, i, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        else
+            fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded For Index : %d\n", __func__, i);
+
+        //* Step - 4 => Set Clear Value
+        VkClearValue vkClearValue_array[1];
+        memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
+        vkClearValue_array[0].color = vkClearColorValue;
+
+        //* Step - 5
+        VkRenderPassBeginInfo vkRenderPassBeginInfo;
+        memset((void*)&vkRenderPassBeginInfo, 0, sizeof(VkRenderPassBeginInfo));
+        vkRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        vkRenderPassBeginInfo.pNext = NULL;
+        vkRenderPassBeginInfo.renderPass = vkRenderPass;
+        vkRenderPassBeginInfo.renderArea.offset.x = 0;
+        vkRenderPassBeginInfo.renderArea.offset.y = 0;
+        vkRenderPassBeginInfo.renderArea.extent.width = vkExtent2D_swapchain.width;
+        vkRenderPassBeginInfo.renderArea.extent.height = vkExtent2D_swapchain.height;
+        vkRenderPassBeginInfo.clearValueCount = _ARRAYSIZE(vkClearValue_array);
+        vkRenderPassBeginInfo.pClearValues = vkClearValue_array;
+        vkRenderPassBeginInfo.framebuffer = vkFramebuffer_array[i];
+        
+        //* Step - 6
+        vkCmdBeginRenderPass(vkCommandBuffer_array[i], &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        //* Step - 7
+        vkCmdEndRenderPass(vkCommandBuffer_array[i]);
+
+        //* Step - 8
+        vkResult = vkEndCommandBuffer(vkCommandBuffer_array[i]);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => vkEndCommandBuffer() Failed For Index : %d, Reason : %d\n", __func__, i, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        else
+            fprintf(gpFile, "%s() => vkEndCommandBuffer() Succeeded For Index : %d\n", __func__, i);
+    }
+
+    return vkResult;
+}

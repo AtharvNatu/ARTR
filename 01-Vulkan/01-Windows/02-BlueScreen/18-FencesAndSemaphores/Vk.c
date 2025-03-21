@@ -85,6 +85,11 @@ VkRenderPass vkRenderPass = VK_NULL_HANDLE;
 //? Frame Buffer
 VkFramebuffer *vkFramebuffer_array = NULL;
 
+//? Fences and Semaphores
+VkSemaphore vkSemaphore_backBuffer = VK_NULL_HANDLE;
+VkSemaphore vkSemaphore_renderComplete = VK_NULL_HANDLE;
+VkFence *vkFence_array = NULL;
+
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
 {
@@ -139,7 +144,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Frame Buffers"),
+        TEXT("Atharv Natu : Vulkan Fences and Semaphores"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -343,6 +348,8 @@ VkResult initialize(void)
     VkResult createCommandBuffers(void);
     VkResult createRenderPass(void);
     VkResult createFramebuffers(void);
+    VkResult createSemaphores(void);
+    VkResult createFences(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -450,6 +457,28 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createFramebuffers() Succeeded\n", __func__);
+
+    //! Create Semaphores
+    vkResult = createSemaphores();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createSemaphores() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createSemaphores() Succeeded\n", __func__);
+
+    //! Create Fences
+    vkResult = createFences();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createFences() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createFences() Succeeded\n", __func__);
     
     return vkResult;
 }
@@ -494,6 +523,33 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDeviceWaitIdle() Succeeded\n", __func__);
     }
 
+    //* Step - 7 of Fences and Semaphores
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    {
+        vkDestroyFence(vkDevice, vkFence_array[i], NULL);
+        fprintf(gpFile, "%s() => vkDestroyFence() Succeeded For Index : %d\n", __func__, i);
+    }
+    if (vkFence_array)
+    {
+        free(vkFence_array);
+        vkFence_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For vkFence_array\n", __func__);
+    }
+
+    if (vkSemaphore_renderComplete)
+    {
+        vkDestroySemaphore(vkDevice, vkSemaphore_renderComplete, NULL);
+        fprintf(gpFile, "%s() => vkDestroySemaphore() Succeeded For vkSemaphore_renderComplete\n", __func__);
+        vkSemaphore_renderComplete = VK_NULL_HANDLE;
+    }
+
+    if (vkSemaphore_backBuffer)
+    {
+        vkDestroySemaphore(vkDevice, vkSemaphore_backBuffer, NULL);
+        fprintf(gpFile, "%s() => vkDestroySemaphore() Succeeded For vkSemaphore_backBuffer\n", __func__);
+        vkSemaphore_backBuffer = VK_NULL_HANDLE;
+    }
+
     //* Step - 5 of Frame Buffer
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
@@ -506,7 +562,6 @@ void uninitialize(void)
         vkFramebuffer_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkFramebuffer_array\n", __func__);
     }
-
 
     //* Step - 6 of Render Pass
     if (vkRenderPass)
@@ -1720,6 +1775,75 @@ VkResult createFramebuffers(void)
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
             return vkResult;
         }
+    }
+
+    return vkResult;
+}
+
+VkResult createSemaphores(void)
+{
+    // Code
+    VkResult vkResult = VK_SUCCESS;
+
+    //* Step - 2
+    VkSemaphoreCreateInfo vkSemaphoreCreateInfo;
+    memset((void*)&vkSemaphoreCreateInfo, 0, sizeof(VkSemaphoreCreateInfo));
+    vkSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    vkSemaphoreCreateInfo.flags = 0;    //! Must Be 0 (Reserved)
+    vkSemaphoreCreateInfo.pNext = NULL;
+
+    //* Step - 3
+    vkResult = vkCreateSemaphore(vkDevice, &vkSemaphoreCreateInfo, NULL, &vkSemaphore_backBuffer);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkCreateSemaphore() Failed For vkSemaphore_backBuffer : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+
+    vkResult = vkCreateSemaphore(vkDevice, &vkSemaphoreCreateInfo, NULL, &vkSemaphore_renderComplete);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkCreateSemaphore() Failed For vkSemaphore_renderComplete : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+
+    return vkResult;
+}
+
+VkResult createFences(void)
+{
+    // Code
+    VkResult vkResult = VK_SUCCESS;
+
+    //* Step - 4
+    VkFenceCreateInfo vkFenceCreateInfo;
+    memset((void*)&vkFenceCreateInfo, 0, sizeof(VkFenceCreateInfo));
+    vkFenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    vkFenceCreateInfo.pNext = NULL;
+    vkFenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    //* Step - 5
+    vkFence_array = (VkFence*)malloc(sizeof(VkFence) * swapchainImageCount);
+    if (vkFence_array == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For vkFence_array !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    //* Step - 6
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    {
+        vkResult = vkCreateFence(vkDevice, &vkFenceCreateInfo, NULL, &vkFence_array[i]);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => vkCreateFence() Failed For Index : %d, Reason : %d\n", __func__, i, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        else
+            fprintf(gpFile, "%s() => vkCreateFence() Succeeded For Index : %d\n", __func__, i);
     }
 
     return vkResult;
