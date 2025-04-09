@@ -592,7 +592,7 @@ VkResult createVulkanInstance(void)
     } 
     else if (vkResult == VK_ERROR_EXTENSION_NOT_PRESENT)
     {
-        fprintf(gpFile, "%s() => vkCreateInstance() Failed Becase Required Extension Is Not Present : %d!!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateInstance() Failed Because Required Extension Is Not Present : %d!!!\n", __func__, vkResult);
         return vkResult;
     }
     else if (vkResult != VK_SUCCESS)
