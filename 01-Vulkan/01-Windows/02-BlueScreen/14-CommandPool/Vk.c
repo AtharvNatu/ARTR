@@ -470,6 +470,13 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => free() Succeeded For swapchainImageView_array\n", __func__);
     }
 
+    if (swapchainImage_array)
+    {
+        free(swapchainImage_array);
+        swapchainImage_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For swapchainImage_array\n", __func__);
+    }
+
     //* Step - 10 of Swapchain (Destroy Swapchain)
     if (vkSwapchainKHR)
     {
