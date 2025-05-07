@@ -125,7 +125,7 @@ VkShaderModule vkShaderModule_fragment_shader = VK_NULL_HANDLE;
 //? DescriptorSetLayout Related Variables
 VkDescriptorSetLayout vkDescriptorSetLayout = VK_NULL_HANDLE;
 
-//? Pipeline Layout
+//? PipelineLayout Related Variables
 VkPipelineLayout vkPipelineLayout = VK_NULL_HANDLE;
 
 // Entry Point Function
