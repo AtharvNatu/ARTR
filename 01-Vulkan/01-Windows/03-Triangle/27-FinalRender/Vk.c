@@ -2618,7 +2618,7 @@ VkResult createPipeline(void)
     //! Color Blend State
     VkPipelineColorBlendAttachmentState vkPipelineColorBlendAttachmentState_array[1];
     memset((void*)vkPipelineColorBlendAttachmentState_array, 0, sizeof(VkPipelineColorBlendAttachmentState) * _ARRAYSIZE(vkPipelineColorBlendAttachmentState_array));
-    vkPipelineColorBlendAttachmentState_array[0].colorWriteMask = 0xf;
+    vkPipelineColorBlendAttachmentState_array[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     vkPipelineColorBlendAttachmentState_array[0].blendEnable = VK_FALSE;
 
     VkPipelineColorBlendStateCreateInfo vkPipelineColorBlendStateCreateInfo;
