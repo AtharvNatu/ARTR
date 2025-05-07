@@ -187,7 +187,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Pipeline"),
+        TEXT("Atharv Natu : Vulkan Triangle"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -2618,6 +2618,7 @@ VkResult createPipeline(void)
     //! Color Blend State
     VkPipelineColorBlendAttachmentState vkPipelineColorBlendAttachmentState_array[1];
     memset((void*)vkPipelineColorBlendAttachmentState_array, 0, sizeof(VkPipelineColorBlendAttachmentState) * _ARRAYSIZE(vkPipelineColorBlendAttachmentState_array));
+    vkPipelineColorBlendAttachmentState_array[0].colorWriteMask = 0xf;
     vkPipelineColorBlendAttachmentState_array[0].blendEnable = VK_FALSE;
 
     VkPipelineColorBlendStateCreateInfo vkPipelineColorBlendStateCreateInfo;
@@ -2921,7 +2922,18 @@ VkResult buildCommandBuffers(void)
         
         //* Step - 6
         vkCmdBeginRenderPass(vkCommandBuffer_array[i], &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        {
+            //! Bind with Pipeline
+            vkCmdBindPipeline(vkCommandBuffer_array[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
 
+            //! Bind with Vertex Buffer
+            VkDeviceSize vkDeviceSize_offset_array[1];
+            memset((void*)vkDeviceSize_offset_array, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_array));
+            vkCmdBindVertexBuffers(vkCommandBuffer_array[i], 0, 1, &vertexData_position.vkBuffer, vkDeviceSize_offset_array);
+
+            //! Vulkan Drawing Function
+            vkCmdDraw(vkCommandBuffer_array[i], 3, 1, 0, 0);
+        }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
 
