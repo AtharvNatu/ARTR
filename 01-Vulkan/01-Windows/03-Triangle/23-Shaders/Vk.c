@@ -2169,9 +2169,9 @@ VkResult createVertexBuffer(void)
     vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     vkMemoryAllocateInfo.pNext = NULL;
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
     
     //* Step - 8.1
-    uint32_t index = 0;
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         //* Step - 8.2
@@ -2206,7 +2206,7 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded\n", __func__);
 
     //* Step - 11
-    void* data;
+    void* data = NULL;
     vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkMapMemory() Failed : %d !!!\n", __func__, vkResult);
