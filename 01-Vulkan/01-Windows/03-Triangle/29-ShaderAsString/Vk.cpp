@@ -2,6 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//! C++ Header
+#include <vector>   //* For Modern C++
+using namespace std;
+
+//! GLSLang/SPIR-V Related Header Files
+#include <SPIRV/GlslangToSpv.h>
+#include <Public/ShaderLang.h>  //* Needed recently (1.4.304)
+
 //! Vulkan Related Header Files
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
@@ -10,6 +18,11 @@
 
 //! Vulkan Related Libraries
 #pragma comment(lib, "vulkan-1.lib")
+
+//! GLSLang / SPIR-V Related Libraries
+#pragma comment(lib, "glslang.lib")     //* Needed recently (1.4.304)
+#pragma comment(lib, "SPIRV-Tools.lib")
+#pragma comment(lib, "SPIRV-Tools-opt.lib")
 
 #define WIN_WIDTH   800
 #define WIN_HEIGHT  600
@@ -188,7 +201,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Triangle"),
+        TEXT("Atharv Natu : Vulkan Triangle with Shader as String"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -2295,163 +2308,292 @@ VkResult createVertexBuffer(void)
 
 VkResult createShaders(void)
 {
+    // Function Declarations
+    BOOL glsl2Spv(const VkShaderStageFlagBits, const char*, vector<unsigned int>&);
+
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
+    BOOL bDone = FALSE;
+
+    // Initialize GLSLang Procedures
+    glslang::InitializeProcess();
 
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    //* Step - 6
-    const char* szFileName = "Shader.vert.spv";
-    FILE *fp = NULL;
-    size_t size;
+    const char* vertexShaderSourceCode = 
+        "#version 450 core" \
+        "\n" \
+        "#extension GL_ARB_separate_shader_objects : enable \n" \
 
-    fp = fopen(szFileName, "rb");
-    if (fp == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Succeeded In Opening SPIR-V Shader File : %s\n", __func__, szFileName);
+        "layout(location = 0) in vec4 vPosition;" \
 
-    fseek(fp, 0L, SEEK_END);
-    size = ftell(fp);
-    if (size == 0)
-    {
-        fprintf(gpFile, "%s() => Empty SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    fseek(fp, 0L, SEEK_SET);
-
-    char* shaderData = (char*)malloc(size * sizeof(char));
-    if (shaderData == NULL)
-    {
-        fprintf(gpFile, "%s() => malloc() Failed For shaderData !!!\n", __func__);
-        return VK_ERROR_OUT_OF_HOST_MEMORY;
-    }
-
-    size_t retVal = fread(shaderData, size, 1, fp);
-    if (retVal != 1)
-    {
-        fprintf(gpFile, "%s() => Failed To Read From SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Successfully Read Shader From SPIR-V Shader File : %s\n", __func__, szFileName);
+        "void main(void)" \
+        "{" \
+            "gl_Position = vPosition;" \
+        "}";
     
-    if (fp)
+    vector<unsigned int> vertex_spv;
+    bDone = glsl2Spv(VK_SHADER_STAGE_VERTEX_BIT, vertexShaderSourceCode, vertex_spv);
+    if (bDone == FALSE)
     {
-        fclose(fp);
-        fp = NULL;
-        fprintf(gpFile, "%s() => Closed SPIR-V File : %s\n", __func__, szFileName);
-    }
-
-    //* Step - 7
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => glsl2Spv() Failed For Vertex Shader !!!\n", __func__);
+        return vkResult;
+    }  
+    else
+        fprintf(gpFile, "%s() => glsl2Spv() Succeeded For Vertex Shader\n", __func__);
+    
     VkShaderModuleCreateInfo vkShaderModuleCreateInfo;
     memset((void*)&vkShaderModuleCreateInfo, 0, sizeof(VkShaderModuleCreateInfo));
     vkShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     vkShaderModuleCreateInfo.pNext = NULL;
-    vkShaderModuleCreateInfo.flags = 0; //! Reserved, must be 0
-    vkShaderModuleCreateInfo.pCode = (uint32_t*)shaderData;
-    vkShaderModuleCreateInfo.codeSize = size;
+    vkShaderModuleCreateInfo.flags = 0; //! Reserved
+    vkShaderModuleCreateInfo.pCode = vertex_spv.data();
+    vkShaderModuleCreateInfo.codeSize = vertex_spv.size() * sizeof(unsigned int);
 
-    //* Step - 8
     vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_vertex_shader);
     if (vkResult != VK_SUCCESS)
+    {
         fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Vertex Shader : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }  
     else
         fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Vertex Shader\n", __func__);
-
-    //* Step - 9
-    if (shaderData)
-    {
-        free(shaderData);
-        shaderData = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
-    }
 
     fprintf(gpFile, "%s() => Vertex Shader Module Successfully Created\n", __func__);
     //! ---------------------------------------------------------------------------------------------------------------------------
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Shader.frag.spv";
+    const char* fragmentShaderSourceCode = 
+        "#version 450 core" \
+        "\n" \
+        "#extension GL_ARB_separate_shader_objects : enable \n" \
 
-    fp = fopen(szFileName, "rb");
-    if (fp == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File :  %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Succeeded In Opening SPIR-V Shader File : %s\n", __func__, szFileName);
+        "layout(location = 0) out vec4 FragColor;" \
 
-    fseek(fp, 0L, SEEK_END);
-    size = ftell(fp);
-    if (size == 0)
-    {
-        fprintf(gpFile, "%s() => Empty SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    fseek(fp, 0L, SEEK_SET);
-
-    shaderData = (char*)malloc(size * sizeof(char));
-    if (shaderData == NULL)
-    {
-        fprintf(gpFile, "%s() => malloc() Failed For shaderData !!!\n", __func__);
-        return VK_ERROR_OUT_OF_HOST_MEMORY;
-    }
-
-    retVal = fread(shaderData, size, 1, fp);
-    if (retVal != 1)
-    {
-        fprintf(gpFile, "%s() => Failed To Read From SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Successfully Read Shader From SPIR-V Shader File : %s\n", __func__, szFileName);
+        "void main(void)" \
+        "{" \
+            "FragColor = vec4(1.0, 1.0, 1.0, 1.0);" \
+        "}";
     
-    if (fp)
+    vector<unsigned int> fragment_spv;
+    bDone = glsl2Spv(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderSourceCode, fragment_spv);
+    if (bDone == FALSE)
     {
-        fclose(fp);
-        fp = NULL;
-        fprintf(gpFile, "%s() => Closed SPIR-V File : %s\n", __func__, szFileName);
-    }
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => glsl2Spv() Failed For Fragment Shader !!!\n", __func__);
+        return vkResult;
+    }  
+    else
+        fprintf(gpFile, "%s() => glsl2Spv() Succeeded For Fragment Shader\n", __func__);
 
-    //* Step - 7
     memset((void*)&vkShaderModuleCreateInfo, 0, sizeof(VkShaderModuleCreateInfo));
     vkShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     vkShaderModuleCreateInfo.pNext = NULL;
-    vkShaderModuleCreateInfo.flags = 0; //! Reserved, must be 0
-    vkShaderModuleCreateInfo.pCode = (uint32_t*)shaderData;
-    vkShaderModuleCreateInfo.codeSize = size;
+    vkShaderModuleCreateInfo.flags = 0;
+    vkShaderModuleCreateInfo.pCode = fragment_spv.data();
+    vkShaderModuleCreateInfo.codeSize = fragment_spv.size() * sizeof(unsigned int);
 
-    //* Step - 8
     vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_fragment_shader);
     if (vkResult != VK_SUCCESS)
+    {
         fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Fragment Shader : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }  
     else
         fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Fragment Shader\n", __func__);
-
-    //* Step - 9
-    if (shaderData)
-    {
-        free(shaderData);
-        shaderData = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
-    }
 
     fprintf(gpFile, "%s() => Fragment Shader Module Successfully Created\n", __func__);
     //! ---------------------------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
+
+BOOL glsl2Spv(const VkShaderStageFlagBits shaderType, const char* pShader, vector<unsigned int>& spirv)
+{
+    // Function Declarations
+    EShLanguage findShaderLanguage(const VkShaderStageFlagBits);
+    void initBuiltInResources(TBuiltInResource&);
+
+    // Code
+
+    //! Find the shader language in the form of EShLanguage
+    EShLanguage language = findShaderLanguage(shaderType);
+
+    //! Create TShader type Shader from above EShLanguage
+    glslang::TShader shader(language);
+
+    //! Add our shader source code into a string array
+    const char* shaderStrings[1];
+    shaderStrings[0] = pShader;
+
+    //! Initialize BuiltIn Shader Resources
+    TBuiltInResource resources;
+    initBuiltInResources(resources);
+
+    //! Set our shader string in above array as TShader's string
+    shader.setStrings(shaderStrings, 1);
+
+    //! Specify rules of shader compilation as SPIR-V rules and Vulkan rules
+    EShMessages ruleMessages = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
+
+    //! Parse the TShader
+    if (!shader.parse(&resources, 100, false, ruleMessages))
+    {
+        fprintf(gpFile, "%s() => Failed To Parse Shader (Info Log) : %s !!!\n", __func__, shader.getInfoLog());
+        fprintf(gpFile, "%s() => Failed To Parse Shader (Info Debug Log) : %s !!!\n", __func__, shader.getInfoDebugLog());
+        return FALSE;
+    }
+    else
+        fprintf(gpFile, "%s() => Shader Parsed Successfully\n", __func__);
+    
+    //! Add shader to TProgram
+    glslang::TProgram program;
+    program.addShader(&shader);
+
+    //! Link the program
+    bool linkStatus = program.link(ruleMessages);
+    if (!linkStatus)
+    {
+        fprintf(gpFile, "%s() => Failed To Link Program (Info Log) : %s !!!\n", __func__, shader.getInfoLog());
+        fprintf(gpFile, "%s() => Failed To Link Program (Info Debug Log) : %s !!!\n", __func__, shader.getInfoDebugLog());
+        return FALSE;
+    }
+    else
+        fprintf(gpFile, "%s() => Program Linked Successfully\n", __func__);
+
+    //! Send program and spirv code to GLSLang Library
+    glslang::GlslangToSpv(*program.getIntermediate(language), spirv);
+
+    return TRUE;
+}
+
+EShLanguage findShaderLanguage(const VkShaderStageFlagBits shaderType)
+{
+    // Code
+    switch(shaderType)
+    {
+        case VK_SHADER_STAGE_VERTEX_BIT:
+            return EShLangVertex;
+        
+        case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:
+            return EShLangTessControl;
+
+        case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:
+            return EShLangTessEvaluation;
+
+        case VK_SHADER_STAGE_GEOMETRY_BIT:
+            return EShLangGeometry;
+
+        case VK_SHADER_STAGE_FRAGMENT_BIT:
+            return EShLangFragment;
+        
+        case VK_SHADER_STAGE_COMPUTE_BIT:
+            return EShLangCompute;
+
+        default:
+            return EShLangVertex;
+    }
+}
+
+void initBuiltInResources(TBuiltInResource& Resources)
+{
+	// Code
+	Resources.maxLights = 32;
+	Resources.maxClipPlanes = 6;
+	Resources.maxTextureUnits = 32;
+	Resources.maxTextureCoords = 32;
+	Resources.maxVertexAttribs = 64;
+	Resources.maxVertexUniformComponents = 4096;
+	Resources.maxVaryingFloats = 64;
+	Resources.maxVertexTextureImageUnits = 32;
+	Resources.maxCombinedTextureImageUnits = 80;
+	Resources.maxTextureImageUnits = 32;
+	Resources.maxFragmentUniformComponents = 4096;
+	Resources.maxDrawBuffers = 32;
+	Resources.maxVertexUniformVectors = 128;
+	Resources.maxVaryingVectors = 8;
+	Resources.maxFragmentUniformVectors = 16;
+	Resources.maxVertexOutputVectors = 16;
+	Resources.maxFragmentInputVectors = 15;
+	Resources.minProgramTexelOffset = -8;
+	Resources.maxProgramTexelOffset = 7;
+	Resources.maxClipDistances = 8;
+	Resources.maxComputeWorkGroupCountX = 65535;
+	Resources.maxComputeWorkGroupCountY = 65535;
+	Resources.maxComputeWorkGroupCountZ = 65535;
+	Resources.maxComputeWorkGroupSizeX = 1024;
+	Resources.maxComputeWorkGroupSizeY = 1024;
+	Resources.maxComputeWorkGroupSizeZ = 64;
+	Resources.maxComputeUniformComponents = 1024;
+	Resources.maxComputeTextureImageUnits = 16;
+	Resources.maxComputeImageUniforms = 8;
+	Resources.maxComputeAtomicCounters = 8;
+	Resources.maxComputeAtomicCounterBuffers = 1;
+	Resources.maxVaryingComponents = 60;
+	Resources.maxVertexOutputComponents = 64;
+	Resources.maxGeometryInputComponents = 64;
+	Resources.maxGeometryOutputComponents = 128;
+	Resources.maxFragmentInputComponents = 128;
+	Resources.maxImageUnits = 8;
+	Resources.maxCombinedImageUnitsAndFragmentOutputs = 8;
+	Resources.maxCombinedShaderOutputResources = 8;
+	Resources.maxImageSamples = 0;
+	Resources.maxVertexImageUniforms = 0;
+	Resources.maxTessControlImageUniforms = 0;
+	Resources.maxTessEvaluationImageUniforms = 0;
+	Resources.maxGeometryImageUniforms = 0;
+	Resources.maxFragmentImageUniforms = 8;
+	Resources.maxCombinedImageUniforms = 8;
+	Resources.maxGeometryTextureImageUnits = 16;
+	Resources.maxGeometryOutputVertices = 256;
+	Resources.maxGeometryTotalOutputComponents = 1024;
+	Resources.maxGeometryUniformComponents = 1024;
+	Resources.maxGeometryVaryingComponents = 64;
+	Resources.maxTessControlInputComponents = 128;
+	Resources.maxTessControlOutputComponents = 128;
+	Resources.maxTessControlTextureImageUnits = 16;
+	Resources.maxTessControlUniformComponents = 1024;
+	Resources.maxTessControlTotalOutputComponents = 4096;
+	Resources.maxTessEvaluationInputComponents = 128;
+	Resources.maxTessEvaluationOutputComponents = 128;
+	Resources.maxTessEvaluationTextureImageUnits = 16;
+	Resources.maxTessEvaluationUniformComponents = 1024;
+	Resources.maxTessPatchComponents = 120;
+	Resources.maxPatchVertices = 32;
+	Resources.maxTessGenLevel = 64;
+	Resources.maxViewports = 16;
+	Resources.maxVertexAtomicCounters = 0;
+	Resources.maxTessControlAtomicCounters = 0;
+	Resources.maxTessEvaluationAtomicCounters = 0;
+	Resources.maxGeometryAtomicCounters = 0;
+	Resources.maxFragmentAtomicCounters = 8;
+	Resources.maxCombinedAtomicCounters = 8;
+	Resources.maxAtomicCounterBindings = 1;
+	Resources.maxVertexAtomicCounterBuffers = 0;
+	Resources.maxTessControlAtomicCounterBuffers = 0;
+	Resources.maxTessEvaluationAtomicCounterBuffers = 0;
+	Resources.maxGeometryAtomicCounterBuffers = 0;
+	Resources.maxFragmentAtomicCounterBuffers = 1;
+	Resources.maxCombinedAtomicCounterBuffers = 1;
+	Resources.maxAtomicCounterBufferSize = 16384;
+	Resources.maxTransformFeedbackBuffers = 4;
+	Resources.maxTransformFeedbackInterleavedComponents = 64;
+	Resources.maxCullDistances = 8;
+	Resources.maxCombinedClipAndCullDistances = 8;
+	Resources.maxSamples = 4;
+	Resources.limits.nonInductiveForLoops = 1;
+	Resources.limits.whileLoops = 1;
+	Resources.limits.doWhileLoops = 1;
+	Resources.limits.generalUniformIndexing = 1;
+	Resources.limits.generalAttributeMatrixVectorIndexing = 1;
+	Resources.limits.generalVaryingIndexing = 1;
+	Resources.limits.generalSamplerIndexing = 1;
+	Resources.limits.generalVariableIndexing = 1;
+	Resources.limits.generalConstantMatrixVectorIndexing = 1;
+}
+
 
 VkResult createDescriptorSetLayout(void)
 {
