@@ -259,7 +259,7 @@ int initialize(void)
 void resize(int width, int height)
 {
     // Code
-    if (height == 0)
+    if (height <= 0)
         height = 1;
 }
 

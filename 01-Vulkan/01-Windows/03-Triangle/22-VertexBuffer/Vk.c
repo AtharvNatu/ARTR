@@ -547,7 +547,7 @@ VkResult initialize(void)
 void resize(int width, int height)
 {
     // Code
-    if (height == 0)
+    if (height <= 0)
         height = 1;
 }
 
@@ -559,7 +559,7 @@ VkResult display(void)
     // Code
     if (bInitialized == FALSE)
     {
-        fprintf(gpFile, "%s() => Initialization Yet Not Completed !!!\n", __func__);
+        fprintf(gpFile, "%s() => Initialization Not Yet Completed !!!\n", __func__);
         return (VkResult)VK_FALSE;
     }
 
