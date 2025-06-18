@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "C:\\VulkanSDK\\Vulkan\\Include",
-                "C:\\VulkanSDK\\Vulkan\\Include\\glslang"
+                "C:\\VulkanSDK\\Vulkan\\Include\\glslang",
+                "C:\\VulkanSDK\\Vulkan\\Include\\glm"
             ],
             "defines": [
                 "_DEBUG",

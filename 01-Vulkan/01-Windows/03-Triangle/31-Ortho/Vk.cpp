@@ -6,6 +6,12 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 
+//! GLM Related Macros and Header Files
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "Vk.h"
 
 //! Vulkan Related Libraries
@@ -2205,14 +2211,14 @@ VkResult createSwapchain(VkBool32 vsync)
         vkExtent2D.width = (uint32_t)winWidth;
         vkExtent2D.height = (uint32_t)winHeight;
 
-        vkExtent2D_swapchain.width = max(
+        vkExtent2D_swapchain.width = glm::max(
             vkSurfaceCapabilitiesKHR.minImageExtent.width, 
-            min(vkSurfaceCapabilitiesKHR.maxImageExtent.width, vkExtent2D.width)
+            glm::min(vkSurfaceCapabilitiesKHR.maxImageExtent.width, vkExtent2D.width)
         );
 
-        vkExtent2D_swapchain.height = max(
+        vkExtent2D_swapchain.height = glm::max(
             vkSurfaceCapabilitiesKHR.minImageExtent.height,
-            min(vkSurfaceCapabilitiesKHR.maxImageExtent.height, vkExtent2D.height)
+            glm::min(vkSurfaceCapabilitiesKHR.maxImageExtent.height, vkExtent2D.height)
         );
 
         fprintf(gpFile, "%s() => [Else Block] => Swapchain Image Width x Swapchain Image Height = %d x %d\n", __func__, vkExtent2D_swapchain.width, vkExtent2D_swapchain.height);
