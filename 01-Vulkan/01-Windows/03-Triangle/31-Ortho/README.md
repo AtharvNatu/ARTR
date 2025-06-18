@@ -1,0 +1,1 @@
+In technical terms, resize is also called as recreating the swap chain.
