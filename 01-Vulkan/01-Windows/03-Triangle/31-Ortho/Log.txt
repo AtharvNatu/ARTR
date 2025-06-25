@@ -410,6 +410,205 @@ buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
 initialize() => buildCommandBuffers() Succeeded
 initialize() => Initialization Completed Successfully
 WinMain() => initialize() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
+createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
+createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
+createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 2048 x 1152
+getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+
+------------------------------------------------------------------------------------------------
+Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
+------------------------------------------------------------------------------------------------
+
+getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
+createSwapchain() => getPhysicalDevicePresentMode() Succeeded
+createSwapchain() => vkCreateSwapchainKHR() Succeeded
+createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
+createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
+createRenderPass() => vkCreateRenderPass() Succeeded
+createPipelineLayout() => vkCreatePipelineLayout() Succeeded
+createPipeline() => vkCreatePipelineCache() Succeeded
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-VkGraphicsPipelineCreateInfo-layout-07988 ] Object 0: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_SHADER_MODULE; Object 1: handle = 0xcfcda0000000001e, type = VK_OBJECT_TYPE_PIPELINE_LAYOUT; | MessageID = 0x215f02cd | vkCreateGraphicsPipelines(): pCreateInfos[0].pStages[0] SPIR-V (VK_SHADER_STAGE_VERTEX_BIT) uses descriptor [Set 0, Binding 0, variable "uMVP"] (type VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER or VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC or VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK) but was not declared in the pipeline layout.
+The Vulkan spec states: If a resource variable is declared in a shader, the corresponding descriptor set in layout must match the shader stage (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-VkGraphicsPipelineCreateInfo-layout-07988)
+createPipeline() => vkCreateGraphicsPipelines() Succeeded
+createPipeline() => vkDestroyPipelineCache() Succeeded
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0xab64de0000000020, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): The VkPipeline 0xab64de0000000020[] (created with VkPipelineLayout 0xcfcda0000000001e[]) statically uses descriptor set 0, but set 0 is not compatible with the pipeline layout bound with INVALID_EMPTY (VkPipelineLayout 0x0[])
+The set (0) is out of bounds for the number of sets bound (0)
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0xab64de0000000020, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): The VkPipeline 0xab64de0000000020[] (created with VkPipelineLayout 0xcfcda0000000001e[]) statically uses descriptor set 0, but set 0 is not compatible with the pipeline layout bound with INVALID_EMPTY (VkPipelineLayout 0x0[])
+The set (0) is out of bounds for the number of sets bound (0)
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
+createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
+createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
+createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 784 x 561
+getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+
+------------------------------------------------------------------------------------------------
+Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
+------------------------------------------------------------------------------------------------
+
+getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
+createSwapchain() => getPhysicalDevicePresentMode() Succeeded
+createSwapchain() => vkCreateSwapchainKHR() Succeeded
+createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
+createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
+createRenderPass() => vkCreateRenderPass() Succeeded
+createPipelineLayout() => vkCreatePipelineLayout() Succeeded
+createPipeline() => vkCreatePipelineCache() Succeeded
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-VkGraphicsPipelineCreateInfo-layout-07988 ] Object 0: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_SHADER_MODULE; Object 1: handle = 0xb9181f0000000029, type = VK_OBJECT_TYPE_PIPELINE_LAYOUT; | MessageID = 0x215f02cd | vkCreateGraphicsPipelines(): pCreateInfos[0].pStages[0] SPIR-V (VK_SHADER_STAGE_VERTEX_BIT) uses descriptor [Set 0, Binding 0, variable "uMVP"] (type VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER or VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC or VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK) but was not declared in the pipeline layout.
+The Vulkan spec states: If a resource variable is declared in a shader, the corresponding descriptor set in layout must match the shader stage (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-VkGraphicsPipelineCreateInfo-layout-07988)
+createPipeline() => vkCreateGraphicsPipelines() Succeeded
+createPipeline() => vkDestroyPipelineCache() Succeeded
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x2e2cd000000002b, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): The VkPipeline 0x2e2cd000000002b[] (created with VkPipelineLayout 0xb9181f0000000029[]) statically uses descriptor set 0, but set 0 is not compatible with the pipeline layout bound with INVALID_EMPTY (VkPipelineLayout 0x0[])
+The set (0) is out of bounds for the number of sets bound (0)
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x2e2cd000000002b, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): The VkPipeline 0x2e2cd000000002b[] (created with VkPipelineLayout 0xb9181f0000000029[]) statically uses descriptor set 0, but set 0 is not compatible with the pipeline layout bound with INVALID_EMPTY (VkPipelineLayout 0x0[])
+The set (0) is out of bounds for the number of sets bound (0)
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
+createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
+createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
+createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 800 x 600
+getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+
+------------------------------------------------------------------------------------------------
+Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
+------------------------------------------------------------------------------------------------
+
+getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
+createSwapchain() => getPhysicalDevicePresentMode() Succeeded
+createSwapchain() => vkCreateSwapchainKHR() Succeeded
+createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
+createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
+createRenderPass() => vkCreateRenderPass() Succeeded
+createPipelineLayout() => vkCreatePipelineLayout() Succeeded
+createPipeline() => vkCreatePipelineCache() Succeeded
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-VkGraphicsPipelineCreateInfo-layout-07988 ] Object 0: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_SHADER_MODULE; Object 1: handle = 0x2b424a0000000034, type = VK_OBJECT_TYPE_PIPELINE_LAYOUT; | MessageID = 0x215f02cd | vkCreateGraphicsPipelines(): pCreateInfos[0].pStages[0] SPIR-V (VK_SHADER_STAGE_VERTEX_BIT) uses descriptor [Set 0, Binding 0, variable "uMVP"] (type VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER or VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC or VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK) but was not declared in the pipeline layout.
+The Vulkan spec states: If a resource variable is declared in a shader, the corresponding descriptor set in layout must match the shader stage (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-VkGraphicsPipelineCreateInfo-layout-07988)
+createPipeline() => vkCreateGraphicsPipelines() Succeeded
+createPipeline() => vkDestroyPipelineCache() Succeeded
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x9638f80000000036, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): The VkPipeline 0x9638f80000000036[] (created with VkPipelineLayout 0x2b424a0000000034[]) statically uses descriptor set 0, but set 0 is not compatible with the pipeline layout bound with INVALID_EMPTY (VkPipelineLayout 0x0[])
+The set (0) is out of bounds for the number of sets bound (0)
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x9638f80000000036, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): The VkPipeline 0x9638f80000000036[] (created with VkPipelineLayout 0x2b424a0000000034[]) statically uses descriptor set 0, but set 0 is not compatible with the pipeline layout bound with INVALID_EMPTY (VkPipelineLayout 0x0[])
+The set (0) is out of bounds for the number of sets bound (0)
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
+createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
+createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
+createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 2048 x 1152
+getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+
+------------------------------------------------------------------------------------------------
+Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
+------------------------------------------------------------------------------------------------
+
+getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
+createSwapchain() => getPhysicalDevicePresentMode() Succeeded
+createSwapchain() => vkCreateSwapchainKHR() Succeeded
+createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
+createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
+createRenderPass() => vkCreateRenderPass() Succeeded
+createPipelineLayout() => vkCreatePipelineLayout() Succeeded
+createPipeline() => vkCreatePipelineCache() Succeeded
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-VkGraphicsPipelineCreateInfo-layout-07988 ] Object 0: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_SHADER_MODULE; Object 1: handle = 0x808562000000003f, type = VK_OBJECT_TYPE_PIPELINE_LAYOUT; | MessageID = 0x215f02cd | vkCreateGraphicsPipelines(): pCreateInfos[0].pStages[0] SPIR-V (VK_SHADER_STAGE_VERTEX_BIT) uses descriptor [Set 0, Binding 0, variable "uMVP"] (type VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER or VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC or VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK) but was not declared in the pipeline layout.
+The Vulkan spec states: If a resource variable is declared in a shader, the corresponding descriptor set in layout must match the shader stage (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-VkGraphicsPipelineCreateInfo-layout-07988)
+createPipeline() => vkCreateGraphicsPipelines() Succeeded
+createPipeline() => vkDestroyPipelineCache() Succeeded
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x6612e40000000041, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): The VkPipeline 0x6612e40000000041[] (created with VkPipelineLayout 0x808562000000003f[]) statically uses descriptor set 0, but set 0 is not compatible with the pipeline layout bound with INVALID_EMPTY (VkPipelineLayout 0x0[])
+The set (0) is out of bounds for the number of sets bound (0)
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x6612e40000000041, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): The VkPipeline 0x6612e40000000041[] (created with VkPipelineLayout 0x808562000000003f[]) statically uses descriptor set 0, but set 0 is not compatible with the pipeline layout bound with INVALID_EMPTY (VkPipelineLayout 0x0[])
+The set (0) is out of bounds for the number of sets bound (0)
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
+createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
+createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
+createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 784 x 561
+getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+
+------------------------------------------------------------------------------------------------
+Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
+------------------------------------------------------------------------------------------------
+
+getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
+createSwapchain() => getPhysicalDevicePresentMode() Succeeded
+createSwapchain() => vkCreateSwapchainKHR() Succeeded
+createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
+createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
+createRenderPass() => vkCreateRenderPass() Succeeded
+createPipelineLayout() => vkCreatePipelineLayout() Succeeded
+createPipeline() => vkCreatePipelineCache() Succeeded
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-VkGraphicsPipelineCreateInfo-layout-07988 ] Object 0: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_SHADER_MODULE; Object 1: handle = 0x74d977000000004a, type = VK_OBJECT_TYPE_PIPELINE_LAYOUT; | MessageID = 0x215f02cd | vkCreateGraphicsPipelines(): pCreateInfos[0].pStages[0] SPIR-V (VK_SHADER_STAGE_VERTEX_BIT) uses descriptor [Set 0, Binding 0, variable "uMVP"] (type VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER or VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC or VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK) but was not declared in the pipeline layout.
+The Vulkan spec states: If a resource variable is declared in a shader, the corresponding descriptor set in layout must match the shader stage (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-VkGraphicsPipelineCreateInfo-layout-07988)
+createPipeline() => vkCreateGraphicsPipelines() Succeeded
+createPipeline() => vkDestroyPipelineCache() Succeeded
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
 uninitialize() => vkDeviceWaitIdle() Succeeded
 uninitialize() => vkDestroyFence() Succeeded For Index : 0
 uninitialize() => vkDestroyFence() Succeeded For Index : 1
