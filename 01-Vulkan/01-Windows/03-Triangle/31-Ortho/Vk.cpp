@@ -2900,14 +2900,23 @@ VkResult createDescriptorSetLayout(void)
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
+    //! Initialize VkDescriptorSetLayoutBinding
+    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding;
+    memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(vkDescriptorSetLayoutBinding));
+    vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
+    vkDescriptorSetLayoutBinding.descriptorCount = 1;
+    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
+
     //* Step - 3
     VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo;
     memset((void*)&vkDescriptorSetLayoutCreateInfo, 0, sizeof(VkDescriptorSetLayoutCreateInfo));
     vkDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     vkDescriptorSetLayoutCreateInfo.pNext = NULL;
     vkDescriptorSetLayoutCreateInfo.flags = 0;
-    vkDescriptorSetLayoutCreateInfo.bindingCount = 0;   //! An integer value where you want to bind descriptor set
-    vkDescriptorSetLayoutCreateInfo.pBindings = NULL;
+    vkDescriptorSetLayoutCreateInfo.bindingCount = 1;   //! An integer value where you want to bind descriptor set
+    vkDescriptorSetLayoutCreateInfo.pBindings = &vkDescriptorSetLayoutBinding;
 
     //* Step - 4
     vkResult = vkCreateDescriptorSetLayout(vkDevice, &vkDescriptorSetLayoutCreateInfo, NULL, &vkDescriptorSetLayout);
@@ -2915,7 +2924,6 @@ VkResult createDescriptorSetLayout(void)
         fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Succeeded\n", __func__);
-
 
     return vkResult;
 }
@@ -2942,6 +2950,93 @@ VkResult createPipelineLayout(void)
         fprintf(gpFile, "%s() => vkCreatePipelineLayout() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkCreatePipelineLayout() Succeeded\n", __func__);
+
+    return vkResult;
+}
+
+VkResult createDescriptorPool(void)
+{
+    // Variable Declarations
+    VkResult vkResult;
+
+    // Code
+
+    //* Vulkan expects decriptor pool size before creating actual descriptor pool
+    VkDescriptorPoolSize vkDescriptorPoolSize;
+    memset((void*)&vkDescriptorPoolSize, 0, sizeof(VkDescriptorPoolSize));
+    vkDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorPoolSize.descriptorCount = 1;
+   
+    //* Create the pool
+    VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo;
+    memset((void*)&vkDescriptorPoolCreateInfo, 0, sizeof(VkDescriptorPoolCreateInfo));
+    vkDescriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    vkDescriptorPoolCreateInfo.pNext = NULL;
+    vkDescriptorPoolCreateInfo.flags = 0;
+    vkDescriptorPoolCreateInfo.poolSizeCount = 1;
+    vkDescriptorPoolCreateInfo.pPoolSizes = &vkDescriptorPoolSize;
+    vkDescriptorPoolCreateInfo.maxSets = 1;
+
+    vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateDescriptorPool() Failed : %d !!!\n", __func__, vkResult);  
+    else
+        fprintf(gpFile, "%s() => vkCreateDescriptorPool() Succeeded\n", __func__);
+
+    return vkResult;
+}
+
+VkResult createDescriptorSet(void)
+{
+    // Variable Declarations
+    VkResult vkResult;
+
+    // Code
+
+    //* Initialize DescriptorSetAllocationInfo
+    VkDescriptorSetAllocateInfo vkDescriptorSetAllocateInfo;
+    memset((void*)&vkDescriptorSetAllocateInfo, 0, sizeof(VkDescriptorSetAllocateInfo));
+    vkDescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    vkDescriptorSetAllocateInfo.pNext = NULL;
+    vkDescriptorSetAllocateInfo.descriptorPool = vkDescriptorPool;
+    vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
+    vkDescriptorSetAllocateInfo.pSetLayouts = &vkDescriptorSetLayout;
+
+    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Failed : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }  
+    else
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded\n", __func__);
+    
+    //* Describe whether we want buffer as uniform or image as uniform
+    VkDescriptorBufferInfo vkDescriptorBufferInfo;
+    memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
+    vkDescriptorBufferInfo.buffer = uniformData.vkBuffer;
+    vkDescriptorBufferInfo.offset = 0;
+    vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
+
+    /* Update above descriptor set directly to the shader
+    There are 2 ways :-
+        1) Writing directly to the shader
+        2) Copying from one shader to another shader
+    */
+    VkWriteDescriptorSet vkWriteDescriptorSet;
+    memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
+    vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet.pNext = NULL;
+    vkWriteDescriptorSet.dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet.dstArrayElement = 0;
+    vkWriteDescriptorSet.descriptorCount = 1;
+    vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
+    vkWriteDescriptorSet.pImageInfo = NULL;
+    vkWriteDescriptorSet.pTexelBufferView = NULL;
+    vkWriteDescriptorSet.dstBinding = 0;
+
+    vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
 
     return vkResult;
 }
@@ -3369,10 +3464,28 @@ VkResult buildCommandBuffers(void)
             //! Bind with Pipeline
             vkCmdBindPipeline(vkCommandBuffer_array[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
 
+            //! Bind the Descriptor Set to the Pipeline
+            vkCmdBindDescriptorSets(
+                vkCommandBuffer_array[i],
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                vkPipelineLayout,
+                0,
+                1,
+                &vkDescriptorSet,
+                0,
+                NULL
+            );
+
             //! Bind with Vertex Buffer
             VkDeviceSize vkDeviceSize_offset_array[1];
             memset((void*)vkDeviceSize_offset_array, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_array));
-            vkCmdBindVertexBuffers(vkCommandBuffer_array[i], 0, 1, &vertexData_position.vkBuffer, vkDeviceSize_offset_array);
+            vkCmdBindVertexBuffers(
+                vkCommandBuffer_array[i], 
+                0, 
+                1, 
+                &vertexData_position.vkBuffer, 
+                vkDeviceSize_offset_array
+            );
 
             //! Vulkan Drawing Function
             vkCmdDraw(vkCommandBuffer_array[i], 3, 1, 0, 0);
