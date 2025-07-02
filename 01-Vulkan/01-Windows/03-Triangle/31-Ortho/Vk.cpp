@@ -2902,7 +2902,7 @@ VkResult createDescriptorSetLayout(void)
 
     //! Initialize VkDescriptorSetLayoutBinding
     VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding;
-    memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(vkDescriptorSetLayoutBinding));
+    memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(VkDescriptorSetLayoutBinding));
     vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
     vkDescriptorSetLayoutBinding.descriptorCount = 1;
