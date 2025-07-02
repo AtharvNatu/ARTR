@@ -2321,7 +2321,7 @@ VkResult createShaders(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     const char* vertexShaderSourceCode = 
-        "#version 450 core" \
+        "#version 460 core" \
         "\n" \
         "#extension GL_ARB_separate_shader_objects : enable \n" \
 
@@ -2366,7 +2366,7 @@ VkResult createShaders(void)
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     const char* fragmentShaderSourceCode = 
-        "#version 450 core" \
+        "#version 460 core" \
         "\n" \
         "#extension GL_ARB_separate_shader_objects : enable \n" \
 
