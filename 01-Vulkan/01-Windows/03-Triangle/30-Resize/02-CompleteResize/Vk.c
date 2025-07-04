@@ -18,7 +18,7 @@
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 // Global Variable Declarations
-HWND ghwnd = FALSE;
+HWND ghwnd = NULL;
 BOOL gbFullScreen = FALSE;
 BOOL gbWindowMinimized = FALSE;
 BOOL gbActiveWindow = FALSE;
