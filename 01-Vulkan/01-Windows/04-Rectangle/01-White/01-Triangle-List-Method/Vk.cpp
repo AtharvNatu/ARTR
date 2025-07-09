@@ -1,11 +1,18 @@
 #include <Windows.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "Vk.h"
 
 //! Vulkan Related Header Files
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
+
+//! GLM Related Macros and Header Files
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "Vk.h"
 
 //! Vulkan Related Libraries
 #pragma comment(lib, "vulkan-1.lib")
@@ -19,6 +26,7 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 // Global Variable Declarations
 HWND ghwnd = NULL;
 BOOL gbFullScreen = FALSE;
+BOOL gbWindowMinimized = FALSE;
 BOOL gbActiveWindow = FALSE;
 FILE *gpFile = NULL;
 WINDOWPLACEMENT wpPrev;
@@ -118,6 +126,22 @@ typedef struct
 //? Position Related Variables
 VertexData vertexData_position;
 
+//? Uniform Related Variables
+typedef struct
+{
+    glm::mat4 modelMatrix;
+    glm::mat4 viewMatrix;
+    glm::mat4 projectionMatix;
+} MVP_UniformData;
+
+typedef struct
+{
+    VkBuffer vkBuffer;
+    VkDeviceMemory vkDeviceMemory;
+} UniformData;
+
+UniformData uniformData;
+
 //? Shader Related Variables
 VkShaderModule vkShaderModule_vertex_shader = VK_NULL_HANDLE;
 VkShaderModule vkShaderModule_fragment_shader = VK_NULL_HANDLE;
@@ -127,6 +151,12 @@ VkDescriptorSetLayout vkDescriptorSetLayout = VK_NULL_HANDLE;
 
 //? PipelineLayout Related Variables
 VkPipelineLayout vkPipelineLayout = VK_NULL_HANDLE;
+
+//? Descriptor Pool
+VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
+
+//? Descriptor Set
+VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
 
 //? Pipeline Related Variables
 VkViewport vkViewport;
@@ -187,7 +217,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Staging Vertex Buffer"),
+        TEXT("Atharv Natu : Vulkan White Rectangle using Triangle List Method"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -227,7 +257,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
         {
             if (msg.message == WM_QUIT)
                 bDone = TRUE;
-            
             else
             {
                 TranslateMessage(&msg);
@@ -236,10 +265,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
         }
         else
         {
-            if (gbActiveWindow)
+            if (gbActiveWindow == TRUE && gbWindowMinimized == FALSE)
             {
                 //* Render the scene
-                display();
+                vkResult = display();
+                if (vkResult != VK_FALSE && vkResult != VK_SUCCESS && vkResult != VK_ERROR_OUT_OF_DATE_KHR && vkResult != VK_SUBOPTIMAL_KHR)
+                {
+                    fprintf(gpFile, "%s() => Call To Display Failed !!!\n", __func__);
+                    bDone = TRUE;
+                }
 
                 //* Update the scene
                 update();
@@ -258,7 +292,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
     // Function Declarations
     void ToggleFullScreen(void);
-    void resize(int, int);
+    VkResult resize(int, int);
     void uninitialize(void);
 
     // Code
@@ -278,7 +312,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
         break;
 
         case WM_SIZE:
-            resize(LOWORD(wParam), HIWORD(wParam));
+            if (wParam == SIZE_MINIMIZED)
+                gbWindowMinimized = TRUE;
+            else
+            {
+                gbWindowMinimized = FALSE;
+                resize(LOWORD(lParam), HIWORD(lParam));
+            }
         break;
 
         case WM_KEYDOWN:
@@ -390,9 +430,12 @@ VkResult initialize(void)
     VkResult createCommandPool(void);
     VkResult createCommandBuffers(void);
     VkResult createVertexBuffer(void);
+    VkResult createUniformBuffer(void);
     VkResult createShaders(void);
     VkResult createDescriptorSetLayout(void);
     VkResult createPipelineLayout(void);
+    VkResult createDescriptorPool(void);
+    VkResult createDescriptorSet(void);
     VkResult createRenderPass(void);
     VkResult createPipeline(void);
     VkResult createFramebuffers(void);
@@ -496,6 +539,17 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
 
+    //! Create Uniform Buffer
+    vkResult = createUniformBuffer();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createUniformBuffer() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createUniformBuffer() Succeeded\n", __func__);
+
     //! Create Shaders
     vkResult = createShaders();
     if (vkResult != VK_SUCCESS)
@@ -528,6 +582,28 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createPipelineLayout() Succeeded\n", __func__);
+
+    //! Create Descriptor Pool
+    vkResult = createDescriptorPool();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createDescriptorPool() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createDescriptorPool() Succeeded\n", __func__);
+
+    //! Create Descriptor Set
+    vkResult = createDescriptorSet();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createDescriptorSet() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createDescriptorSet() Succeeded\n", __func__);
 
     //! Create Render Pass
     vkResult = createRenderPass();
@@ -603,19 +679,207 @@ VkResult initialize(void)
 
     //! Initialization Completed
     bInitialized = TRUE;
+    fprintf(gpFile, "%s() => Initialization Completed Successfully\n", __func__);
     
     return vkResult;
 }
 
-void resize(int width, int height)
+VkResult resize(int width, int height)
 {
+    // Function Declarations
+    VkResult createSwapchain(VkBool32);
+    VkResult createImagesAndImageViews(void);
+    VkResult createCommandBuffers(void);
+    VkResult createPipelineLayout(void);
+    VkResult createRenderPass(void);
+    VkResult createPipeline(void);
+    VkResult createFramebuffers(void);
+    VkResult buildCommandBuffers(void);
+
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
     // Code
     if (height <= 0)
         height = 1;
+
+    //* Check the bInitialized Variable
+    if (bInitialized == FALSE)
+    {
+        fprintf(gpFile, "%s() => Initialization Not Yet Completed or Failed !!!\n", __func__);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+
+    //* As recreation of swapchain is needed, we are going to repeat many steps of initialize() again. Hence, set bInitialize = FALSE again
+    bInitialized = FALSE;
+    {
+        //* Set Global winWidth and winHeight variables
+        winWidth = width;
+        winHeight = height;
+
+        //? DESTROY
+        //?--------------------------------------------------------------------------------------------------
+        //* Wait for device to complete in-hand tasks
+        if (vkDevice)
+            vkDeviceWaitIdle(vkDevice);
+        
+        //* Check presence of swapchain
+        if (vkSwapchainKHR == VK_NULL_HANDLE)
+        {
+            fprintf(gpFile, "%s() => Swapchain is already NULL ... cannot proceed !!!\n", __func__);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+
+        //* Destroy Framebuffer
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkDestroyFramebuffer(vkDevice, vkFramebuffer_array[i], NULL);
+        if (vkFramebuffer_array)
+        {
+            free(vkFramebuffer_array);
+            vkFramebuffer_array = NULL;
+        }
+
+        //* Destroy Command Buffer
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_array[i]);
+        if (vkCommandBuffer_array)
+        {
+            free(vkCommandBuffer_array);
+            vkCommandBuffer_array = NULL;
+        }
+
+        //* Destroy PipelineLayout
+        if (vkDescriptorSetLayout)
+        {
+            vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, NULL);
+            vkPipelineLayout = VK_NULL_HANDLE;
+        }
+
+        //* Destroy Pipeline
+        if (vkPipeline)
+        {
+            vkDestroyPipeline(vkDevice, vkPipeline, NULL);
+            vkPipeline = VK_NULL_HANDLE;
+        }
+
+        //* Destroy Render Pass
+        if (vkRenderPass)
+        {
+            vkDestroyRenderPass(vkDevice, vkRenderPass, NULL);
+            vkRenderPass = VK_NULL_HANDLE;
+        }
+        
+        //* Destroy Swapchain Image and Image Views
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkDestroyImageView(vkDevice, swapchainImageView_array[i], NULL);
+
+        if (swapchainImageView_array)
+        {
+            free(swapchainImageView_array);
+            swapchainImageView_array = NULL;
+        }
+
+        //! No need to free swapchain images -> Uncommenting causes the code to crash
+        // for (uint32_t i = 0; i < swapchainImageCount; i++)
+        // {
+        //     vkDestroyImage(vkDevice, swapchainImage_array[i], NULL);
+        //     fprintf(gpFile, "%s() => vkDestroyImage() Succeeded\n", __func__);
+        // } 
+
+        if (swapchainImage_array)
+        {
+            free(swapchainImage_array);
+            swapchainImage_array = NULL;
+        }
+
+        //* Destroy Swapchain
+        if (vkSwapchainKHR)
+        {
+            vkDestroySwapchainKHR(vkDevice, vkSwapchainKHR, NULL);
+            vkSwapchainKHR = VK_NULL_HANDLE;
+        }
+        //?--------------------------------------------------------------------------------------------------
+        
+        //? RECREATE FOR RESIZE
+        //?--------------------------------------------------------------------------------------------------
+        //* Create Swapchain
+        vkResult = createSwapchain(VK_FALSE);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createSwapchain() Failed : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //* Create Swapchain Image and Image Views
+        vkResult = createImagesAndImageViews();
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createImagesAndImageViews() Failed : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //* Create Render Pass
+        vkResult = createRenderPass();
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createRenderPass() Failed : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //* Create Pipeline Layout
+        vkResult = createPipelineLayout();
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createPipelineLayout() Failed : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //* Create Pipeline
+        vkResult = createPipeline();
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createPipeline() Failed : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //* Create Command Buffers
+        vkResult = createCommandBuffers();
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createCommandBuffers() Failed : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //* Create Framebuffers
+        vkResult = createFramebuffers();
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createFramebuffers() Failed : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //* Build Command Buffers
+        vkResult = buildCommandBuffers();
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => buildCommandBuffers() Failed\n", __func__);
+            return vkResult;
+        }
+        //?--------------------------------------------------------------------------------------------------
+    }
+    bInitialized = TRUE;
+
+    return vkResult;
 }
 
 VkResult display(void)
 {
+    // Function Declarations
+    VkResult resize(int, int);
+    VkResult updateUniformBuffer(void);
+
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
@@ -630,8 +894,13 @@ VkResult display(void)
     vkResult = vkAcquireNextImageKHR(vkDevice, vkSwapchainKHR, UINT64_MAX, vkSemaphore_backBuffer, VK_NULL_HANDLE, &currentImageIndex);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkAcquireNextImageKHR() Failed : %d\n", __func__, vkResult);
-        return vkResult;
+        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
+            resize(winWidth, winHeight);
+        else
+        {
+            fprintf(gpFile, "%s() => vkAcquireNextImageKHR() Failed : %d\n", __func__, vkResult);
+            return vkResult;
+        }
     }
 
     //! Use fence to allow host to wait for completion of execution of previous command buffer
@@ -689,9 +958,18 @@ VkResult display(void)
     vkResult = vkQueuePresentKHR(vkQueue, &vkPresentInfoKHR);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkQueuePresentKHR() Failed : %d\n", __func__, vkResult);
-        return vkResult;
+        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
+            resize(winWidth, winHeight);
+        else
+        {
+            fprintf(gpFile, "%s() => vkQueuePresentKHR() Failed : %d\n", __func__, vkResult);
+            return vkResult;
+        }
     }
+
+    vkResult = updateUniformBuffer();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
 
     vkDeviceWaitIdle(vkDevice);
 
@@ -781,6 +1059,15 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyRenderPass() Succeeded\n", __func__);
     }
 
+    //* Destroy Descriptor Pool (Destroys Descriptor Set with it)
+    if (vkDescriptorPool)
+    {
+        vkDestroyDescriptorPool(vkDevice, vkDescriptorPool, NULL);
+        vkDescriptorPool = VK_NULL_HANDLE;
+        vkDescriptorSet = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet Successfully\n", __func__);
+    }
+
    //* Step - 5 of PipelineLayout
     if (vkPipelineLayout)
     {
@@ -810,6 +1097,21 @@ void uninitialize(void)
         vkDestroyShaderModule(vkDevice, vkShaderModule_vertex_shader, NULL);
         vkShaderModule_vertex_shader = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Vertex Shader\n", __func__);
+    }
+
+    //* Destroy Uniform Buffer
+    if (uniformData.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, uniformData.vkDeviceMemory, NULL);
+        uniformData.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For uniformData.vkDeviceMemory\n", __func__);
+    }
+
+    if (uniformData.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
+        uniformData.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer
@@ -862,7 +1164,7 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => free() Succeeded For swapchainImageView_array\n", __func__);
     }
 
-    //! No need to free swapchain images
+    //! No need to free swapchain images ->  Uncommenting causes the code to crash
     // for (uint32_t i = 0; i < swapchainImageCount; i++)
     // {
     //     vkDestroyImage(vkDevice, swapchainImage_array[i], NULL);
@@ -1996,14 +2298,14 @@ VkResult createSwapchain(VkBool32 vsync)
         vkExtent2D.width = (uint32_t)winWidth;
         vkExtent2D.height = (uint32_t)winHeight;
 
-        vkExtent2D_swapchain.width = max(
+        vkExtent2D_swapchain.width = glm::max(
             vkSurfaceCapabilitiesKHR.minImageExtent.width, 
-            min(vkSurfaceCapabilitiesKHR.maxImageExtent.width, vkExtent2D.width)
+            glm::min(vkSurfaceCapabilitiesKHR.maxImageExtent.width, vkExtent2D.width)
         );
 
-        vkExtent2D_swapchain.height = max(
+        vkExtent2D_swapchain.height = glm::max(
             vkSurfaceCapabilitiesKHR.minImageExtent.height,
-            min(vkSurfaceCapabilitiesKHR.maxImageExtent.height, vkExtent2D.height)
+            glm::min(vkSurfaceCapabilitiesKHR.maxImageExtent.height, vkExtent2D.height)
         );
 
         fprintf(gpFile, "%s() => [Else Block] => Swapchain Image Width x Swapchain Image Height = %d x %d\n", __func__, vkExtent2D_swapchain.width, vkExtent2D_swapchain.height);
@@ -2199,130 +2501,47 @@ VkResult createVertexBuffer(void)
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
-    VertexData vertexData_stagingBuffer_position;
-
-    float triangle_position[] = 
+    //* Step - 3
+    float rectangle_position[] = 
     {
-        0.0f,   1.0f,   0.0f,
-        -1.0f,  -1.0f,  0.0f,
-        1.0f,   -1.0f,  0.0f  
+        // Triangle 1
+        1.0f,   1.0f,   0.0f,   // Top Right
+        -1.0f,  1.0f,   0.0f,   // Top Left
+        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+
+        // Triangle 2
+        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+        1.0f,   -1.0f,  0.0f,   // Bottom Right
+        1.0f,   1.0f,   0.0f,   // Top Right
     };
 
     // Code
-
-    //! Step - 1 (Staging Buffer)
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    memset((void*)&vertexData_stagingBuffer_position, 0, sizeof(VertexData));
     
-    VkBufferCreateInfo vkBufferCreateInfo_stagingBuffer;
-    memset((void*)&vkBufferCreateInfo_stagingBuffer, 0, sizeof(VkBufferCreateInfo));
-    vkBufferCreateInfo_stagingBuffer.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    vkBufferCreateInfo_stagingBuffer.pNext = NULL;
-    vkBufferCreateInfo_stagingBuffer.flags = 0;
-    vkBufferCreateInfo_stagingBuffer.size = sizeof(triangle_position);
-    vkBufferCreateInfo_stagingBuffer.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    vkBufferCreateInfo_stagingBuffer.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    vkResult = vkCreateBuffer(
-        vkDevice, 
-        &vkBufferCreateInfo_stagingBuffer, 
-        NULL, 
-        &vertexData_stagingBuffer_position.vkBuffer
-    );
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed To Create Staging Vertex Buffer: %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded In Creating Staging Vertex Buffer\n", __func__);
-    
-    VkMemoryRequirements vkMemoryRequirements_stagingBuffer;
-    memset((void*)&vkMemoryRequirements_stagingBuffer, 0, sizeof(vkMemoryRequirements_stagingBuffer));
-    vkGetBufferMemoryRequirements(vkDevice, vertexData_stagingBuffer_position.vkBuffer, &vkMemoryRequirements_stagingBuffer);
-
-    VkMemoryAllocateInfo vkMemoryAllocateInfo_stagingBuffer;
-    memset((void*)&vkMemoryAllocateInfo_stagingBuffer, 0, sizeof(vkMemoryAllocateInfo_stagingBuffer));
-    vkMemoryAllocateInfo_stagingBuffer.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    vkMemoryAllocateInfo_stagingBuffer.pNext = NULL;
-    vkMemoryAllocateInfo_stagingBuffer.allocationSize = vkMemoryRequirements_stagingBuffer.size;
-    vkMemoryAllocateInfo_stagingBuffer.memoryTypeIndex = 0;
-
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-    {
-        if ((vkMemoryRequirements_stagingBuffer.memoryTypeBits & 1) == 1)
-        {
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-            {
-                vkMemoryAllocateInfo_stagingBuffer.memoryTypeIndex = i;
-                break;
-            }
-        }
-        vkMemoryRequirements_stagingBuffer.memoryTypeBits >>= 1;
-    }
-
-    vkResult = vkAllocateMemory(
-        vkDevice, 
-        &vkMemoryAllocateInfo_stagingBuffer, 
-        NULL, 
-        &vertexData_stagingBuffer_position.vkDeviceMemory
-    );
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed To Allocate Memory For Staging Vertex Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded In Allocating Memory For Staging Vertex Buffer\n", __func__);
-
-    vkResult = vkBindBufferMemory(
-        vkDevice,
-        vertexData_stagingBuffer_position.vkBuffer,
-        vertexData_stagingBuffer_position.vkDeviceMemory,
-        0
-    );
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed To Bind Buffer Memory For Staging Vertex Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded In Binding Buffer Memory For Staging Vertex Buffer\n", __func__);
-
-    void* data = NULL;
-    vkResult = vkMapMemory(
-        vkDevice,
-        vertexData_stagingBuffer_position.vkDeviceMemory,
-        0,
-        vkMemoryAllocateInfo_stagingBuffer.allocationSize,
-        0,
-        &data
-    );
-     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkMapMemory() Failed To Map Memory For Staging Vertex Buffer: %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkMapMemory() Succeeded In Mapping Memory For Staging Vertex Buffer\n", __func__);
-
-    memcpy(data, triangle_position, sizeof(triangle_position));
-
-    vkUnmapMemory(vkDevice, vertexData_stagingBuffer_position.vkDeviceMemory);
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-    //! Step - 2 (Buffer will be only visible to device)
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //* Step - 4
     memset((void*)&vertexData_position, 0, sizeof(VertexData));
-    
+
+    //* Step - 5
     VkBufferCreateInfo vkBufferCreateInfo;
     memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    vkBufferCreateInfo.flags = 0;
+    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(triangle_position);
-    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    vkBufferCreateInfo.size = sizeof(rectangle_position);
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
+    //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Device-Visible Buffer: %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded In Creating Device-Visible Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Buffer\n", __func__);
     
+    //* Step - 7
     VkMemoryRequirements vkMemoryRequirements;
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
     vkGetBufferMemoryRequirements(vkDevice, vertexData_position.vkBuffer, &vkMemoryRequirements);
 
+    //* Step - 8
     VkMemoryAllocateInfo vkMemoryAllocateInfo;
     memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
     vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -2330,230 +2549,180 @@ VkResult createVertexBuffer(void)
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
     vkMemoryAllocateInfo.memoryTypeIndex = 0;
     
+    //* Step - 8.1
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Step - 9
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Buffer\n", __func__);
+
+    //* Step - 10
+    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_position.vkBuffer, vertexData_position.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Buffer\n", __func__);
+
+    //* Step - 11
+    void* data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Buffer\n", __func__);
+
+    //* Step - 12
+    memcpy(data, rectangle_position, sizeof(rectangle_position));
+
+    //* Step - 13
+    vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
+
+    return vkResult;
+}
+
+VkResult createUniformBuffer(void)
+{
+    // Function Declarations
+    VkResult updateUniformBuffer(void);
+
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    VkBufferCreateInfo vkBufferCreateInfo;
+    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
+    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkBufferCreateInfo.flags = 0;
+    vkBufferCreateInfo.pNext = NULL;
+    vkBufferCreateInfo.size = sizeof(MVP_UniformData);
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+    memset((void*)&uniformData, 0, sizeof(UniformData));
+
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Uniform Data\n", __func__);
+    
+    VkMemoryRequirements vkMemoryRequirements;
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, uniformData.vkBuffer, &vkMemoryRequirements);
+
+    VkMemoryAllocateInfo vkMemoryAllocateInfo;
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
         {
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
             {
                 vkMemoryAllocateInfo.memoryTypeIndex = i;
                 break;
             }
         }
+
         vkMemoryRequirements.memoryTypeBits >>= 1;
     }
 
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed To Allocate Memory For Device-Visible Buffer: %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded In Allocating Memory For Device-Visible Buffer\n", __func__);
-
-    vkResult = vkBindBufferMemory(vkDevice, vertexData_position.vkBuffer, vertexData_position.vkDeviceMemory, 0);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed To Bind Buffer Memory For Device-Visible Buffer: %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded In Binding Memory For Device-Visible Buffer\n", __func__);
-
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    
-    //! Step - 3 (Create Command Buffer)
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    VkCommandBufferAllocateInfo vkCommandBufferAllocateInfo;
-    memset((void*)&vkCommandBufferAllocateInfo, 0, sizeof(VkCommandBufferAllocateInfo));
-    vkCommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO; 
-    vkCommandBufferAllocateInfo.pNext = NULL;
-    vkCommandBufferAllocateInfo.commandPool = vkCommandPool;
-    vkCommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    vkCommandBufferAllocateInfo.commandBufferCount = 1;
-    
-    VkCommandBuffer vkCommandBuffer = VK_NULL_HANDLE;
-    vkResult = vkAllocateCommandBuffers(vkDevice, &vkCommandBufferAllocateInfo, &vkCommandBuffer);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Failed To Allocate Command Buffer For Buffer-Copy: %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Succeeded In Allocating Command Buffer For Buffer-Copy\n", __func__);
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    
-    //! Step - 4 (Build Command Buffer)
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    VkCommandBufferBeginInfo vkCommandBufferBeginInfo;
-    memset((void*)&vkCommandBufferBeginInfo, 0, sizeof(VkCommandBufferBeginInfo));
-    vkCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    vkCommandBufferBeginInfo.pNext = NULL;
-    vkCommandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkResult = vkBeginCommandBuffer(vkCommandBuffer, &vkCommandBufferBeginInfo);
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkBeginCommandBuffer() Failed For Buffer-Copy: %d\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        
-        //* Cleanup Code
-        if (vkCommandBuffer)
-        {
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer);
-            vkCommandBuffer = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkFreeCommandBuffers() Succeeded For Buffer-Copy\n", __func__);
-        }
-        if (vertexData_stagingBuffer_position.vkDeviceMemory)
-        {
-            vkFreeMemory(vkDevice, vertexData_stagingBuffer_position.vkDeviceMemory, NULL);
-            vertexData_stagingBuffer_position.vkDeviceMemory = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_stagingBuffer_position.vkDeviceMemory\n", __func__);
-        }
-        if (vertexData_stagingBuffer_position.vkBuffer)
-        {
-            vkDestroyBuffer(vkDevice, vertexData_stagingBuffer_position.vkBuffer, NULL);
-            vertexData_stagingBuffer_position.vkBuffer = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_stagingBuffer_position.vkBuffer\n", __func__);
-        }
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }     
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Uniform Data\n", __func__);
 
+    vkResult = vkBindBufferMemory(vkDevice, uniformData.vkBuffer, uniformData.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded For Buffer-Copy\n", __func__);
-    
-    VkBufferCopy vkBufferCopy;
-    memset((void*)&vkBufferCopy, 0, sizeof(VkBufferCopy));
-    vkBufferCopy.srcOffset = 0; //? SRC = 0, DST = 0 => Entire buffer
-    vkBufferCopy.dstOffset = 0;
-    vkBufferCopy.size = sizeof(triangle_position);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Uniform Data\n", __func__);
 
-    vkCmdCopyBuffer(
-        vkCommandBuffer,
-        vertexData_stagingBuffer_position.vkBuffer,
-        vertexData_position.vkBuffer,
-        1,                   //* Count of regions
-        &vkBufferCopy        //* Array of VkBufferCopy structure instances
+    vkResult = updateUniformBuffer();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => updateUniformBuffer() Succeeded\n", __func__);
+
+
+    return vkResult;
+}
+
+VkResult updateUniformBuffer(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    MVP_UniformData mvp_UniformData;
+    memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
+
+    //! Update Matrices
+    mvp_UniformData.modelMatrix = glm::mat4(1.0f);
+    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+    mvp_UniformData.viewMatrix = glm::mat4(1.0f);
+    
+    glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
+    perspectiveProjectionMatrix = glm::perspective(
+        glm::radians(45.0f),
+        (float)winWidth / (float)winHeight,
+        0.1f,
+        100.0f
     );
-    
-    vkResult = vkEndCommandBuffer(vkCommandBuffer);
+    //! 2D Matrix with Column Major (Like OpenGL)
+    perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
+    mvp_UniformData.projectionMatix = perspectiveProjectionMatrix;
+
+    //! Map Uniform Buffer
+    void* data = NULL;
+    vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkEndCommandBuffer() Failed For Buffer-Copy: %d\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        
-        //* Cleanup Code
-        if (vkCommandBuffer)
-        {
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer);
-            vkCommandBuffer = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkFreeCommandBuffers() Succeeded For Buffer-Copy\n", __func__);
-        }
-        if (vertexData_stagingBuffer_position.vkDeviceMemory)
-        {
-            vkFreeMemory(vkDevice, vertexData_stagingBuffer_position.vkDeviceMemory, NULL);
-            vertexData_stagingBuffer_position.vkDeviceMemory = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_stagingBuffer_position.vkDeviceMemory\n", __func__);
-        }
-        if (vertexData_stagingBuffer_position.vkBuffer)
-        {
-            vkDestroyBuffer(vkDevice, vertexData_stagingBuffer_position.vkBuffer, NULL);
-            vertexData_stagingBuffer_position.vkBuffer = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_stagingBuffer_position.vkBuffer\n", __func__);
-        }
-
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
-    else
-        fprintf(gpFile, "%s() => vkEndCommandBuffer() Succeeded For Buffer-Copy\n", __func__);
 
-    //* Submit above command buffer to queue
-    VkSubmitInfo vkSubmitInfo;
-    memset((void*)&vkSubmitInfo, 0, sizeof(VkSubmitInfo));
-    vkSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    vkSubmitInfo.pNext = NULL;
-    vkSubmitInfo.commandBufferCount = 1;
-    vkSubmitInfo.pCommandBuffers = &vkCommandBuffer;
+    //! Copy the data to the mapped buffer (present on device memory)
+    memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
 
-    vkResult = vkQueueSubmit(vkQueue, 1, &vkSubmitInfo, VK_NULL_HANDLE);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkQueueSubmit() Failed For Buffer-Copy : %d\n", __func__, vkResult);
-
-        //* Cleanup Code
-        if (vkCommandBuffer)
-        {
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer);
-            vkCommandBuffer = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkFreeCommandBuffers() Succeeded For Buffer-Copy\n", __func__);
-        }
-        if (vertexData_stagingBuffer_position.vkDeviceMemory)
-        {
-            vkFreeMemory(vkDevice, vertexData_stagingBuffer_position.vkDeviceMemory, NULL);
-            vertexData_stagingBuffer_position.vkDeviceMemory = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_stagingBuffer_position.vkDeviceMemory\n", __func__);
-        }
-        if (vertexData_stagingBuffer_position.vkBuffer)
-        {
-            vkDestroyBuffer(vkDevice, vertexData_stagingBuffer_position.vkBuffer, NULL);
-            vertexData_stagingBuffer_position.vkBuffer = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_stagingBuffer_position.vkBuffer\n", __func__);
-        }
-
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => vkQueueSubmit() Succeeded For Buffer-Copy\n", __func__);
-
-    vkResult = vkQueueWaitIdle(vkQueue);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkQueueWaitIdle() Failed For Buffer-Copy : %d\n", __func__, vkResult);
-        
-        //* Cleanup Code
-        if (vkCommandBuffer)
-        {
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer);
-            vkCommandBuffer = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkFreeCommandBuffers() Succeeded For Buffer-Copy\n", __func__);
-        }
-        if (vertexData_stagingBuffer_position.vkDeviceMemory)
-        {
-            vkFreeMemory(vkDevice, vertexData_stagingBuffer_position.vkDeviceMemory, NULL);
-            vertexData_stagingBuffer_position.vkDeviceMemory = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_stagingBuffer_position.vkDeviceMemory\n", __func__);
-        }
-        if (vertexData_stagingBuffer_position.vkBuffer)
-        {
-            vkDestroyBuffer(vkDevice, vertexData_stagingBuffer_position.vkBuffer, NULL);
-            vertexData_stagingBuffer_position.vkBuffer = VK_NULL_HANDLE;
-            fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_stagingBuffer_position.vkBuffer\n", __func__);
-        }
-
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => vkQueueWaitIdle() Succeeded For Buffer-Copy\n", __func__);
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    //! Step - 5
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    if (vkCommandBuffer)
-    {
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer);
-        vkCommandBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeCommandBuffers() Succeeded For Buffer-Copy\n", __func__);
-    }
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    //! Step - 6
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    if (vertexData_stagingBuffer_position.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_stagingBuffer_position.vkDeviceMemory, NULL);
-        vertexData_stagingBuffer_position.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_stagingBuffer_position.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_stagingBuffer_position.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_stagingBuffer_position.vkBuffer, NULL);
-        vertexData_stagingBuffer_position.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_stagingBuffer_position.vkBuffer\n", __func__);
-    }
-    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //! Unmap memory
+    vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
 
     return vkResult;
 }
@@ -2723,14 +2892,23 @@ VkResult createDescriptorSetLayout(void)
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
+    //! Initialize VkDescriptorSetLayoutBinding
+    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding;
+    memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(VkDescriptorSetLayoutBinding));
+    vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
+    vkDescriptorSetLayoutBinding.descriptorCount = 1;
+    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
+
     //* Step - 3
     VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo;
     memset((void*)&vkDescriptorSetLayoutCreateInfo, 0, sizeof(VkDescriptorSetLayoutCreateInfo));
     vkDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     vkDescriptorSetLayoutCreateInfo.pNext = NULL;
     vkDescriptorSetLayoutCreateInfo.flags = 0;
-    vkDescriptorSetLayoutCreateInfo.bindingCount = 0;   //! An integer value where you want to bind descriptor set
-    vkDescriptorSetLayoutCreateInfo.pBindings = NULL;
+    vkDescriptorSetLayoutCreateInfo.bindingCount = 1;   //! An integer value where you want to bind descriptor set
+    vkDescriptorSetLayoutCreateInfo.pBindings = &vkDescriptorSetLayoutBinding;
 
     //* Step - 4
     vkResult = vkCreateDescriptorSetLayout(vkDevice, &vkDescriptorSetLayoutCreateInfo, NULL, &vkDescriptorSetLayout);
@@ -2738,7 +2916,6 @@ VkResult createDescriptorSetLayout(void)
         fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Succeeded\n", __func__);
-
 
     return vkResult;
 }
@@ -2765,6 +2942,93 @@ VkResult createPipelineLayout(void)
         fprintf(gpFile, "%s() => vkCreatePipelineLayout() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkCreatePipelineLayout() Succeeded\n", __func__);
+
+    return vkResult;
+}
+
+VkResult createDescriptorPool(void)
+{
+    // Variable Declarations
+    VkResult vkResult;
+
+    // Code
+
+    //* Vulkan expects decriptor pool size before creating actual descriptor pool
+    VkDescriptorPoolSize vkDescriptorPoolSize;
+    memset((void*)&vkDescriptorPoolSize, 0, sizeof(VkDescriptorPoolSize));
+    vkDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorPoolSize.descriptorCount = 1;
+   
+    //* Create the pool
+    VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo;
+    memset((void*)&vkDescriptorPoolCreateInfo, 0, sizeof(VkDescriptorPoolCreateInfo));
+    vkDescriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    vkDescriptorPoolCreateInfo.pNext = NULL;
+    vkDescriptorPoolCreateInfo.flags = 0;
+    vkDescriptorPoolCreateInfo.poolSizeCount = 1;
+    vkDescriptorPoolCreateInfo.pPoolSizes = &vkDescriptorPoolSize;
+    vkDescriptorPoolCreateInfo.maxSets = 1;
+
+    vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateDescriptorPool() Failed : %d !!!\n", __func__, vkResult);  
+    else
+        fprintf(gpFile, "%s() => vkCreateDescriptorPool() Succeeded\n", __func__);
+
+    return vkResult;
+}
+
+VkResult createDescriptorSet(void)
+{
+    // Variable Declarations
+    VkResult vkResult;
+
+    // Code
+
+    //* Initialize DescriptorSetAllocationInfo
+    VkDescriptorSetAllocateInfo vkDescriptorSetAllocateInfo;
+    memset((void*)&vkDescriptorSetAllocateInfo, 0, sizeof(VkDescriptorSetAllocateInfo));
+    vkDescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    vkDescriptorSetAllocateInfo.pNext = NULL;
+    vkDescriptorSetAllocateInfo.descriptorPool = vkDescriptorPool;
+    vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
+    vkDescriptorSetAllocateInfo.pSetLayouts = &vkDescriptorSetLayout;
+
+    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Failed : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }  
+    else
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded\n", __func__);
+    
+    //* Describe whether we want buffer as uniform or image as uniform
+    VkDescriptorBufferInfo vkDescriptorBufferInfo;
+    memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
+    vkDescriptorBufferInfo.buffer = uniformData.vkBuffer;
+    vkDescriptorBufferInfo.offset = 0;
+    vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
+
+    /* Update above descriptor set directly to the shader
+    There are 2 ways :-
+        1) Writing directly to the shader
+        2) Copying from one shader to another shader
+    */
+    VkWriteDescriptorSet vkWriteDescriptorSet;
+    memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
+    vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet.pNext = NULL;
+    vkWriteDescriptorSet.dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet.dstArrayElement = 0;
+    vkWriteDescriptorSet.descriptorCount = 1;
+    vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
+    vkWriteDescriptorSet.pImageInfo = NULL;
+    vkWriteDescriptorSet.pTexelBufferView = NULL;
+    vkWriteDescriptorSet.dstBinding = 0;
+
+    vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
 
     return vkResult;
 }
@@ -2878,7 +3142,7 @@ VkResult createPipeline(void)
     vkPipelineRasterizationStateCreateInfo.flags = 0;
     vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
     vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-    vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
     //! Color Blend State
@@ -3192,13 +3456,31 @@ VkResult buildCommandBuffers(void)
             //! Bind with Pipeline
             vkCmdBindPipeline(vkCommandBuffer_array[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
 
+            //! Bind the Descriptor Set to the Pipeline
+            vkCmdBindDescriptorSets(
+                vkCommandBuffer_array[i],
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                vkPipelineLayout,
+                0,
+                1,
+                &vkDescriptorSet,
+                0,
+                NULL
+            );
+
             //! Bind with Vertex Buffer
             VkDeviceSize vkDeviceSize_offset_array[1];
             memset((void*)vkDeviceSize_offset_array, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_array));
-            vkCmdBindVertexBuffers(vkCommandBuffer_array[i], 0, 1, &vertexData_position.vkBuffer, vkDeviceSize_offset_array);
+            vkCmdBindVertexBuffers(
+                vkCommandBuffer_array[i], 
+                0, 
+                1, 
+                &vertexData_position.vkBuffer, 
+                vkDeviceSize_offset_array
+            );
 
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 3, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], 6, 1, 0, 0);
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);

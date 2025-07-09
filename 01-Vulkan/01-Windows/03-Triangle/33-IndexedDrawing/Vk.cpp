@@ -1070,8 +1070,8 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet Successfully\n", __func__);
     }
 
-    //* Step - 5 of PipelineLayout
-    if (vkDescriptorSetLayout)
+   //* Step - 5 of PipelineLayout
+    if (vkPipelineLayout)
     {
         vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, NULL);
         vkPipelineLayout = VK_NULL_HANDLE;

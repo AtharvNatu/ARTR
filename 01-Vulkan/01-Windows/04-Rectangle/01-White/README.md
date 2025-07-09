@@ -1,0 +1,1 @@
+ - While drawing rectangle, the triangle list method is recommended because there is no Triangle Fan topology present in Metal, DX12, WebGPU and also on MoltenVk (running on macOS and iOS) as it internally runs using Metal
