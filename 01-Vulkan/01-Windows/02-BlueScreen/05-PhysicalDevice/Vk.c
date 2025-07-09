@@ -220,7 +220,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
         break;
 
         case WM_CLOSE:
-            uninitialize();
+            DestroyWindow(hwnd);
         break;
 
         case WM_DESTROY:
