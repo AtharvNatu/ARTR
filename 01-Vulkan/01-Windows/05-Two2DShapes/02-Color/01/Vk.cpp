@@ -124,8 +124,11 @@ typedef struct
 } VertexData;
 
 //? Position Related Variables
-VertexData vertexData_position;
-VertexData vertexData_color;
+VertexData vertexData_position_triangle;
+VertexData vertexData_color_triangle;
+
+VertexData vertexData_position_rectangle;
+VertexData vertexData_color_rectangle;
 
 //? Uniform Related Variables
 typedef struct
@@ -141,7 +144,8 @@ typedef struct
     VkDeviceMemory vkDeviceMemory;
 } UniformData;
 
-UniformData uniformData;
+UniformData uniformData_triangle;
+UniformData uniformData_rectangle;
 
 //? Shader Related Variables
 VkShaderModule vkShaderModule_vertex_shader = VK_NULL_HANDLE;
@@ -156,8 +160,9 @@ VkPipelineLayout vkPipelineLayout = VK_NULL_HANDLE;
 //? Descriptor Pool
 VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
 
-//? Descriptor Set
-VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
+//? Descriptor Sets
+VkDescriptorSet vkDescriptorSet_triangle = VK_NULL_HANDLE;
+VkDescriptorSet vkDescriptorSet_rectangle = VK_NULL_HANDLE;
 
 //? Pipeline Related Variables
 VkViewport vkViewport;
@@ -218,7 +223,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Multi-Colored Triangle"),
+        TEXT("Atharv Natu : Vulkan Colored 2D Shapes"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -1065,11 +1070,12 @@ void uninitialize(void)
     {
         vkDestroyDescriptorPool(vkDevice, vkDescriptorPool, NULL);
         vkDescriptorPool = VK_NULL_HANDLE;
-        vkDescriptorSet = VK_NULL_HANDLE;
+        vkDescriptorSet_rectangle = VK_NULL_HANDLE;
+        vkDescriptorSet_triangle = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet Successfully\n", __func__);
     }
 
-   //* Step - 5 of PipelineLayout
+    //* Step - 5 of PipelineLayout
     if (vkPipelineLayout)
     {
         vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, NULL);
@@ -1100,50 +1106,98 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Vertex Shader\n", __func__);
     }
 
-    //* Destroy Uniform Buffer
-    if (uniformData.vkDeviceMemory)
+    //* Destroy Uniform Buffers
+    if (uniformData_rectangle.vkDeviceMemory)
     {
-        vkFreeMemory(vkDevice, uniformData.vkDeviceMemory, NULL);
-        uniformData.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For uniformData.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, uniformData_rectangle.vkDeviceMemory, NULL);
+        uniformData_rectangle.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For uniformData_rectangle.vkDeviceMemory\n", __func__);
     }
 
-    if (uniformData.vkBuffer)
+    if (uniformData_rectangle.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
-        uniformData.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, uniformData_rectangle.vkBuffer, NULL);
+        uniformData_rectangle.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_rectangle.vkBuffer\n", __func__);
     }
 
-    //* Destroy Color Buffer
-    if (vertexData_color.vkDeviceMemory)
+    if (uniformData_triangle.vkDeviceMemory)
     {
-        vkFreeMemory(vkDevice, vertexData_color.vkDeviceMemory, NULL);
-        vertexData_color.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_color.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, uniformData_triangle.vkDeviceMemory, NULL);
+        uniformData_triangle.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For uniformData_triangle.vkDeviceMemory\n", __func__);
     }
 
-    if (vertexData_color.vkBuffer)
+    if (uniformData_triangle.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, vertexData_color.vkBuffer, NULL);
-        vertexData_color.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_color.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, uniformData_triangle.vkBuffer, NULL);
+        uniformData_triangle.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_triangle.vkBuffer\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer
-    if (vertexData_position.vkDeviceMemory)
+
+    //! Rectangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+    if (vertexData_color_rectangle.vkDeviceMemory)
     {
-        vkFreeMemory(vkDevice, vertexData_position.vkDeviceMemory, NULL);
-        vertexData_position.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, vertexData_color_rectangle.vkDeviceMemory, NULL);
+        vertexData_color_rectangle.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_color_rectangle.vkDeviceMemory\n", __func__);
     }
 
-    if (vertexData_position.vkBuffer)
+    if (vertexData_color_rectangle.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, vertexData_position.vkBuffer, NULL);
-        vertexData_position.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, vertexData_color_rectangle.vkBuffer, NULL);
+        vertexData_color_rectangle.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_color_rectangle.vkBuffer\n", __func__);
     }
+
+    if (vertexData_position_rectangle.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_position_rectangle.vkDeviceMemory, NULL);
+        vertexData_position_rectangle.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_rectangle.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_position_rectangle.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_position_rectangle.vkBuffer, NULL);
+        vertexData_position_rectangle.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_rectangle.vkBuffer\n", __func__);
+    }
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+
+    //! Triangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+    if (vertexData_color_triangle.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_color_triangle.vkDeviceMemory, NULL);
+        vertexData_color_triangle.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_color_triangle.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_color_triangle.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_color_triangle.vkBuffer, NULL);
+        vertexData_color_triangle.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_color_triangle.vkBuffer\n", __func__);
+    }
+
+    if (vertexData_position_triangle.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_position_triangle.vkDeviceMemory, NULL);
+        vertexData_position_triangle.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_triangle.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_position_triangle.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_position_triangle.vkBuffer, NULL);
+        vertexData_position_triangle.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_triangle.vkBuffer\n", __func__);
+    }
+    //! -------------------------------------------------------------------------------------------------------------------------------------
 
     //* Step - 5 of Command Buffer
     for (uint32_t i = 0; i < swapchainImageCount; i++)
@@ -2532,12 +2586,38 @@ VkResult createVertexBuffer(void)
         0.0f,   0.0f,   1.0f
     };
 
+    float rectangle_position[] = 
+    {
+        // Triangle 1
+        1.0f,   1.0f,   0.0f,   // Top Right
+        -1.0f,  1.0f,   0.0f,   // Top Left
+        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+
+        // Triangle 2
+        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+        1.0f,   -1.0f,  0.0f,   // Bottom Right
+        1.0f,   1.0f,   0.0f,   // Top Right
+    };
+
+    float rectangle_color[] = 
+    {
+        0.0f,   0.0f,   1.0f,
+        0.0f,   0.0f,   1.0f,
+        0.0f,   0.0f,   1.0f,
+        0.0f,   0.0f,   1.0f,
+        0.0f,   0.0f,   1.0f,
+        0.0f,   0.0f,   1.0f
+    };
+
     // Code
+
+    //! Triangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
     
-    //! Vertex Position
-    //! ---------------------------------------------------------------------------------------------------------------------------------
+    //? Position
+    //? -------------------------------------------------------------------------------------------------------------------------------------
     //* Step - 4
-    memset((void*)&vertexData_position, 0, sizeof(VertexData));
+    memset((void*)&vertexData_position_triangle, 0, sizeof(VertexData));
 
     //* Step - 5
     VkBufferCreateInfo vkBufferCreateInfo;
@@ -2549,16 +2629,16 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position_triangle.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Position Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Position Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Position Buffer Used For Triangle\n", __func__);
     
     //* Step - 7
     VkMemoryRequirements vkMemoryRequirements;
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, vertexData_position.vkBuffer, &vkMemoryRequirements);
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_position_triangle.vkBuffer, &vkMemoryRequirements);
 
     //* Step - 8
     VkMemoryAllocateInfo vkMemoryAllocateInfo;
@@ -2588,39 +2668,39 @@ VkResult createVertexBuffer(void)
     }
 
     //* Step - 9
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position_triangle.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Position Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Position Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Position Buffer Used For Triangle\n", __func__);
 
     //* Step - 10
     //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
-    vkResult = vkBindBufferMemory(vkDevice, vertexData_position.vkBuffer, vertexData_position.vkDeviceMemory, 0);
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_position_triangle.vkBuffer, vertexData_position_triangle.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Position Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Position Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Position Buffer Used For Triangle \n", __func__);
 
     //* Step - 11
     void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    vkResult = vkMapMemory(vkDevice, vertexData_position_triangle.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Position Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer Used For Triangle \n", __func__);
 
     //* Step - 12
     memcpy(data, triangle_position, sizeof(triangle_position));
 
     //* Step - 13
-    vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
-    //! ---------------------------------------------------------------------------------------------------------------------------------
-
-    //! Vertex Color
-    //! ---------------------------------------------------------------------------------------------------------------------------------
+    vkUnmapMemory(vkDevice, vertexData_position_triangle.vkDeviceMemory);
+    //? -------------------------------------------------------------------------------------------------------------------------------------
+    
+    //? Color
+    //? -------------------------------------------------------------------------------------------------------------------------------------
     //* Step - 4
-    memset((void*)&vertexData_color, 0, sizeof(VertexData));
+    memset((void*)&vertexData_color_triangle, 0, sizeof(VertexData));
 
     //* Step - 5
     memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
@@ -2631,15 +2711,15 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_color.vkBuffer);
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_color_triangle.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Color Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Color Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Color Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Color Buffer Used For Triangle\n", __func__);
     
     //* Step - 7
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, vertexData_color.vkBuffer, &vkMemoryRequirements);
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_position_triangle.vkBuffer, &vkMemoryRequirements);
 
     //* Step - 8
     memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
@@ -2668,33 +2748,199 @@ VkResult createVertexBuffer(void)
     }
 
     //* Step - 9
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_color.vkDeviceMemory);
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_color_triangle.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Color Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Color Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Color Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Color Buffer Used For Triangle\n", __func__);
 
     //* Step - 10
     //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
-    vkResult = vkBindBufferMemory(vkDevice, vertexData_color.vkBuffer, vertexData_color.vkDeviceMemory, 0);
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_color_triangle.vkBuffer, vertexData_color_triangle.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Color Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Color Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Color Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Color Buffer Used For Triangle \n", __func__);
 
-    //* Step - 11data = NULL;
-    vkResult = vkMapMemory(vkDevice, vertexData_color.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    //* Step - 11
+    data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_color_triangle.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Color Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Color Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Color Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Color Buffer Used For Triangle \n", __func__);
 
     //* Step - 12
     memcpy(data, triangle_color, sizeof(triangle_color));
 
     //* Step - 13
-    vkUnmapMemory(vkDevice, vertexData_color.vkDeviceMemory);
-    //! ---------------------------------------------------------------------------------------------------------------------------------
+    vkUnmapMemory(vkDevice, vertexData_color_triangle.vkDeviceMemory);
+    //? -------------------------------------------------------------------------------------------------------------------------------------
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+    
+    //! Rectangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+
+    //? Position
+    //? -------------------------------------------------------------------------------------------------------------------------------------
+    //* Step - 4
+    memset((void*)&vertexData_position_rectangle, 0, sizeof(VertexData));
+
+    //* Step - 5
+    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
+    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
+    vkBufferCreateInfo.pNext = NULL;
+    vkBufferCreateInfo.size = sizeof(rectangle_position);
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    
+    //* Step - 6
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position_rectangle.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Position Buffer Used For Rectangle : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Position Buffer Used For Rectangle\n", __func__);
+    
+    //* Step - 7
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_position_rectangle.vkBuffer, &vkMemoryRequirements);
+
+    //* Step - 8
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    
+    //* Step - 8.1
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Step - 9
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position_rectangle.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Position Buffer Used For Rectangle : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Position Buffer Used For Rectangle\n", __func__);
+
+    //* Step - 10
+    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_position_rectangle.vkBuffer, vertexData_position_rectangle.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Position Buffer Used For Rectangle : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Position Buffer Used For Rectangle \n", __func__);
+
+    //* Step - 11
+    data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_position_rectangle.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Position Buffer Used For Rectangle : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer Used For Rectangle \n", __func__);
+
+    //* Step - 12
+    memcpy(data, rectangle_position, sizeof(rectangle_position));
+
+    //* Step - 13
+    vkUnmapMemory(vkDevice, vertexData_position_rectangle.vkDeviceMemory);
+    //? -------------------------------------------------------------------------------------------------------------------------------------
+
+    //? Color
+    //? -------------------------------------------------------------------------------------------------------------------------------------
+    //* Step - 4
+    memset((void*)&vertexData_color_rectangle, 0, sizeof(VertexData));
+
+    //* Step - 5
+    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
+    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
+    vkBufferCreateInfo.pNext = NULL;
+    vkBufferCreateInfo.size = sizeof(rectangle_color);
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    
+    //* Step - 6
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_color_rectangle.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Color Buffer Used For Rectangle : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Color Buffer Used For Rectangle\n", __func__);
+    
+    //* Step - 7
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_color_rectangle.vkBuffer, &vkMemoryRequirements);
+
+    //* Step - 8
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    
+    //* Step - 8.1
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Step - 9
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_color_rectangle.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Color Buffer Used For Rectangle : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Color Buffer Used For Rectangle\n", __func__);
+
+    //* Step - 10
+    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_color_rectangle.vkBuffer, vertexData_color_rectangle.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Color Buffer Used For Rectangle : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Color Buffer Used For Rectangle \n", __func__);
+
+    //* Step - 11
+    data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_color_rectangle.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Color Buffer Used For Rectangle : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Color Buffer Used For Rectangle \n", __func__);
+
+    //* Step - 12
+    memcpy(data, rectangle_color, sizeof(rectangle_color));
+
+    //* Step - 13
+    vkUnmapMemory(vkDevice, vertexData_color_rectangle.vkDeviceMemory);
+    //? -------------------------------------------------------------------------------------------------------------------------------------
+    //! -------------------------------------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
@@ -2708,6 +2954,9 @@ VkResult createUniformBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
+
+    //! Triangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
     VkBufferCreateInfo vkBufferCreateInfo;
     memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2716,20 +2965,20 @@ VkResult createUniformBuffer(void)
     vkBufferCreateInfo.size = sizeof(MVP_UniformData);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-    memset((void*)&uniformData, 0, sizeof(UniformData));
+    memset((void*)&uniformData_triangle, 0, sizeof(UniformData));
 
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData.vkBuffer);
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData_triangle.vkBuffer);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Uniform Data Used For Triangle: %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Uniform Data\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Uniform Data Used For Triangle\n", __func__);
     
     VkMemoryRequirements vkMemoryRequirements;
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, uniformData.vkBuffer, &vkMemoryRequirements);
+    vkGetBufferMemoryRequirements(vkDevice, uniformData_triangle.vkBuffer, &vkMemoryRequirements);
 
     VkMemoryAllocateInfo vkMemoryAllocateInfo;
     memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
@@ -2752,23 +3001,79 @@ VkResult createUniformBuffer(void)
         vkMemoryRequirements.memoryTypeBits >>= 1;
     }
 
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData.vkDeviceMemory);
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData_triangle.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Uniform Data Used For Triangle: %d !!!\n", __func__, vkResult);
         return vkResult;
     }     
     else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Uniform Data\n", __func__);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Uniform Data Used For Triangle\n", __func__);
 
-    vkResult = vkBindBufferMemory(vkDevice, uniformData.vkBuffer, uniformData.vkDeviceMemory, 0);
+    vkResult = vkBindBufferMemory(vkDevice, uniformData_triangle.vkBuffer, uniformData_triangle.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Uniform Data Used For Triangle: %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Uniform Data\n", __func__);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Uniform Data Used For Triangle\n", __func__);
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+
+    //! Rectangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+    memset((void*)&uniformData_rectangle, 0, sizeof(UniformData));
+
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData_rectangle.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Uniform Data Used For Rectangle: %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Uniform Data Used For Rectangle\n", __func__);
+    
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, uniformData_rectangle.vkBuffer, &vkMemoryRequirements);
+
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData_rectangle.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Uniform Data Used For Rectangle: %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }     
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Uniform Data Used For Rectangle\n", __func__);
+
+    vkResult = vkBindBufferMemory(vkDevice, uniformData_rectangle.vkBuffer, uniformData_rectangle.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Uniform Data Used For Rectangle: %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Uniform Data Used For Rectangle\n", __func__);
+    //! -------------------------------------------------------------------------------------------------------------------------------------
 
     vkResult = updateUniformBuffer();
     if (vkResult != VK_SUCCESS)
@@ -2778,7 +3083,6 @@ VkResult createUniformBuffer(void)
     }
     else
         fprintf(gpFile, "%s() => updateUniformBuffer() Succeeded\n", __func__);
-
 
     return vkResult;
 }
@@ -2790,11 +3094,14 @@ VkResult updateUniformBuffer(void)
 
     // Code
     MVP_UniformData mvp_UniformData;
+
+    //! Triangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
     memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
 
     //! Update Matrices
     mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, -6.0f));
     mvp_UniformData.viewMatrix = glm::mat4(1.0f);
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
@@ -2810,10 +3117,10 @@ VkResult updateUniformBuffer(void)
 
     //! Map Uniform Buffer
     void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
+    vkResult = vkMapMemory(vkDevice, uniformData_triangle.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
 
@@ -2821,7 +3128,44 @@ VkResult updateUniformBuffer(void)
     memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
 
     //! Unmap memory
-    vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
+    vkUnmapMemory(vkDevice, uniformData_triangle.vkDeviceMemory);
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+    
+    //! Rectangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+    memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
+
+    //! Update Matrices
+    mvp_UniformData.modelMatrix = glm::mat4(1.0f);
+    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, -6.0f));
+    mvp_UniformData.viewMatrix = glm::mat4(1.0f);
+    
+    perspectiveProjectionMatrix = glm::mat4(1.0f);
+    perspectiveProjectionMatrix = glm::perspective(
+        glm::radians(45.0f),
+        (float)winWidth / (float)winHeight,
+        0.1f,
+        100.0f
+    );
+    //! 2D Matrix with Column Major (Like OpenGL)
+    perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
+    mvp_UniformData.projectionMatix = perspectiveProjectionMatrix;
+
+    //! Map Uniform Buffer
+    data = NULL;
+    vkResult = vkMapMemory(vkDevice, uniformData_rectangle.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+
+    //! Copy the data to the mapped buffer (present on device memory)
+    memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
+
+    //! Unmap memory
+    vkUnmapMemory(vkDevice, uniformData_rectangle.vkDeviceMemory);
+    //! -------------------------------------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
@@ -3066,7 +3410,7 @@ VkResult createDescriptorPool(void)
     vkDescriptorPoolCreateInfo.flags = 0;
     vkDescriptorPoolCreateInfo.poolSizeCount = 1;
     vkDescriptorPoolCreateInfo.pPoolSizes = &vkDescriptorPoolSize;
-    vkDescriptorPoolCreateInfo.maxSets = 1;
+    vkDescriptorPoolCreateInfo.maxSets = 2;
 
     vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
     if (vkResult != VK_SUCCESS)
@@ -3093,19 +3437,21 @@ VkResult createDescriptorSet(void)
     vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
     vkDescriptorSetAllocateInfo.pSetLayouts = &vkDescriptorSetLayout;
 
-    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet);
+    //! Triangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet_triangle);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Failed For Triangle : %d !!!\n", __func__, vkResult);
         return vkResult;
     }  
     else
-        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded For Triangle\n", __func__);
     
     //* Describe whether we want buffer as uniform or image as uniform
     VkDescriptorBufferInfo vkDescriptorBufferInfo;
     memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
-    vkDescriptorBufferInfo.buffer = uniformData.vkBuffer;
+    vkDescriptorBufferInfo.buffer = uniformData_triangle.vkBuffer;
     vkDescriptorBufferInfo.offset = 0;
     vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
 
@@ -3118,7 +3464,7 @@ VkResult createDescriptorSet(void)
     memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
     vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     vkWriteDescriptorSet.pNext = NULL;
-    vkWriteDescriptorSet.dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet.dstSet = vkDescriptorSet_triangle;
     vkWriteDescriptorSet.dstArrayElement = 0;
     vkWriteDescriptorSet.descriptorCount = 1;
     vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -3128,6 +3474,43 @@ VkResult createDescriptorSet(void)
     vkWriteDescriptorSet.dstBinding = 0;
 
     vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+
+    //! Rectangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet_rectangle);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Failed For Rectangle: %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }  
+    else
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded For Rectangle\n", __func__);
+    
+    memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
+    vkDescriptorBufferInfo.buffer = uniformData_rectangle.vkBuffer;
+    vkDescriptorBufferInfo.offset = 0;
+    vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
+
+    /* Update above descriptor set directly to the shader
+    There are 2 ways :-
+        1) Writing directly to the shader
+        2) Copying from one shader to another shader
+    */
+    memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
+    vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet.pNext = NULL;
+    vkWriteDescriptorSet.dstSet = vkDescriptorSet_rectangle;
+    vkWriteDescriptorSet.dstArrayElement = 0;
+    vkWriteDescriptorSet.descriptorCount = 1;
+    vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
+    vkWriteDescriptorSet.pImageInfo = NULL;
+    vkWriteDescriptorSet.pTexelBufferView = NULL;
+    vkWriteDescriptorSet.dstBinding = 0;
+
+    vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
+    //! -------------------------------------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
@@ -3206,10 +3589,10 @@ VkResult createPipeline(void)
     memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
     
     //! Position
-    vkVertexInputBindingDescription_array[0].binding = 0;   //! Corresponds to layout(location = 0) in Vertex Shader
+    vkVertexInputBindingDescription_array[0].binding = 0; //! Corresponds to layout(location = 0) in Vertex Shader
     vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 3; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
+    
     //! Color
     vkVertexInputBindingDescription_array[1].binding = 1; //! Corresponds to layout(location = 1) in Vertex Shader
     vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 3; 
@@ -3223,7 +3606,7 @@ VkResult createPipeline(void)
     vkVertexInputAttributeDescription_array[0].location = 0;
     vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     vkVertexInputAttributeDescription_array[0].offset = 0;
-    
+
     //! Color
     vkVertexInputAttributeDescription_array[1].binding = 1;
     vkVertexInputAttributeDescription_array[1].location = 1;
@@ -3570,6 +3953,8 @@ VkResult buildCommandBuffers(void)
             //! Bind with Pipeline
             vkCmdBindPipeline(vkCommandBuffer_array[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
 
+            //! Triangle
+            //! -------------------------------------------------------------------------------------------------------------------------------------
             //! Bind the Descriptor Set to the Pipeline
             vkCmdBindDescriptorSets(
                 vkCommandBuffer_array[i],
@@ -3577,7 +3962,7 @@ VkResult buildCommandBuffers(void)
                 vkPipelineLayout,
                 0,
                 1,
-                &vkDescriptorSet,
+                &vkDescriptorSet_triangle,
                 0,
                 NULL
             );
@@ -3589,7 +3974,7 @@ VkResult buildCommandBuffers(void)
                 vkCommandBuffer_array[i], 
                 0, 
                 1, 
-                &vertexData_position.vkBuffer, 
+                &vertexData_position_triangle.vkBuffer, 
                 vkDeviceSize_offset_position
             );
 
@@ -3600,12 +3985,50 @@ VkResult buildCommandBuffers(void)
                 vkCommandBuffer_array[i], 
                 1, 
                 1, 
-                &vertexData_color.vkBuffer, 
+                &vertexData_color_triangle.vkBuffer, 
                 vkDeviceSize_offset_color
             );
 
             //! Vulkan Drawing Function
             vkCmdDraw(vkCommandBuffer_array[i], 3, 1, 0, 0);
+            //! -------------------------------------------------------------------------------------------------------------------------------------
+
+            //! Rectangle
+            //! -------------------------------------------------------------------------------------------------------------------------------------
+            vkCmdBindDescriptorSets(
+                vkCommandBuffer_array[i],
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                vkPipelineLayout,
+                0,
+                1,
+                &vkDescriptorSet_rectangle,
+                0,
+                NULL
+            );
+
+            //! Bind with Vertex Position Buffer
+            memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+            vkCmdBindVertexBuffers(
+                vkCommandBuffer_array[i], 
+                0, 
+                1, 
+                &vertexData_position_rectangle.vkBuffer, 
+                vkDeviceSize_offset_position
+            );
+
+            //! Bind with Vertex Color Buffer
+            memset((void*)vkDeviceSize_offset_color, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_color));
+            vkCmdBindVertexBuffers(
+                vkCommandBuffer_array[i], 
+                1, 
+                1, 
+                &vertexData_color_rectangle.vkBuffer, 
+                vkDeviceSize_offset_color
+            );
+
+            //! Vulkan Drawing Function
+            vkCmdDraw(vkCommandBuffer_array[i], 6, 1, 0, 0);
+            //! -------------------------------------------------------------------------------------------------------------------------------------
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
@@ -3624,7 +4047,6 @@ VkResult buildCommandBuffers(void)
 
     return vkResult;
 }
-
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     VkDebugReportFlagsEXT vkDebugReportFlagsEXT,

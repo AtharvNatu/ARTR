@@ -2700,7 +2700,7 @@ VkResult createVertexBuffer(void)
     //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
     vkResult = vkBindBufferMemory(vkDevice, vertexData_position_rectangle.vkBuffer, vertexData_position_rectangle.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Buffer Used For Triangle : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Buffer Used For Rectangle : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Buffer Used For Rectangle \n", __func__);
 
