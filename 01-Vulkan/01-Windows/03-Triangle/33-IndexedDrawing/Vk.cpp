@@ -627,7 +627,7 @@ VkResult initialize(void)
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createRenderPass() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => createPipeline() Succeeded\n", __func__);
 
     //! Create Framebuffers
     vkResult = createFramebuffers();

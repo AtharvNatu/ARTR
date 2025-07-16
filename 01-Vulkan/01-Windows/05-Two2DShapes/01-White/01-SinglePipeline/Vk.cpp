@@ -220,7 +220,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan White 2D Shapes"),
+        TEXT("Atharv Natu : Vulkan White 2D Shapes using Single Pipeline"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -628,7 +628,7 @@ VkResult initialize(void)
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createRenderPass() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => createPipeline() Succeeded\n", __func__);
 
     //! Create Framebuffers
     vkResult = createFramebuffers();
