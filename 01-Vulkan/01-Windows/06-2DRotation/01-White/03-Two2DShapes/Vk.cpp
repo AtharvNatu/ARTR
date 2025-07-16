@@ -166,7 +166,9 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
+//* Animation
 float fAngle = 0.0f;
+const float animationSpeed = 0.03f;
 
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
@@ -984,7 +986,7 @@ VkResult display(void)
 void update(void)
 {
     // Code
-    fAngle = fAngle + 0.05f;
+    fAngle += animationSpeed;
     if (fAngle >= 360.0f)
         fAngle = 0.0f;
 }
