@@ -110,6 +110,7 @@ VkFence *vkFence_array = NULL;
 
 //? Clear Color Values
 VkClearColorValue vkClearColorValue;
+VkClearDepthStencilValue vkClearDepthStencilValue;
 
 //? Render
 BOOL bInitialized = FALSE;
@@ -672,6 +673,11 @@ VkResult initialize(void)
     vkClearColorValue.float32[1] = 0.0f;    //* G
     vkClearColorValue.float32[2] = 1.0f;    //* B
     vkClearColorValue.float32[3] = 1.0f;    //* A
+
+    //! Set Default Clear Depth and Stencil Values
+    memset((void*)&vkClearDepthStencilValue, 0, sizeof(VkClearDepthStencilValue));
+    vkClearDepthStencilValue.depth = 1.0f;
+    vkClearDepthStencilValue.stencil = 0;
 
     vkResult = buildCommandBuffers();
     if (vkResult != VK_SUCCESS)
@@ -3232,7 +3238,7 @@ VkResult createRenderPass(void)
     //! Depth Attachment
     vkAttachmentDescription_array[1].flags = 0;
     vkAttachmentDescription_array[1].format = vkFormat_depth;
-    vkAttachmentDescription_array[1].samples = VK_SAMPLE_COUNT_1_BIT; //* No MSAA
+    vkAttachmentDescription_array[1].samples = VK_SAMPLE_COUNT_1_BIT;
     vkAttachmentDescription_array[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     vkAttachmentDescription_array[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     vkAttachmentDescription_array[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -3383,33 +3389,22 @@ VkResult createPipeline(void)
     vkPipelineViewportStateCreateInfo.pScissors = &vkRect2D_scissor;
 
     //! Depth Stencil State !//
-    // VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilCreateInfo;
-    // memset((void*)&vkPipelineDepthStencilCreateInfo, 0, sizeof(VkPipelineDepthStencilStateCreateInfo));
-    // vkPipelineDepthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    // vkPipelineDepthStencilCreateInfo.flags = 0;
-    // vkPipelineDepthStencilCreateInfo.pNext = NULL;
-    // vkPipelineDepthStencilCreateInfo.depthTestEnable = VK_TRUE;
-    // vkPipelineDepthStencilCreateInfo.depthWriteEnable = VK_TRUE;
-    // vkPipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-    // vkPipelineDepthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
-    // vkPipelineDepthStencilCreateInfo.back.failOp = VK_STENCIL_OP_KEEP;
-    // vkPipelineDepthStencilCreateInfo.back.passOp = VK_STENCIL_OP_KEEP;
-    // vkPipelineDepthStencilCreateInfo.stencilTestEnable = VK_FALSE;
-    // vkPipelineDepthStencilCreateInfo.front = vkPipelineDepthStencilCreateInfo.back;
+    VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilCreateInfo;
+    memset((void*)&vkPipelineDepthStencilCreateInfo, 0, sizeof(VkPipelineDepthStencilStateCreateInfo));
+    vkPipelineDepthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    vkPipelineDepthStencilCreateInfo.flags = 0;
+    vkPipelineDepthStencilCreateInfo.pNext = NULL;
+    vkPipelineDepthStencilCreateInfo.depthTestEnable = VK_TRUE;
+    vkPipelineDepthStencilCreateInfo.depthWriteEnable = VK_TRUE;
+    vkPipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    vkPipelineDepthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
+    vkPipelineDepthStencilCreateInfo.back.failOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilCreateInfo.back.passOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
+    vkPipelineDepthStencilCreateInfo.stencilTestEnable = VK_FALSE;
+    vkPipelineDepthStencilCreateInfo.front = vkPipelineDepthStencilCreateInfo.back;
 
     //! Dynamic State !//
-    // VkDynamicState vkDynamicState_array[2];
-    // memset((void*)vkDynamicState_array, 0, sizeof(VkDynamicState) * _ARRAYSIZE(vkDynamicState_array));
-    // vkDynamicState_array[0] = VK_DYNAMIC_STATE_VIEWPORT;
-    // vkDynamicState_array[1] = VK_DYNAMIC_STATE_SCISSOR;
-
-    // VkPipelineDynamicStateCreateInfo vkPipelineDynamicStateCreateInfo;
-    // memset((void*)&vkPipelineDynamicStateCreateInfo, 0, sizeof(VkPipelineDynamicStateCreateInfo));
-    // vkPipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    // vkPipelineDynamicStateCreateInfo.pNext = NULL;
-    // vkPipelineDynamicStateCreateInfo.flags = 0;
-    // vkPipelineDynamicStateCreateInfo.dynamicStateCount = _ARRAYSIZE(vkDynamicState_array);
-    // vkPipelineDynamicStateCreateInfo.pDynamicStates = vkDynamicState_array;
 
     //! Multi-Sample State
     VkPipelineMultisampleStateCreateInfo vkPipelineMultisampleStateCreateInfo;
@@ -3468,7 +3463,7 @@ VkResult createPipeline(void)
     vkGraphicsPipelineCreateInfo.pRasterizationState = &vkPipelineRasterizationStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pColorBlendState = &vkPipelineColorBlendStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pViewportState = &vkPipelineViewportStateCreateInfo;
-    vkGraphicsPipelineCreateInfo.pDepthStencilState = NULL;
+    vkGraphicsPipelineCreateInfo.pDepthStencilState = &vkPipelineDepthStencilCreateInfo;
     vkGraphicsPipelineCreateInfo.pDynamicState = NULL;
     vkGraphicsPipelineCreateInfo.pMultisampleState = &vkPipelineMultisampleStateCreateInfo;
     vkGraphicsPipelineCreateInfo.stageCount = _ARRAYSIZE(vkPipelineShaderStageCreateInfo_array);
@@ -3652,9 +3647,10 @@ VkResult buildCommandBuffers(void)
             fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded For Index : %d\n", __func__, i);
 
         //* Step - 4 => Set Clear Value
-        VkClearValue vkClearValue_array[1];
+        VkClearValue vkClearValue_array[2];
         memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
         vkClearValue_array[0].color = vkClearColorValue;
+        vkClearValue_array[1].depthStencil = vkClearDepthStencilValue;
 
         //* Step - 5
         VkRenderPassBeginInfo vkRenderPassBeginInfo;
