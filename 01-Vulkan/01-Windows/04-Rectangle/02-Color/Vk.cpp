@@ -2693,7 +2693,8 @@ VkResult createVertexBuffer(void)
     else
         fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Color Buffer\n", __func__);
 
-    //* Step - 11data = NULL;
+    //* Step - 11
+    data = NULL;
     vkResult = vkMapMemory(vkDevice, vertexData_color.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Color Buffer : %d !!!\n", __func__, vkResult);

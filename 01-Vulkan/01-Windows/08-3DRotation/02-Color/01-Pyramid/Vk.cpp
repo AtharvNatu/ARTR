@@ -80,10 +80,16 @@ VkExtent2D vkExtent2D_swapchain;
 int winWidth = WIN_WIDTH;
 int winHeight = WIN_HEIGHT;
 
-//? Swapchain Images and Image Views
+//? Swapchain Images and Image Views -> For Color Images
 uint32_t swapchainImageCount = UINT32_MAX;
 VkImage *swapchainImage_array = NULL;
 VkImageView *swapchainImageView_array = NULL;
+
+//? For Depth Image
+VkFormat vkFormat_depth = VK_FORMAT_UNDEFINED;
+VkImage vkImage_depth = VK_NULL_HANDLE;
+VkDeviceMemory vkDeviceMemory_depth = VK_NULL_HANDLE;
+VkImageView vkImageView_depth = VK_NULL_HANDLE;
 
 //? Command Pool
 VkCommandPool vkCommandPool = VK_NULL_HANDLE;
@@ -104,6 +110,7 @@ VkFence *vkFence_array = NULL;
 
 //? Clear Color Values
 VkClearColorValue vkClearColorValue;
+VkClearDepthStencilValue vkClearDepthStencilValue;
 
 //? Render
 BOOL bInitialized = FALSE;
@@ -164,9 +171,8 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
-//* Animation
+const float fAnimationSpeed = 0.5f;
 float fAngle = 0.0f;
-const float animationSpeed = 0.03f;
 
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
@@ -222,7 +228,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Colored Rectangle Rotation"),
+        TEXT("Atharv Natu : Vulkan Colored Pyramid"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -672,6 +678,11 @@ VkResult initialize(void)
     vkClearColorValue.float32[2] = 0.0f;    //* B
     vkClearColorValue.float32[3] = 1.0f;    //* A
 
+    //! Set Default Clear Depth and Stencil Values
+    memset((void*)&vkClearDepthStencilValue, 0, sizeof(VkClearDepthStencilValue));
+    vkClearDepthStencilValue.depth = 1.0f;
+    vkClearDepthStencilValue.stencil = 0;
+
     vkResult = buildCommandBuffers();
     if (vkResult != VK_SUCCESS)
     {
@@ -775,6 +786,26 @@ VkResult resize(int width, int height)
             vkDestroyRenderPass(vkDevice, vkRenderPass, NULL);
             vkRenderPass = VK_NULL_HANDLE;
         }
+
+        //* Destroying Depth Image
+        if (vkImageView_depth)
+        {
+            vkDestroyImageView(vkDevice, vkImageView_depth, NULL);
+            vkImageView_depth = VK_NULL_HANDLE;
+        }
+
+        if (vkImage_depth)
+        {
+            vkDestroyImage(vkDevice, vkImage_depth, NULL);
+            vkImage_depth = VK_NULL_HANDLE;
+        }
+
+        if (vkDeviceMemory_depth)
+        {
+            vkFreeMemory(vkDevice, vkDeviceMemory_depth, NULL);
+            vkDeviceMemory_depth = VK_NULL_HANDLE;
+        }
+
         
         //* Destroy Swapchain Image and Image Views
         for (uint32_t i = 0; i < swapchainImageCount; i++)
@@ -984,7 +1015,7 @@ VkResult display(void)
 void update(void)
 {
     // Code
-    fAngle += animationSpeed;
+    fAngle += fAnimationSpeed;
     if (fAngle >= 360.0f)
         fAngle = 0.0f;
 }
@@ -1122,7 +1153,7 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
     }
 
-    //* Destroy Color Buffer
+    //* Step - 14 of Vertex Buffer
     if (vertexData_color.vkDeviceMemory)
     {
         vkFreeMemory(vkDevice, vertexData_color.vkDeviceMemory, NULL);
@@ -1137,8 +1168,6 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_color.vkBuffer\n", __func__);
     }
 
-
-    //* Step - 14 of Vertex Buffer
     if (vertexData_position.vkDeviceMemory)
     {
         vkFreeMemory(vkDevice, vertexData_position.vkDeviceMemory, NULL);
@@ -1173,6 +1202,28 @@ void uninitialize(void)
         vkDestroyCommandPool(vkDevice, vkCommandPool, NULL);
         vkCommandPool = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyCommandPool() Succeeded\n", __func__);
+    }
+
+    //* Destroying Depth Image
+    if (vkImageView_depth)
+    {
+        vkDestroyImageView(vkDevice, vkImageView_depth, NULL);
+        vkImageView_depth = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyImageView() Succeeded For vkImageView_depth\n", __func__);
+    }
+
+    if (vkImage_depth)
+    {
+        vkDestroyImage(vkDevice, vkImage_depth, NULL);
+        vkImage_depth = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyImage() Succeeded For vkImage_depth\n", __func__);
+    }
+
+    if (vkDeviceMemory_depth)
+    {
+        vkFreeMemory(vkDevice, vkDeviceMemory_depth, NULL);
+        vkDeviceMemory_depth = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vkDeviceMemory_depth\n", __func__);
     }
 
     //* Step - 7 of Swapchain Image and Image Views
@@ -2389,6 +2440,9 @@ VkResult createSwapchain(VkBool32 vsync)
 
 VkResult createImagesAndImageViews(void)
 {
+    // Function Declarations
+    VkResult getSupportedDepthFormat(void);
+
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
@@ -2461,6 +2515,137 @@ VkResult createImagesAndImageViews(void)
             fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For Index : %d\n", __func__, i);
     }
 
+    //! For Depth Image
+    vkResult = getSupportedDepthFormat();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => getSupportedDepthFormat() Failed : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => getSupportedDepthFormat() Succeded\n", __func__);
+
+    //* For Depth Image, initialize VkImageCreateInfo
+    VkImageCreateInfo vkImageCreateInfo;
+    memset((void*)&vkImageCreateInfo, 0, sizeof(VkImageCreateInfo));
+    vkImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    vkImageCreateInfo.pNext = NULL;
+    vkImageCreateInfo.flags = 0;
+    vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+    vkImageCreateInfo.format = vkFormat_depth;
+    vkImageCreateInfo.extent.width = winWidth;
+    vkImageCreateInfo.extent.height = winHeight;
+    vkImageCreateInfo.extent.depth = 1;
+    vkImageCreateInfo.mipLevels = 1;
+    vkImageCreateInfo.arrayLayers = 1;
+    vkImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    vkImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    vkImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    vkResult = vkCreateImage(vkDevice, &vkImageCreateInfo, NULL, &vkImage_depth);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateImage() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateImage() Succeeded\n", __func__);
+
+    //! Memory Requirements For Depth Image
+    VkMemoryRequirements vkMemoryRequirements;
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetImageMemoryRequirements(vkDevice, vkImage_depth, &vkMemoryRequirements);
+
+    VkMemoryAllocateInfo vkMemoryAllocateInfo;
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            {
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vkDeviceMemory_depth);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Depth : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }     
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Depth\n", __func__);
+
+    vkResult = vkBindImageMemory(vkDevice, vkImage_depth, vkDeviceMemory_depth, 0);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkBindImageMemory() Failed For Depth : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkBindImageMemory() Succeeded For Depth\n", __func__);
+
+    //! Create Image View For Above Depth Image
+    memset((void*)&vkImageViewCreateInfo, 0, sizeof(VkImageViewCreateInfo));
+    vkImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    vkImageViewCreateInfo.pNext = NULL;
+    vkImageViewCreateInfo.flags = 0;
+    vkImageViewCreateInfo.format = vkFormat_depth;
+    vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    vkImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+    vkImageViewCreateInfo.subresourceRange.levelCount = 1;
+    vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+    vkImageViewCreateInfo.subresourceRange.layerCount = 1;
+    vkImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    vkImageViewCreateInfo.image = vkImage_depth;    //! Added here, as previously we had swapchain images, but here we are creating a new depth image
+
+    //* Step - 6
+    vkResult = vkCreateImageView(vkDevice, &vkImageViewCreateInfo, NULL, &vkImageView_depth);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateImageView() Failed For Depth : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For Depth\n", __func__);
+
+    return vkResult;
+}
+
+VkResult getSupportedDepthFormat(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+    
+    VkFormat vkFormat_depth_array[] = 
+    {
+        //* Descending Order
+        VK_FORMAT_D32_SFLOAT_S8_UINT,
+        VK_FORMAT_D32_SFLOAT,
+        VK_FORMAT_D24_UNORM_S8_UINT,
+        VK_FORMAT_D16_UNORM_S8_UINT,
+        VK_FORMAT_D16_UNORM
+    };
+    
+    // Code
+    for (uint32_t i = 0; i < (sizeof(vkFormat_depth_array) / sizeof(vkFormat_depth_array[0])); i++)
+    {
+        VkFormatProperties vkFormatProperties;
+        memset((void*)&vkFormatProperties, 0, sizeof(VkFormatProperties));
+        vkGetPhysicalDeviceFormatProperties(vkPhysicalDevice_selected, vkFormat_depth_array[i], &vkFormatProperties);
+
+        if (vkFormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        {
+            vkFormat_depth = vkFormat_depth_array[i];
+            vkResult = VK_SUCCESS;
+            break;
+        }    
+    }
+
     return vkResult;
 }
 
@@ -2526,28 +2711,70 @@ VkResult createVertexBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 3
-    float rectangle_position[] = 
+    float pyramid_position[] = 
     {
-        // Triangle 1
-        1.0f,   1.0f,   0.0f,   // Top Right
-        -1.0f,  1.0f,   0.0f,   // Top Left
-        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+        // Front Face
+        0.0f,   1.0f,   0.0f,
+        -1.0f,  -1.0f,  1.0f,
+        1.0f,   -1.0f,  1.0f,
 
-        // Triangle 2
-        -1.0f,  -1.0f,  0.0f,   // Bottom Left
-        1.0f,   -1.0f,  0.0f,   // Bottom Right
-        1.0f,   1.0f,   0.0f,   // Top Right
+        // Right Face
+        0.0f,   1.0f,   0.0f,
+        1.0f,   -1.0f,  1.0f,
+        1.0f,   -1.0f,  -1.0f,
+
+        // Back Face
+        0.0f,   1.0f,   0.0f,
+        1.0f,  -1.0f,   -1.0f,
+        -1.0f, -1.0f,   -1.0f,
+
+        // Left Face
+        0.0f,  1.0f,    0.0f,
+        -1.0f, -1.0f,  -1.0f,
+        -1.0f, -1.0f,   1.0f
     };
 
-    float rectangle_color[] = 
+    float pyramid_color[] = 
     {
-        0.0f,   0.0f,   1.0f,
-        0.0f,   0.0f,   1.0f,
+        // Front Face
+        1.0f,   0.0f,   0.0f,
+        0.0f,   1.0f,   0.0f,
         0.0f,   0.0f,   1.0f,
 
+        // Right Face
+        1.0f,   0.0f,   0.0f,
         0.0f,   0.0f,   1.0f,
+        0.0f,   1.0f,   0.0f,
+
+        // Back Face
+        1.0f,   0.0f,   0.0f,
+        0.0f,   1.0f,   0.0f,
         0.0f,   0.0f,   1.0f,
-        0.0f,   0.0f,   1.0f
+        
+        // Left Face
+        1.0f,   0.0f,   0.0f,
+        0.0f,   0.0f,   1.0f,
+        0.0f,   1.0f,   0.0f
+
+        // // Front Face
+        // 1.0f,   0.0f,   0.0f,
+        // 1.0f,   0.0f,   0.0f,
+        // 1.0f,   0.0f,   0.0f,
+
+        // // Right Face
+        // 0.0f,   0.0f,   1.0f,
+        // 0.0f,   0.0f,   1.0f,
+        // 0.0f,   0.0f,   1.0f,
+
+        // // Back Face
+        // 0.0f,   1.0f,   0.0f,
+        // 0.0f,   1.0f,   0.0f,
+        // 0.0f,   1.0f,   0.0f,
+        
+        // // Left Face
+        // 1.0f,   1.0f,   0.0f,
+        // 1.0f,   1.0f,   0.0f,
+        // 1.0f,   1.0f,   0.0f
     };
 
     // Code
@@ -2563,7 +2790,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(rectangle_position);
+    vkBufferCreateInfo.size = sizeof(pyramid_position);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2629,7 +2856,7 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, rectangle_position, sizeof(rectangle_position));
+    memcpy(data, pyramid_position, sizeof(pyramid_position));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
@@ -2645,7 +2872,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(rectangle_color);
+    vkBufferCreateInfo.size = sizeof(pyramid_color);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2709,7 +2936,7 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Color Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, rectangle_color, sizeof(rectangle_color));
+    memcpy(data, pyramid_color, sizeof(pyramid_color));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_color.vkDeviceMemory);
@@ -2806,8 +3033,6 @@ VkResult updateUniformBuffer(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
-    glm::mat4 translationMatrix = glm::mat4(1.0f);
-    glm::mat4 rotationMatrix = glm::mat4(1.0f);
 
     // Code
     MVP_UniformData mvp_UniformData;
@@ -2815,11 +3040,7 @@ VkResult updateUniformBuffer(void)
 
     //! Update Matrices
     mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-
-    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -4.0f));
-    rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(1.0f, 0.0f, 0.0f));
-
-    mvp_UniformData.modelMatrix = translationMatrix * rotationMatrix;
+    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 1.0f, 0.0f));
     mvp_UniformData.viewMatrix = glm::mat4(1.0f);
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
@@ -3163,10 +3384,10 @@ VkResult createRenderPass(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 1
+    VkAttachmentDescription vkAttachmentDescription_array[2];   //! Size changed to 2 to accomodate depth
+    memset((void*)vkAttachmentDescription_array, 0, sizeof(VkAttachmentDescription) * _ARRAYSIZE(vkAttachmentDescription_array));
 
     //! Color Attachment (Graphics Pipeline)
-    VkAttachmentDescription vkAttachmentDescription_array[1];
-    memset((void*)vkAttachmentDescription_array, 0, sizeof(VkAttachmentDescription) * _ARRAYSIZE(vkAttachmentDescription_array));
     vkAttachmentDescription_array[0].flags = 0;
     vkAttachmentDescription_array[0].format = vkFormat_color;
     vkAttachmentDescription_array[0].samples = VK_SAMPLE_COUNT_1_BIT; //* No MSAA
@@ -3177,11 +3398,29 @@ VkResult createRenderPass(void)
     vkAttachmentDescription_array[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     vkAttachmentDescription_array[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+    //! Depth Attachment
+    vkAttachmentDescription_array[1].flags = 0;
+    vkAttachmentDescription_array[1].format = vkFormat_depth;
+    vkAttachmentDescription_array[1].samples = VK_SAMPLE_COUNT_1_BIT;
+    vkAttachmentDescription_array[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    vkAttachmentDescription_array[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    vkAttachmentDescription_array[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    vkAttachmentDescription_array[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vkAttachmentDescription_array[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vkAttachmentDescription_array[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     //* Step - 2
-    VkAttachmentReference vkAttachmentReference;
-    memset((void*)&vkAttachmentReference, 0, sizeof(VkAttachmentReference));
-    vkAttachmentReference.attachment = 0;   //* 0 specifies 0th index in above array
-    vkAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    //! Color Attachment Reference
+    VkAttachmentReference vkAttachmentReference_color;
+    memset((void*)&vkAttachmentReference_color, 0, sizeof(VkAttachmentReference));
+    vkAttachmentReference_color.attachment = 0;   //* 0 specifies 0th index in above array
+    vkAttachmentReference_color.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    //! Depth Attachment Reference
+    VkAttachmentReference vkAttachmentReference_depth;
+    memset((void*)&vkAttachmentReference_depth, 0, sizeof(VkAttachmentReference));
+    vkAttachmentReference_depth.attachment = 1;   //* 1 specifies 1st index in above array
+    vkAttachmentReference_depth.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     //* Step - 3
     VkSubpassDescription vkSubpassDescription;
@@ -3190,9 +3429,9 @@ VkResult createRenderPass(void)
     vkSubpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     vkSubpassDescription.inputAttachmentCount = 0;
     vkSubpassDescription.pInputAttachments = NULL;
-    vkSubpassDescription.colorAttachmentCount = _ARRAYSIZE(vkAttachmentDescription_array);
-    vkSubpassDescription.pColorAttachments = &vkAttachmentReference;
-    vkSubpassDescription.pDepthStencilAttachment = NULL;
+    vkSubpassDescription.colorAttachmentCount = 1;  //! This should be the count of vkAttachmentReference used for color
+    vkSubpassDescription.pColorAttachments = &vkAttachmentReference_color;
+    vkSubpassDescription.pDepthStencilAttachment = &vkAttachmentReference_depth;
     vkSubpassDescription.pPreserveAttachments = NULL;
     vkSubpassDescription.pResolveAttachments = NULL;
 
@@ -3231,12 +3470,12 @@ VkResult createPipeline(void)
     memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
     
     //! Position
-    vkVertexInputBindingDescription_array[0].binding = 0;   //! Corresponds to layout(location = 0) in Vertex Shader
+    vkVertexInputBindingDescription_array[0].binding = 0;
     vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 3; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
     //! Color
-    vkVertexInputBindingDescription_array[1].binding = 1; //! Corresponds to layout(location = 1) in Vertex Shader
+    vkVertexInputBindingDescription_array[1].binding = 1;
     vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 3; 
     vkVertexInputBindingDescription_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
@@ -3248,7 +3487,7 @@ VkResult createPipeline(void)
     vkVertexInputAttributeDescription_array[0].location = 0;
     vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     vkVertexInputAttributeDescription_array[0].offset = 0;
-    
+
     //! Color
     vkVertexInputAttributeDescription_array[1].binding = 1;
     vkVertexInputAttributeDescription_array[1].location = 1;
@@ -3280,7 +3519,7 @@ VkResult createPipeline(void)
     vkPipelineRasterizationStateCreateInfo.pNext = NULL;
     vkPipelineRasterizationStateCreateInfo.flags = 0;
     vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
+    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
     vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
@@ -3328,6 +3567,20 @@ VkResult createPipeline(void)
     vkPipelineViewportStateCreateInfo.pScissors = &vkRect2D_scissor;
 
     //! Depth Stencil State !//
+    VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilCreateInfo;
+    memset((void*)&vkPipelineDepthStencilCreateInfo, 0, sizeof(VkPipelineDepthStencilStateCreateInfo));
+    vkPipelineDepthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    vkPipelineDepthStencilCreateInfo.flags = 0;
+    vkPipelineDepthStencilCreateInfo.pNext = NULL;
+    vkPipelineDepthStencilCreateInfo.depthTestEnable = VK_TRUE;
+    vkPipelineDepthStencilCreateInfo.depthWriteEnable = VK_TRUE;
+    vkPipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    vkPipelineDepthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
+    vkPipelineDepthStencilCreateInfo.back.failOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilCreateInfo.back.passOp = VK_STENCIL_OP_KEEP;
+    vkPipelineDepthStencilCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
+    vkPipelineDepthStencilCreateInfo.stencilTestEnable = VK_FALSE;
+    vkPipelineDepthStencilCreateInfo.front = vkPipelineDepthStencilCreateInfo.back;
 
     //! Dynamic State !//
 
@@ -3388,7 +3641,7 @@ VkResult createPipeline(void)
     vkGraphicsPipelineCreateInfo.pRasterizationState = &vkPipelineRasterizationStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pColorBlendState = &vkPipelineColorBlendStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pViewportState = &vkPipelineViewportStateCreateInfo;
-    vkGraphicsPipelineCreateInfo.pDepthStencilState = NULL;
+    vkGraphicsPipelineCreateInfo.pDepthStencilState = &vkPipelineDepthStencilCreateInfo;
     vkGraphicsPipelineCreateInfo.pDynamicState = NULL;
     vkGraphicsPipelineCreateInfo.pMultisampleState = &vkPipelineMultisampleStateCreateInfo;
     vkGraphicsPipelineCreateInfo.stageCount = _ARRAYSIZE(vkPipelineShaderStageCreateInfo_array);
@@ -3422,23 +3675,6 @@ VkResult createFramebuffers(void)
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
-    //* Step - 1
-    VkImageView vkImageView_attachments_array[1];
-    memset((void*)vkImageView_attachments_array, 0, sizeof(VkImageView) * _ARRAYSIZE(vkImageView_attachments_array));
-
-    //* Step - 2
-    VkFramebufferCreateInfo vkFramebufferCreateInfo;
-    memset((void*)&vkFramebufferCreateInfo, 0, sizeof(VkFramebufferCreateInfo));
-    vkFramebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    vkFramebufferCreateInfo.flags = 0;
-    vkFramebufferCreateInfo.pNext = NULL;
-    vkFramebufferCreateInfo.attachmentCount = _ARRAYSIZE(vkImageView_attachments_array);
-    vkFramebufferCreateInfo.pAttachments = vkImageView_attachments_array;
-    vkFramebufferCreateInfo.renderPass = vkRenderPass;
-    vkFramebufferCreateInfo.width = vkExtent2D_swapchain.width;
-    vkFramebufferCreateInfo.height = vkExtent2D_swapchain.height;
-    vkFramebufferCreateInfo.layers = 1;
-
     //* Step - 3
     vkFramebuffer_array = (VkFramebuffer*)malloc(sizeof(VkFramebuffer) * swapchainImageCount);
     if (vkFramebuffer_array == NULL)
@@ -3450,7 +3686,25 @@ VkResult createFramebuffers(void)
     //* Step - 4
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
+        //* Step - 1
+        VkImageView vkImageView_attachments_array[2];
+        memset((void*)vkImageView_attachments_array, 0, sizeof(VkImageView) * _ARRAYSIZE(vkImageView_attachments_array));
+
+        //* Step - 2
+        VkFramebufferCreateInfo vkFramebufferCreateInfo;
+        memset((void*)&vkFramebufferCreateInfo, 0, sizeof(VkFramebufferCreateInfo));
+        vkFramebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        vkFramebufferCreateInfo.flags = 0;
+        vkFramebufferCreateInfo.pNext = NULL;
+        vkFramebufferCreateInfo.attachmentCount = _ARRAYSIZE(vkImageView_attachments_array);
+        vkFramebufferCreateInfo.pAttachments = vkImageView_attachments_array;
+        vkFramebufferCreateInfo.renderPass = vkRenderPass;
+        vkFramebufferCreateInfo.width = vkExtent2D_swapchain.width;
+        vkFramebufferCreateInfo.height = vkExtent2D_swapchain.height;
+        vkFramebufferCreateInfo.layers = 1;
+
         vkImageView_attachments_array[0] = swapchainImageView_array[i];
+        vkImageView_attachments_array[1] = vkImageView_depth;
 
         vkResult = vkCreateFramebuffer(vkDevice, &vkFramebufferCreateInfo, NULL, &vkFramebuffer_array[i]);
         if (vkResult != VK_SUCCESS)
@@ -3571,9 +3825,10 @@ VkResult buildCommandBuffers(void)
             fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded For Index : %d\n", __func__, i);
 
         //* Step - 4 => Set Clear Value
-        VkClearValue vkClearValue_array[1];
+        VkClearValue vkClearValue_array[2];
         memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
         vkClearValue_array[0].color = vkClearColorValue;
+        vkClearValue_array[1].depthStencil = vkClearDepthStencilValue;
 
         //* Step - 5
         VkRenderPassBeginInfo vkRenderPassBeginInfo;
@@ -3630,7 +3885,7 @@ VkResult buildCommandBuffers(void)
             );
 
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 6, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], 12, 1, 0, 0);
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
