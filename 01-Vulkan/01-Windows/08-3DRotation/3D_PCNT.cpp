@@ -1,9 +1,8 @@
-// OpenGL values for position, color, texcoords, normal for pyradmid and cube
+// values for position, color, texcoords, normal for pyradmid and cube
 
 // PYRAMID
-
 // position
-GLfloat pyramidVertices[] = 
+float pyramidVertices[] = 
 {
 	 // front
 	 0.0f,  1.0f,  0.0f, // front-top
@@ -27,7 +26,7 @@ GLfloat pyramidVertices[] =
 };
 
 // color
-GLfloat pyramidColors[] =
+float pyramidColors[] =
 {
 	// front
 	1.0f, 0.0f, 0.0f, // front-top
@@ -51,7 +50,7 @@ GLfloat pyramidColors[] =
 };
 
 // texcoords
-GLfloat pyramidTexcoords[] =
+float pyramidTexcoords[] =
 {
 	// front
 	0.5, 1.0, // front-top
@@ -75,7 +74,7 @@ GLfloat pyramidTexcoords[] =
 };
 
 // normals
-GLfloat pyramidNormals[] =
+float pyramidNormals[] =
 {
 	 // front
 	 0.000000f, 0.447214f,  0.894427f, // front-top
@@ -98,7 +97,7 @@ GLfloat pyramidNormals[] =
 	-0.894427f, 0.447214f,  0.000000f, // left-right
 };
 
-GLfloat pyramid_PCNT[] =
+float pyramid_PCNT[] =
 {
 	 // front
 	 // position		 // color			// normals						  // texcoords
@@ -128,203 +127,341 @@ GLfloat pyramid_PCNT[] =
 // CUBE :
 
 // position
-GLfloat cubeVertices[] =
+float cubeVertices[] =
 {
 	// front
+	// triangle one
 	 1.0f,  1.0f,  1.0f, // top-right of front
 	-1.0f,  1.0f,  1.0f, // top-left of front
-	-1.0f, -1.0f,  1.0f, // bottom-left of front
+  	 1.0f, -1.0f,  1.0f, // bottom-right of front
+	
+	// triangle two
 	 1.0f, -1.0f,  1.0f, // bottom-right of front
+	-1.0f,  1.0f,  1.0f, // top-left of front
+	-1.0f, -1.0f,  1.0f, // bottom-left of front
 
 	// right
+	// triangle one
 	 1.0f,  1.0f, -1.0f, // top-right of right
 	 1.0f,  1.0f,  1.0f, // top-left of right
-	 1.0f, -1.0f,  1.0f, // bottom-left of right
 	 1.0f, -1.0f, -1.0f, // bottom-right of right
+	 
+	// triangle two
+	 1.0f, -1.0f, -1.0f, // bottom-right of right
+	 1.0f,  1.0f,  1.0f, // top-left of right
+	 1.0f, -1.0f,  1.0f, // bottom-left of right
 
 	// back
+	// triangle one
 	 1.0f,  1.0f, -1.0f, // top-right of back
 	-1.0f,  1.0f, -1.0f, // top-left of back
-	-1.0f, -1.0f, -1.0f, // bottom-left of back
 	 1.0f, -1.0f, -1.0f, // bottom-right of back
+	
+	// triangle two
+	 1.0f, -1.0f, -1.0f, // bottom-right of back
+	-1.0f,  1.0f, -1.0f, // top-left of back
+	-1.0f, -1.0f, -1.0f, // bottom-left of back
 
 	// left
+	// triangle one
 	-1.0f,  1.0f,  1.0f, // top-right of left
 	-1.0f,  1.0f, -1.0f, // top-left of left
-	-1.0f, -1.0f, -1.0f, // bottom-left of left
 	-1.0f, -1.0f,  1.0f, // bottom-right of left
+	
+	// triangle two
+	-1.0f, -1.0f,  1.0f, // bottom-right of left
+	-1.0f,  1.0f, -1.0f, // top-left of left
+	-1.0f, -1.0f, -1.0f, // bottom-left of left
 
 	// top
+	// triangle one
 	 1.0f,  1.0f, -1.0f, // top-right of top
 	-1.0f,  1.0f, -1.0f, // top-left of top
-	-1.0f,  1.0f,  1.0f, // bottom-left of top
 	 1.0f,  1.0f,  1.0f, // bottom-right of top
 
+	// triangle two
+	 1.0f,  1.0f,  1.0f, // bottom-right of top
+	-1.0f,  1.0f, -1.0f, // top-left of top
+	-1.0f,  1.0f,  1.0f, // bottom-left of top
+
 	// bottom
+	// triangle one
 	 1.0f, -1.0f,  1.0f, // top-right of bottom
 	-1.0f, -1.0f,  1.0f, // top-left of bottom
-	-1.0f, -1.0f, -1.0f, // bottom-left of bottom
 	 1.0f, -1.0f, -1.0f, // bottom-right of bottom
+	
+	// triangle two
+	 1.0f, -1.0f, -1.0f, // bottom-right of bottom
+	-1.0f, -1.0f,  1.0f, // top-left of bottom
+	-1.0f, -1.0f, -1.0f, // bottom-left of bottom
 };
 
-GLfloat cubeColors[] =
+float cubeColors[] =
 {
 	// front
+	// triangle one
 	1.0f, 0.0f, 0.0f, // top-right of front
 	1.0f, 0.0f, 0.0f, // top-left of front
-	1.0f, 0.0f, 0.0f, // bottom-left of front
 	1.0f, 0.0f, 0.0f, // bottom-right of front
 
+	// triangle two
+	1.0f, 0.0f, 0.0f, // bottom-right of front
+	1.0f, 0.0f, 0.0f, // top-left of front
+	1.0f, 0.0f, 0.0f, // bottom-left of front
+
 	// right
+	// triangle one
 	0.0f, 0.0f, 1.0f, // top-right of right
 	0.0f, 0.0f, 1.0f, // top-left of right
-	0.0f, 0.0f, 1.0f, // bottom-left of right
 	0.0f, 0.0f, 1.0f, // bottom-right of right
+	
+	// triangle two
+	0.0f, 0.0f, 1.0f, // bottom-right of right
+	0.0f, 0.0f, 1.0f, // top-left of right
+	0.0f, 0.0f, 1.0f, // bottom-left of right
 
 	// back
+	// triangle one
 	1.0f, 1.0f, 0.0f, // top-right of back
 	1.0f, 1.0f, 0.0f, // top-left of back
-	1.0f, 1.0f, 0.0f, // bottom-left of back
 	1.0f, 1.0f, 0.0f, // bottom-right of back
+	
+	// triangle two
+	1.0f, 1.0f, 0.0f, // bottom-right of back
+	1.0f, 1.0f, 0.0f, // top-left of back
+	1.0f, 1.0f, 0.0f, // bottom-left of back
 
 	// left
+	// triangle one
 	1.0f, 0.0f, 1.0f, // top-right of left
 	1.0f, 0.0f, 1.0f, // top-left of left
-	1.0f, 0.0f, 1.0f, // bottom-left of left
 	1.0f, 0.0f, 1.0f, // bottom-right of left
 
+	// triangle two
+	1.0f, 0.0f, 1.0f, // bottom-right of left
+	1.0f, 0.0f, 1.0f, // top-left of left
+	1.0f, 0.0f, 1.0f, // bottom-left of left
+
 	// top
+	// triangle one
 	0.0f, 1.0f, 0.0f, // top-right of top
 	0.0f, 1.0f, 0.0f, // top-left of top
-	0.0f, 1.0f, 0.0f, // bottom-left of top
 	0.0f, 1.0f, 0.0f, // bottom-right of top
 
+	// triangle two
+	0.0f, 1.0f, 0.0f, // bottom-right of top
+	0.0f, 1.0f, 0.0f, // top-left of top
+	0.0f, 1.0f, 0.0f, // bottom-left of top
+
 	// bottom
+	// triangle one
 	1.0f, 0.5f, 0.0f, // top-right of bottom
 	1.0f, 0.5f, 0.0f, // top-left of bottom
-	1.0f, 0.5f, 0.0f, // bottom-left of bottom
 	1.0f, 0.5f, 0.0f, // bottom-right of bottom
+
+	// triangle two
+	1.0f, 0.5f, 0.0f, // bottom-right of bottom
+	1.0f, 0.5f, 0.0f, // top-left of bottom
+	1.0f, 0.5f, 0.0f, // bottom-left of bottom
 };
 
-GLfloat cubeTexcoords[] =
+float cubeTexcoords[] =
 {
 	// front
+	// triangle one
 	1.0f, 1.0f, // top-right of front
 	0.0f, 1.0f, // top-left of front
-	0.0f, 0.0f, // bottom-left of front
 	1.0f, 0.0f, // bottom-right of front
 
+	// triangle two
+	1.0f, 0.0f, // bottom-right of front
+	0.0f, 1.0f, // top-left of front
+	0.0f, 0.0f, // bottom-left of front
+
 	// right
+	// triangle one
 	1.0f, 1.0f, // top-right of right
 	0.0f, 1.0f, // top-left of right
-	0.0f, 0.0f, // bottom-left of right
 	1.0f, 0.0f, // bottom-right of right
+	
+	// triangle two
+	1.0f, 0.0f, // bottom-right of right
+	0.0f, 1.0f, // top-left of right
+	0.0f, 0.0f, // bottom-left of right
 
 	// back
+	// triangle one
 	1.0f, 1.0f, // top-right of back
 	0.0f, 1.0f, // top-left of back
-	0.0f, 0.0f, // bottom-left of back
 	1.0f, 0.0f, // bottom-right of back
 
+	// triangle two
+	1.0f, 0.0f, // bottom-right of back
+	0.0f, 1.0f, // top-left of back
+	0.0f, 0.0f, // bottom-left of back
+
 	// left
+	// triangle one
 	1.0f, 1.0f, // top-right of left
 	0.0f, 1.0f, // top-left of left
-	0.0f, 0.0f, // bottom-left of left
 	1.0f, 0.0f, // bottom-right of left
+	
+	// triangle two
+	1.0f, 0.0f, // bottom-right of left
+	0.0f, 1.0f, // top-left of left
+	0.0f, 0.0f, // bottom-left of left
 
 	// top
+	// triangle one
 	1.0f, 1.0f, // top-right of top
 	0.0f, 1.0f, // top-left of top
-	0.0f, 0.0f, // bottom-left of top
 	1.0f, 0.0f, // bottom-right of top
 
+	// triangle two
+	1.0f, 0.0f, // bottom-right of top
+	0.0f, 1.0f, // top-left of top
+	0.0f, 0.0f, // bottom-left of top
+
 	// bottom
+	// triangle one
 	1.0f, 1.0f, // top-right of bottom
 	0.0f, 1.0f, // top-left of bottom
-	0.0f, 0.0f, // bottom-left of bottom
 	1.0f, 0.0f, // bottom-right of bottom
+
+	// triangle two
+	1.0f, 0.0f, // bottom-right of bottom
+	0.0f, 1.0f, // top-left of bottom
+	0.0f, 0.0f, // bottom-left of bottom
 };
 
-GLfloat cubeNormals[] =
+float cubeNormals[] =
 {
 	 // front surface
+	 // triangle one
 	 0.0f,  0.0f,  1.0f, // top-right of front
 	 0.0f,  0.0f,  1.0f, // top-left of front
-	 0.0f,  0.0f,  1.0f, // bottom-left of front
 	 0.0f,  0.0f,  1.0f, // bottom-right of front
+	 
+	 // triangle two
+	 0.0f,  0.0f,  1.0f, // bottom-right of front
+	 0.0f,  0.0f,  1.0f, // top-left of front
+	 0.0f,  0.0f,  1.0f, // bottom-left of front
 
 	 // right surface
+	 // triangle one
 	 1.0f,  0.0f,  0.0f, // top-right of right
 	 1.0f,  0.0f,  0.0f, // top-left of right
-	 1.0f,  0.0f,  0.0f, // bottom-left of right
 	 1.0f,  0.0f,  0.0f, // bottom-right of right
 
+	 // triangle two
+	 1.0f,  0.0f,  0.0f, // bottom-right of right
+	 1.0f,  0.0f,  0.0f, // top-left of right
+	 1.0f,  0.0f,  0.0f, // bottom-left of right
+
 	 // back surface
+	 // triangle one
 	 0.0f,  0.0f, -1.0f, // top-right of back
 	 0.0f,  0.0f, -1.0f, // top-left of back
-	 0.0f,  0.0f, -1.0f, // bottom-left of back
 	 0.0f,  0.0f, -1.0f, // bottom-right of back
 
+	 // triangle two
+	 0.0f,  0.0f, -1.0f, // bottom-right of back
+	 0.0f,  0.0f, -1.0f, // top-left of back
+	 0.0f,  0.0f, -1.0f, // bottom-left of back
+
 	 // left surface
+	 // triangle one
 	-1.0f,  0.0f,  0.0f, // top-right of left
 	-1.0f,  0.0f,  0.0f, // top-left of left
-	-1.0f,  0.0f,  0.0f, // bottom-left of left
 	-1.0f,  0.0f,  0.0f, // bottom-right of left
 
+	 // triangle two
+	-1.0f,  0.0f,  0.0f, // bottom-right of left
+	-1.0f,  0.0f,  0.0f, // top-left of left
+	-1.0f,  0.0f,  0.0f, // bottom-left of left
+
 	 // top surface
+	 // triangle one
 	 0.0f,  1.0f,  0.0f, // top-right of top
 	 0.0f,  1.0f,  0.0f, // top-left of top
-	 0.0f,  1.0f,  0.0f, // bottom-left of top
 	 0.0f,  1.0f,  0.0f, // bottom-right of top
 
+	 // triangle two
+	 0.0f,  1.0f,  0.0f, // bottom-right of top
+	 0.0f,  1.0f,  0.0f, // top-left of top
+	 0.0f,  1.0f,  0.0f, // bottom-left of top
+
 	 // bottom surface
+	 // triangle one
 	 0.0f, -1.0f,  0.0f, // top-right of bottom
 	 0.0f, -1.0f,  0.0f, // top-left of bottom
-	 0.0f, -1.0f,  0.0f, // bottom-left of bottom
 	 0.0f, -1.0f,  0.0f, // bottom-right of bottom
+	 
+	 // triangle two
+	 0.0f, -1.0f,  0.0f, // bottom-right of bottom
+	 0.0f, -1.0f,  0.0f, // top-left of bottom
+	 0.0f, -1.0f,  0.0f, // bottom-left of bottom
 };
 
-GLfloat cube_PCNT[] =
+float cube_PCNT[] =
 {
 	// front
 	// position				// color			 // normals				// texcoords
-	 1.0f,  1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	1.0f, 1.0f,
-	-1.0f,  1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	0.0f, 1.0f,
-	-1.0f, -1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	0.0f, 0.0f,
-	 1.0f, -1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	1.0f, 0.0f,
+	 1.0f,  1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	1.0f, 1.0f,	 // top-right
+	-1.0f,  1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	0.0f, 1.0f,	 // top-left
+	 1.0f, -1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	1.0f, 0.0f,	 // bottom-right
+
+	 1.0f, -1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	1.0f, 0.0f,	 // bottom-right
+	-1.0f,  1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	0.0f, 1.0f,	 // top-left
+	-1.0f, -1.0f,  1.0f,	1.0f, 0.0f, 0.0f,	 0.0f,  0.0f,  1.0f,	0.0f, 0.0f,  // bottom-left
 						 
 	// right			 
 	// position				// color			 // normals				// texcoords
-	 1.0f,  1.0f, -1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	1.0f, 1.0f,
-	 1.0f,  1.0f,  1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	0.0f, 1.0f,
-	 1.0f, -1.0f,  1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	0.0f, 0.0f,
-	 1.0f, -1.0f, -1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	1.0f, 0.0f,
+	 1.0f,  1.0f, -1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	1.0f, 1.0f,  // top-right
+	 1.0f,  1.0f,  1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	0.0f, 1.0f,  // top-left
+	 1.0f, -1.0f, -1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	1.0f, 0.0f,  // bottom-right
+
+	 1.0f, -1.0f, -1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	1.0f, 0.0f,  // bottom-right
+	 1.0f,  1.0f,  1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	0.0f, 1.0f,  // top-left
+	 1.0f, -1.0f,  1.0f,	0.0f, 0.0f, 1.0f,	 1.0f,  0.0f,  0.0f,	0.0f, 0.0f,  // bottom-left
 						 
 	// back				 
 	// position				// color			 // normals				// texcoords
-	 1.0f,  1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	1.0f, 1.0f,
-	-1.0f,  1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	0.0f, 1.0f,
-	-1.0f, -1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	0.0f, 0.0f,
-	 1.0f, -1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	1.0f, 0.0f,
+	 1.0f,  1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	1.0f, 1.0f,  // top-right
+	-1.0f,  1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	0.0f, 1.0f,  // top-left
+     1.0f, -1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	1.0f, 0.0f,  // bottom-right
+
+     1.0f, -1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	1.0f, 0.0f,  // bottom-right
+	-1.0f,  1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	0.0f, 1.0f,  // top-left
+	-1.0f, -1.0f, -1.0f,	1.0f, 1.0f, 0.0f,	 0.0f,  0.0f, -1.0f,	0.0f, 0.0f,  // bottom-left
 						 
 	// left				 
 	// position				// color			 // normals				// texcoords
-	-1.0f,  1.0f,  1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	1.0f, 1.0f,
-	-1.0f,  1.0f, -1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,
-	-1.0f, -1.0f, -1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	0.0f, 0.0f,
-	-1.0f, -1.0f,  1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,
+	-1.0f,  1.0f,  1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	1.0f, 1.0f,  // top-right
+	-1.0f,  1.0f, -1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,  // top-left
+	-1.0f, -1.0f,  1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,  // bottom-right
+
+	-1.0f, -1.0f,  1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,  // bottom-right
+	-1.0f,  1.0f, -1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,  // top-left
+	-1.0f, -1.0f, -1.0f,	1.0f, 0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	0.0f, 0.0f,  // bottom-left
 						 
 	// top				 
 	// position				// color			 // normals				// texcoords
-	 1.0f,  1.0f, -1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	1.0f, 1.0f,
-	-1.0f,  1.0f, -1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f,
-	-1.0f,  1.0f,  1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	0.0f, 0.0f,
-	 1.0f,  1.0f,  1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	1.0f, 0.0f,
+	 1.0f,  1.0f, -1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	1.0f, 1.0f,  // top-right
+	-1.0f,  1.0f, -1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f,  // top-left
+     1.0f,  1.0f,  1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	1.0f, 0.0f,  // bottom-right
+
+     1.0f,  1.0f,  1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	1.0f, 0.0f,  // bottom-right
+	-1.0f,  1.0f, -1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f,  // top-left
+	-1.0f,  1.0f,  1.0f,	0.0f, 1.0f, 0.0f,	 0.0f,  1.0f,  0.0f,	0.0f, 0.0f,  // bottom-left
 						 
 	// bottom			 
 	// position				// color			 // normals				// texcoords
-	 1.0f, -1.0f,  1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	1.0f, 1.0f,
-	-1.0f, -1.0f,  1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	0.0f, 1.0f,
-	-1.0f, -1.0f, -1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	0.0f, 0.0f,
-	 1.0f, -1.0f, -1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	1.0f, 0.0f,
+	 1.0f, -1.0f,  1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	1.0f, 1.0f, // top-right
+	-1.0f, -1.0f,  1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	0.0f, 1.0f, // top-left
+	 1.0f, -1.0f, -1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	1.0f, 0.0f, // bottom-right
+
+	 1.0f, -1.0f, -1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	1.0f, 0.0f, // bottom-right
+	-1.0f, -1.0f,  1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	0.0f, 1.0f, // top-left
+	-1.0f, -1.0f, -1.0f,	1.0f, 0.5f, 0.0f,	 0.0f, -1.0f,  0.0f,	0.0f, 0.0f, // bottom-left
 };
