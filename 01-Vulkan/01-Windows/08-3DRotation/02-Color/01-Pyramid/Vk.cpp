@@ -2755,26 +2755,6 @@ VkResult createVertexBuffer(void)
         1.0f,   0.0f,   0.0f,
         0.0f,   0.0f,   1.0f,
         0.0f,   1.0f,   0.0f
-
-        // // Front Face
-        // 1.0f,   0.0f,   0.0f,
-        // 1.0f,   0.0f,   0.0f,
-        // 1.0f,   0.0f,   0.0f,
-
-        // // Right Face
-        // 0.0f,   0.0f,   1.0f,
-        // 0.0f,   0.0f,   1.0f,
-        // 0.0f,   0.0f,   1.0f,
-
-        // // Back Face
-        // 0.0f,   1.0f,   0.0f,
-        // 0.0f,   1.0f,   0.0f,
-        // 0.0f,   1.0f,   0.0f,
-        
-        // // Left Face
-        // 1.0f,   1.0f,   0.0f,
-        // 1.0f,   1.0f,   0.0f,
-        // 1.0f,   1.0f,   0.0f
     };
 
     // Code
@@ -3519,7 +3499,7 @@ VkResult createPipeline(void)
     vkPipelineRasterizationStateCreateInfo.pNext = NULL;
     vkPipelineRasterizationStateCreateInfo.flags = 0;
     vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
     vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
