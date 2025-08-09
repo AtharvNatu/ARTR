@@ -1109,7 +1109,7 @@ void uninitialize(void)
         vkDestroyDescriptorPool(vkDevice, vkDescriptorPool, NULL);
         vkDescriptorPool = VK_NULL_HANDLE;
         vkDescriptorSet_cube = VK_NULL_HANDLE;
-        vkDescriptorSet_cube = VK_NULL_HANDLE;
+        vkDescriptorSet_pyramid = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet Successfully\n", __func__);
     }
 
