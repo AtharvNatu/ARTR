@@ -2235,11 +2235,11 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded In Creating Staging Vertex Buffer\n", __func__);
     
     VkMemoryRequirements vkMemoryRequirements_stagingBuffer;
-    memset((void*)&vkMemoryRequirements_stagingBuffer, 0, sizeof(vkMemoryRequirements_stagingBuffer));
+    memset((void*)&vkMemoryRequirements_stagingBuffer, 0, sizeof(VkMemoryRequirements));
     vkGetBufferMemoryRequirements(vkDevice, vertexData_stagingBuffer_position.vkBuffer, &vkMemoryRequirements_stagingBuffer);
 
     VkMemoryAllocateInfo vkMemoryAllocateInfo_stagingBuffer;
-    memset((void*)&vkMemoryAllocateInfo_stagingBuffer, 0, sizeof(vkMemoryAllocateInfo_stagingBuffer));
+    memset((void*)&vkMemoryAllocateInfo_stagingBuffer, 0, sizeof(VkMemoryAllocateInfo));
     vkMemoryAllocateInfo_stagingBuffer.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     vkMemoryAllocateInfo_stagingBuffer.pNext = NULL;
     vkMemoryAllocateInfo_stagingBuffer.allocationSize = vkMemoryRequirements_stagingBuffer.size;
