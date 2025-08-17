@@ -132,7 +132,7 @@ typedef struct
 {
     glm::mat4 modelMatrix;
     glm::mat4 viewMatrix;
-    glm::mat4 projectionMatix;
+    glm::mat4 projectionMatrix;
 } MVP_UniformData;
 
 typedef struct
@@ -758,7 +758,7 @@ VkResult resize(int width, int height)
         }
 
         //* Destroy PipelineLayout
-        if (vkDescriptorSetLayout)
+        if (vkPipelineLayout)
         {
             vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, NULL);
             vkPipelineLayout = VK_NULL_HANDLE;
@@ -2903,7 +2903,7 @@ VkResult updateUniformBuffer(void)
     );
     //! 2D Matrix with Column Major (Like OpenGL)
     perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
-    mvp_UniformData.projectionMatix = perspectiveProjectionMatrix;
+    mvp_UniformData.projectionMatrix = perspectiveProjectionMatrix;
 
     //! Map Uniform Buffer
     void* data = NULL;
@@ -2943,7 +2943,7 @@ VkResult updateUniformBuffer(void)
     );
     //! 2D Matrix with Column Major (Like OpenGL)
     perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
-    mvp_UniformData.projectionMatix = perspectiveProjectionMatrix;
+    mvp_UniformData.projectionMatrix = perspectiveProjectionMatrix;
 
     //! Map Uniform Buffer
     data = NULL;

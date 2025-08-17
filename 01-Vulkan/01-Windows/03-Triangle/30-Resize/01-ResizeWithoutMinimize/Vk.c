@@ -680,7 +680,7 @@ VkResult resize(int width, int height)
         }
 
         //* Destroy PipelineLayout
-        if (vkDescriptorSetLayout)
+        if (vkPipelineLayout)
         {
             vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, NULL);
             vkPipelineLayout = VK_NULL_HANDLE;
