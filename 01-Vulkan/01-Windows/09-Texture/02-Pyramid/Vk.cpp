@@ -181,7 +181,7 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
-const float fAnimationSpeed = 0.5f;
+const float fAnimationSpeed = 0.03f;
 float fAngle = 0.0f;
 
 // Entry Point Function
@@ -2992,8 +2992,15 @@ VkResult createTexture(const char* textureFileName)
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
+   
+    imageSize = imageWidth * imageHeight * 4;
 
-    imageSize = imageWidth * imageHeight * numChannels;
+    fprintf(gpFile, "\n%s Properties\n", textureFileName);
+    fprintf(gpFile, "-------------------------------------------\n");
+    fprintf(gpFile, "Image Width = %d\n", imageWidth);
+    fprintf(gpFile, "Image Height = %d\n", imageHeight);
+    fprintf(gpFile, "Image Size = %lld\n", imageSize);
+    fprintf(gpFile, "-------------------------------------------\n\n");   
 
     //! Step - 2
     VkBufferCreateInfo vkBufferCreateInfo_stagingBuffer;
@@ -3074,7 +3081,7 @@ VkResult createTexture(const char* textureFileName)
     else
         fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Staging Buffer : %s\n", __func__, textureFileName);
 
-    vkResult = vkBindBufferMemory(vkDevice, vkBuffer_stagingBuffer, vkDeviceMemory_texture, 0);
+    vkResult = vkBindBufferMemory(vkDevice, vkBuffer_stagingBuffer, vkDeviceMemory_stagingBuffer, 0);
     if (vkResult != VK_SUCCESS)
     { 
         fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Staging Buffer : %s, Error Code : %d !!!\n", __func__, textureFileName, vkResult);
@@ -3159,12 +3166,7 @@ VkResult createTexture(const char* textureFileName)
     vkImageCreateInfo.flags = 0;
     vkImageCreateInfo.pNext = NULL;
     vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-
-    if (numChannels == 3)
-        vkImageCreateInfo.format = VK_FORMAT_R8G8B8_UNORM;
-    else if (numChannels == 4)
-        vkImageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    
+    vkImageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
     vkImageCreateInfo.extent.width = imageWidth;
     vkImageCreateInfo.extent.height = imageHeight;
     vkImageCreateInfo.extent.depth = 1;
@@ -3688,7 +3690,7 @@ VkResult createTexture(const char* textureFileName)
     vkSubmitInfo_buffer_to_copy.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     vkSubmitInfo_buffer_to_copy.pNext = NULL;
     vkSubmitInfo_buffer_to_copy.commandBufferCount = 1;
-    vkSubmitInfo_buffer_to_copy.pCommandBuffers = &vkCommandBuffer_transition_image_layout;
+    vkSubmitInfo_buffer_to_copy.pCommandBuffers = &vkCommandBuffer_buffer_to_image_copy;
 
     vkResult = vkQueueSubmit(vkQueue, 1, &vkSubmitInfo_buffer_to_copy, VK_NULL_HANDLE);
     if (vkResult != VK_SUCCESS)
@@ -4038,7 +4040,7 @@ VkResult createTexture(const char* textureFileName)
     vkImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     vkImageViewCreateInfo.pNext = NULL;
     vkImageViewCreateInfo.flags = 0;
-    vkImageViewCreateInfo.format = vkFormat_color;
+    vkImageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
     vkImageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
     vkImageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
     vkImageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
@@ -4049,6 +4051,7 @@ VkResult createTexture(const char* textureFileName)
     vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
     vkImageViewCreateInfo.subresourceRange.layerCount = 1;
     vkImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    vkImageViewCreateInfo.image = vkImage_texture;
 
     vkResult = vkCreateImageView(vkDevice, &vkImageViewCreateInfo, NULL, &vkImageView_texture);
     if (vkResult != VK_SUCCESS)
@@ -4384,13 +4387,20 @@ VkResult createDescriptorSetLayout(void)
     VkResult vkResult = VK_SUCCESS;
 
     //! Initialize VkDescriptorSetLayoutBinding
-    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding;
-    memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(VkDescriptorSetLayoutBinding));
-    vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
-    vkDescriptorSetLayoutBinding.descriptorCount = 1;
-    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
+    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding_array[2]; // 0 -> Uniform, 1 -> Texture Image
+    memset((void*)vkDescriptorSetLayoutBinding_array, 0, sizeof(VkDescriptorSetLayoutBinding) * _ARRAYSIZE(vkDescriptorSetLayoutBinding_array));
+
+    vkDescriptorSetLayoutBinding_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorSetLayoutBinding_array[0].binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
+    vkDescriptorSetLayoutBinding_array[0].descriptorCount = 1;
+    vkDescriptorSetLayoutBinding_array[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding_array[0].pImmutableSamplers = NULL;
+
+    vkDescriptorSetLayoutBinding_array[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    vkDescriptorSetLayoutBinding_array[1].binding = 1;   //! Mapped with layout(binding = 1) in fragment shader
+    vkDescriptorSetLayoutBinding_array[1].descriptorCount = 1;
+    vkDescriptorSetLayoutBinding_array[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    vkDescriptorSetLayoutBinding_array[1].pImmutableSamplers = NULL;
 
     //* Step - 3
     VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo;
@@ -4398,8 +4408,8 @@ VkResult createDescriptorSetLayout(void)
     vkDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     vkDescriptorSetLayoutCreateInfo.pNext = NULL;
     vkDescriptorSetLayoutCreateInfo.flags = 0;
-    vkDescriptorSetLayoutCreateInfo.bindingCount = 1;   //! An integer value where you want to bind descriptor set
-    vkDescriptorSetLayoutCreateInfo.pBindings = &vkDescriptorSetLayoutBinding;
+    vkDescriptorSetLayoutCreateInfo.bindingCount = _ARRAYSIZE(vkDescriptorSetLayoutBinding_array);
+    vkDescriptorSetLayoutCreateInfo.pBindings = vkDescriptorSetLayoutBinding_array;
 
     //* Step - 4
     vkResult = vkCreateDescriptorSetLayout(vkDevice, &vkDescriptorSetLayoutCreateInfo, NULL, &vkDescriptorSetLayout);
@@ -4445,10 +4455,14 @@ VkResult createDescriptorPool(void)
     // Code
 
     //* Vulkan expects decriptor pool size before creating actual descriptor pool
-    VkDescriptorPoolSize vkDescriptorPoolSize;
-    memset((void*)&vkDescriptorPoolSize, 0, sizeof(VkDescriptorPoolSize));
-    vkDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorPoolSize.descriptorCount = 1;
+    VkDescriptorPoolSize vkDescriptorPoolSize_array[2];
+    memset((void*)vkDescriptorPoolSize_array, 0, sizeof(VkDescriptorPoolSize) * _ARRAYSIZE(vkDescriptorPoolSize_array));
+
+    vkDescriptorPoolSize_array[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorPoolSize_array[0].descriptorCount = 1;
+
+    vkDescriptorPoolSize_array[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    vkDescriptorPoolSize_array[1].descriptorCount = 1;
    
     //* Create the pool
     VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo;
@@ -4456,9 +4470,9 @@ VkResult createDescriptorPool(void)
     vkDescriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     vkDescriptorPoolCreateInfo.pNext = NULL;
     vkDescriptorPoolCreateInfo.flags = 0;
-    vkDescriptorPoolCreateInfo.poolSizeCount = 1;
-    vkDescriptorPoolCreateInfo.pPoolSizes = &vkDescriptorPoolSize;
-    vkDescriptorPoolCreateInfo.maxSets = 1;
+    vkDescriptorPoolCreateInfo.poolSizeCount = _ARRAYSIZE(vkDescriptorPoolSize_array);
+    vkDescriptorPoolCreateInfo.pPoolSizes = vkDescriptorPoolSize_array;
+    vkDescriptorPoolCreateInfo.maxSets = 2;
 
     vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
     if (vkResult != VK_SUCCESS)
@@ -4501,25 +4515,46 @@ VkResult createDescriptorSet(void)
     vkDescriptorBufferInfo.offset = 0;
     vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
 
+    //! Descriptor Image Info
+    VkDescriptorImageInfo vkDescriptorImageInfo;
+    memset((void*)&vkDescriptorImageInfo, 0, sizeof(VkDescriptorImageInfo));
+    vkDescriptorImageInfo.imageView = vkImageView_texture;
+    vkDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    vkDescriptorImageInfo.sampler = vkSampler_texture;
+    
     /* Update above descriptor set directly to the shader
     There are 2 ways :-
         1) Writing directly to the shader
         2) Copying from one shader to another shader
     */
-    VkWriteDescriptorSet vkWriteDescriptorSet;
-    memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
-    vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    vkWriteDescriptorSet.pNext = NULL;
-    vkWriteDescriptorSet.dstSet = vkDescriptorSet;
-    vkWriteDescriptorSet.dstArrayElement = 0;
-    vkWriteDescriptorSet.descriptorCount = 1;
-    vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
-    vkWriteDescriptorSet.pImageInfo = NULL;
-    vkWriteDescriptorSet.pTexelBufferView = NULL;
-    vkWriteDescriptorSet.dstBinding = 0;
+    VkWriteDescriptorSet vkWriteDescriptorSet_array[2];
+    memset((void*)vkWriteDescriptorSet_array, 0, sizeof(VkWriteDescriptorSet) * _ARRAYSIZE(vkWriteDescriptorSet_array));
 
-    vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
+    //! Uniform Buffer Object
+    vkWriteDescriptorSet_array[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet_array[0].pNext = NULL;
+    vkWriteDescriptorSet_array[0].dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet_array[0].dstArrayElement = 0;
+    vkWriteDescriptorSet_array[0].dstBinding = 0;
+    vkWriteDescriptorSet_array[0].descriptorCount = 1;
+    vkWriteDescriptorSet_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkWriteDescriptorSet_array[0].pBufferInfo = &vkDescriptorBufferInfo;
+    vkWriteDescriptorSet_array[0].pImageInfo = NULL;
+    vkWriteDescriptorSet_array[0].pTexelBufferView = NULL;
+
+    //! Texture Image and Sampler
+    vkWriteDescriptorSet_array[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet_array[1].pNext = NULL;
+    vkWriteDescriptorSet_array[1].dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet_array[1].dstArrayElement = 0;
+    vkWriteDescriptorSet_array[1].descriptorCount = 1;
+    vkWriteDescriptorSet_array[1].dstBinding = 1;
+    vkWriteDescriptorSet_array[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    vkWriteDescriptorSet_array[1].pBufferInfo = NULL;
+    vkWriteDescriptorSet_array[1].pImageInfo = &vkDescriptorImageInfo;
+    vkWriteDescriptorSet_array[1].pTexelBufferView = NULL;
+
+    vkUpdateDescriptorSets(vkDevice, _ARRAYSIZE(vkWriteDescriptorSet_array), vkWriteDescriptorSet_array, 0, NULL);
 
     return vkResult;
 }
