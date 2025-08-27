@@ -2925,7 +2925,7 @@ VkResult createVertexBuffer(void)
 
     // Code
     
-    //! Cube
+    //! Pyramid
     //! -----------------------------------------------------------------------------------------------------------------------------------
     
     //? Position
@@ -3763,7 +3763,7 @@ VkResult createDescriptorSet(void)
 
     // Code
 
-    //! Cube
+    //! Pyramid
     //! -------------------------------------------------------------------------------------------------------------------------------------
     //* Initialize DescriptorSetAllocationInfo
     VkDescriptorSetAllocateInfo vkDescriptorSetAllocateInfo;

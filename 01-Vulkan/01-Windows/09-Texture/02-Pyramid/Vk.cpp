@@ -2786,21 +2786,25 @@ VkResult createVertexBuffer(void)
 
     float pyramid_texcoords[] = 
     {
-        0.5, 1.0, // front-top
-        0.0, 0.0, // front-left
-        1.0, 0.0, // front-right
+        // Front Face
+        0.5, 1.0, // Front Top
+        0.0, 0.0, // Front Left
+        1.0, 0.0, // Front Right
 
-        0.5, 1.0, // right-top
-        1.0, 0.0, // right-left
-        0.0, 0.0, // right-right
+        // Right Face
+        0.5, 1.0, // Right Top
+        1.0, 0.0, // Right Left
+        0.0, 0.0, // Right Right
 
-        0.5, 1.0, // back-top
-        1.0, 0.0, // back-left
-        0.0, 0.0, // back-right
+        // Back Face
+        0.5, 1.0, // Back Top
+        1.0, 0.0, // Back Left
+        0.0, 0.0, // Back Right
 
-        0.5, 1.0, // left-top
-        0.0, 0.0, // left-left
-        1.0, 0.0, // left-right
+        // Top Face
+        0.5, 1.0, // Left Top
+        0.0, 0.0, // Left Left
+        1.0, 0.0, // Left Right
     };
 
     // Code
