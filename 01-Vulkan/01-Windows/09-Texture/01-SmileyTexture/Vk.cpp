@@ -181,9 +181,6 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
-const float fAnimationSpeed = 0.03f;
-float fAngle = 0.0f;
-
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
 {
@@ -238,7 +235,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Pyramid with Texture"),
+        TEXT("Atharv Natu : Vulkan Smiley Texture"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -561,16 +558,6 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
 
-    //! Create Texture
-    vkResult = createTexture("Stone.png");
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createTexture() Failed For Stone.png : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createTexture() Succeeded For Stone.png\n", __func__);
-
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
     if (vkResult != VK_SUCCESS)
@@ -581,6 +568,16 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createUniformBuffer() Succeeded\n", __func__);
+
+    //! Create Texture
+    vkResult = createTexture("Smiley.png");
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createTexture() Failed For Smiley.png : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createTexture() Succeeded For Smiley.png\n", __func__);
 
     //! Create Shaders
     vkResult = createShaders();
@@ -1036,9 +1033,6 @@ VkResult display(void)
 void update(void)
 {
     // Code
-    fAngle += fAnimationSpeed;
-    if (fAngle >= 360.0f)
-        fAngle = 0.0f;
 }
 
 void uninitialize(void)
@@ -1128,7 +1122,7 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet Successfully\n", __func__);
     }
 
-    //* Step - 5 of PipelineLayout
+   //* Step - 5 of PipelineLayout
     if (vkPipelineLayout)
     {
         vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, NULL);
@@ -2761,52 +2755,36 @@ VkResult createVertexBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 3
-    float pyramid_position[] = 
+    float rectangle_position[] = 
     {
-        // Front Face
-        0.0f,   1.0f,   0.0f,
-        -1.0f,  -1.0f,  1.0f,
-        1.0f,   -1.0f,  1.0f,
+        // Triangle 1
+        1.0f,   1.0f,   0.0f,   // Top Right
+        -1.0f,  1.0f,   0.0f,   // Top Left
+        -1.0f,  -1.0f,  0.0f,   // Bottom Left
 
-        // Right Face
-        0.0f,   1.0f,   0.0f,
-        1.0f,   -1.0f,  1.0f,
-        1.0f,   -1.0f,  -1.0f,
-
-        // Back Face
-        0.0f,   1.0f,   0.0f,
-        1.0f,  -1.0f,   -1.0f,
-        -1.0f, -1.0f,   -1.0f,
-
-        // Left Face
-        0.0f,  1.0f,    0.0f,
-        -1.0f, -1.0f,  -1.0f,
-        -1.0f, -1.0f,   1.0f
+        // Triangle 2
+        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+        1.0f,   -1.0f,  0.0f,   // Bottom Right
+        1.0f,   1.0f,   0.0f,   // Top Right
     };
 
-    float pyramid_texcoords[] = 
+    float rectangle_texcoords[] = 
     {
-        0.5, 1.0, // front-top
-        0.0, 0.0, // front-left
-        1.0, 0.0, // front-right
+        // Triangle 1
+        1.0f, 0.0f,             // Top Right
+        0.0f, 0.0f,             // Top Left
+        0.0f, 1.0f,             // Bottom Left
 
-        0.5, 1.0, // right-top
-        1.0, 0.0, // right-left
-        0.0, 0.0, // right-right
-
-        0.5, 1.0, // back-top
-        1.0, 0.0, // back-left
-        0.0, 0.0, // back-right
-
-        0.5, 1.0, // left-top
-        0.0, 0.0, // left-left
-        1.0, 0.0, // left-right
+        // Triangle 2
+        0.0f, 1.0f,             // Bottom Left
+        1.0f, 1.0f,             // Bottom Right
+        1.0f, 0.0f              // Top Right
     };
 
     // Code
     
-    //! Vertex Position
-    //! ---------------------------------------------------------------------------------------------------------------------------------
+    //? VERTEX POSITION
+    //? -----------------------------------------------------------------------------------------------------------------------------------
     //* Step - 4
     memset((void*)&vertexData_position, 0, sizeof(VertexData));
 
@@ -2816,7 +2794,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(pyramid_position);
+    vkBufferCreateInfo.size = sizeof(rectangle_position);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2882,14 +2860,14 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, pyramid_position, sizeof(pyramid_position));
+    memcpy(data, rectangle_position, sizeof(rectangle_position));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
-    //! ---------------------------------------------------------------------------------------------------------------------------------
+    //? -----------------------------------------------------------------------------------------------------------------------------------
 
-    //! Vertex Texture
-    //! ---------------------------------------------------------------------------------------------------------------------------------
+    //? VERTEX COLOR
+    //? -----------------------------------------------------------------------------------------------------------------------------------
     //* Step - 4
     memset((void*)&vertexData_texcoord, 0, sizeof(VertexData));
 
@@ -2898,15 +2876,15 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(pyramid_texcoords);
+    vkBufferCreateInfo.size = sizeof(rectangle_texcoords);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_texcoord.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Texture Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Texture Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Texcoord Buffer\n", __func__);
     
     //* Step - 7
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
@@ -2941,32 +2919,32 @@ VkResult createVertexBuffer(void)
     //* Step - 9
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_texcoord.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Texture Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Texture Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Texcoord Buffer\n", __func__);
 
     //* Step - 10
     //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
     vkResult = vkBindBufferMemory(vkDevice, vertexData_texcoord.vkBuffer, vertexData_texcoord.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Texture Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Texture Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Texcoord Buffer\n", __func__);
 
     //* Step - 11
     data = NULL;
     vkResult = vkMapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Texture Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Texture Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Texcoord Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, pyramid_texcoords, sizeof(pyramid_texcoords));
+    memcpy(data, rectangle_texcoords, sizeof(rectangle_texcoords));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory);
-    //! ---------------------------------------------------------------------------------------------------------------------------------
+    //? -----------------------------------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
@@ -2992,7 +2970,7 @@ VkResult createTexture(const char* textureFileName)
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
-   
+
     imageSize = imageWidth * imageHeight * 4;
 
     fprintf(gpFile, "\n%s Properties\n", textureFileName);
@@ -4189,7 +4167,7 @@ VkResult updateUniformBuffer(void)
 
     //! Update Matrices
     mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
     mvp_UniformData.viewMatrix = glm::mat4(1.0f);
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
@@ -4387,15 +4365,17 @@ VkResult createDescriptorSetLayout(void)
     VkResult vkResult = VK_SUCCESS;
 
     //! Initialize VkDescriptorSetLayoutBinding
-    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding_array[2]; // 0 -> Uniform, 1 -> Texture Image
+    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding_array[2];
     memset((void*)vkDescriptorSetLayoutBinding_array, 0, sizeof(VkDescriptorSetLayoutBinding) * _ARRAYSIZE(vkDescriptorSetLayoutBinding_array));
 
+    //! Uniform Buffer
     vkDescriptorSetLayoutBinding_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     vkDescriptorSetLayoutBinding_array[0].binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
     vkDescriptorSetLayoutBinding_array[0].descriptorCount = 1;
     vkDescriptorSetLayoutBinding_array[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     vkDescriptorSetLayoutBinding_array[0].pImmutableSamplers = NULL;
 
+    //! Texture (Combined Image Sampler)
     vkDescriptorSetLayoutBinding_array[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     vkDescriptorSetLayoutBinding_array[1].binding = 1;   //! Mapped with layout(binding = 1) in fragment shader
     vkDescriptorSetLayoutBinding_array[1].descriptorCount = 1;
@@ -4408,7 +4388,7 @@ VkResult createDescriptorSetLayout(void)
     vkDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     vkDescriptorSetLayoutCreateInfo.pNext = NULL;
     vkDescriptorSetLayoutCreateInfo.flags = 0;
-    vkDescriptorSetLayoutCreateInfo.bindingCount = _ARRAYSIZE(vkDescriptorSetLayoutBinding_array);
+    vkDescriptorSetLayoutCreateInfo.bindingCount = _ARRAYSIZE(vkDescriptorSetLayoutBinding_array);   //! An integer value where you want to bind descriptor set
     vkDescriptorSetLayoutCreateInfo.pBindings = vkDescriptorSetLayoutBinding_array;
 
     //* Step - 4
@@ -4472,7 +4452,7 @@ VkResult createDescriptorPool(void)
     vkDescriptorPoolCreateInfo.flags = 0;
     vkDescriptorPoolCreateInfo.poolSizeCount = _ARRAYSIZE(vkDescriptorPoolSize_array);
     vkDescriptorPoolCreateInfo.pPoolSizes = vkDescriptorPoolSize_array;
-    vkDescriptorPoolCreateInfo.maxSets = 2;
+    vkDescriptorPoolCreateInfo.maxSets = 1;
 
     vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
     if (vkResult != VK_SUCCESS)
@@ -4515,13 +4495,12 @@ VkResult createDescriptorSet(void)
     vkDescriptorBufferInfo.offset = 0;
     vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
 
-    //! Descriptor Image Info
     VkDescriptorImageInfo vkDescriptorImageInfo;
     memset((void*)&vkDescriptorImageInfo, 0, sizeof(VkDescriptorImageInfo));
     vkDescriptorImageInfo.imageView = vkImageView_texture;
-    vkDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     vkDescriptorImageInfo.sampler = vkSampler_texture;
-    
+    vkDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
     /* Update above descriptor set directly to the shader
     There are 2 ways :-
         1) Writing directly to the shader
@@ -4530,29 +4509,27 @@ VkResult createDescriptorSet(void)
     VkWriteDescriptorSet vkWriteDescriptorSet_array[2];
     memset((void*)vkWriteDescriptorSet_array, 0, sizeof(VkWriteDescriptorSet) * _ARRAYSIZE(vkWriteDescriptorSet_array));
 
-    //! Uniform Buffer Object
     vkWriteDescriptorSet_array[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     vkWriteDescriptorSet_array[0].pNext = NULL;
     vkWriteDescriptorSet_array[0].dstSet = vkDescriptorSet;
     vkWriteDescriptorSet_array[0].dstArrayElement = 0;
-    vkWriteDescriptorSet_array[0].dstBinding = 0;
     vkWriteDescriptorSet_array[0].descriptorCount = 1;
     vkWriteDescriptorSet_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     vkWriteDescriptorSet_array[0].pBufferInfo = &vkDescriptorBufferInfo;
     vkWriteDescriptorSet_array[0].pImageInfo = NULL;
     vkWriteDescriptorSet_array[0].pTexelBufferView = NULL;
+    vkWriteDescriptorSet_array[0].dstBinding = 0;
 
-    //! Texture Image and Sampler
     vkWriteDescriptorSet_array[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     vkWriteDescriptorSet_array[1].pNext = NULL;
     vkWriteDescriptorSet_array[1].dstSet = vkDescriptorSet;
     vkWriteDescriptorSet_array[1].dstArrayElement = 0;
     vkWriteDescriptorSet_array[1].descriptorCount = 1;
-    vkWriteDescriptorSet_array[1].dstBinding = 1;
     vkWriteDescriptorSet_array[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     vkWriteDescriptorSet_array[1].pBufferInfo = NULL;
     vkWriteDescriptorSet_array[1].pImageInfo = &vkDescriptorImageInfo;
     vkWriteDescriptorSet_array[1].pTexelBufferView = NULL;
+    vkWriteDescriptorSet_array[1].dstBinding = 1;
 
     vkUpdateDescriptorSets(vkDevice, _ARRAYSIZE(vkWriteDescriptorSet_array), vkWriteDescriptorSet_array, 0, NULL);
 
@@ -4654,8 +4631,8 @@ VkResult createPipeline(void)
     vkVertexInputBindingDescription_array[0].binding = 0;
     vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 3; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    //! Texture
+    
+    //! Texcoord
     vkVertexInputBindingDescription_array[1].binding = 1;
     vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 2; 
     vkVertexInputBindingDescription_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -4668,8 +4645,8 @@ VkResult createPipeline(void)
     vkVertexInputAttributeDescription_array[0].location = 0;
     vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     vkVertexInputAttributeDescription_array[0].offset = 0;
-
-    //! Texture
+    
+    //! Texcoord
     vkVertexInputAttributeDescription_array[1].binding = 1;
     vkVertexInputAttributeDescription_array[1].location = 1;
     vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32_SFLOAT;
@@ -4700,7 +4677,7 @@ VkResult createPipeline(void)
     vkPipelineRasterizationStateCreateInfo.pNext = NULL;
     vkPipelineRasterizationStateCreateInfo.flags = 0;
     vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
+    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
     vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
@@ -5054,19 +5031,19 @@ VkResult buildCommandBuffers(void)
                 vkDeviceSize_offset_position
             );
 
-            //! Bind with Vertex Texture Buffer
-            VkDeviceSize vkDeviceSize_offset_texture[1];
-            memset((void*)vkDeviceSize_offset_texture, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_texture));
+            //! Bind with Vertex Texcoord Buffer
+            VkDeviceSize vkDeviceSize_offset_texcoord[1];
+            memset((void*)vkDeviceSize_offset_texcoord, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_texcoord));
             vkCmdBindVertexBuffers(
                 vkCommandBuffer_array[i], 
                 1, 
                 1, 
                 &vertexData_texcoord.vkBuffer, 
-                vkDeviceSize_offset_texture
+                vkDeviceSize_offset_texcoord
             );
 
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 12, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], 6, 1, 0, 0);
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
@@ -5102,5 +5079,3 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     fprintf(gpFile, "ADN_VALIDATION : debugReportCallback() => %s(%d) = %s\n", pLayerPrefix, messageCode, pMessage);
     return VK_FALSE;
 }
-
-
