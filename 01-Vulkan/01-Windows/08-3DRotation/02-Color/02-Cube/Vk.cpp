@@ -171,7 +171,7 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
-const float fAnimationSpeed = 0.5f;
+const float fAnimationSpeed = 0.02f;
 float fAngle = 0.0f;
 
 // Entry Point Function
@@ -2714,110 +2714,116 @@ VkResult createVertexBuffer(void)
     //* Step - 3
     float cube_position[] = 
     {
-        // Top Face
-        -1.0f,  1.0f,   -1.0f,
-        1.0f,   1.0f,   -1.0f,
-        1.0f,   1.0f,    1.0f,
-        1.0f,   1.0f,    1.0f,
-        -1.0f,  1.0f,    1.0f,
-        -1.0f,  1.0f,   -1.0f,
-
-        // Bottom Face
-        -1.0f,  -1.0f,   -1.0f,
-        1.0f,   -1.0f,   -1.0f,
-        1.0f,   -1.0f,    1.0f,
-        1.0f,   -1.0f,    1.0f,
-        -1.0f,  -1.0f,    1.0f,
-        -1.0f,  -1.0f,   -1.0f,
-
         // Front Face
-        1.0f,   1.0f,   1.0f,
-        -1.0f,  1.0f,   1.0f,
-        -1.0f,  -1.0f,  1.0f,
-        -1.0f,  -1.0f,  1.0f,
-        1.0f,   -1.0f,  1.0f,
-        1.0f,   1.0f,   1.0f,
+        1.0f,  1.0f,  1.0f,   // Top Right
+       -1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f,  1.0f,   // Bottom Right
 
-        // Back Face
-        1.0f,   1.0f,   -1.0f,
-        -1.0f,  1.0f,   -1.0f,
-        -1.0f,  -1.0f,  -1.0f,
-        -1.0f,  -1.0f,  -1.0f,
-        1.0f,   -1.0f,  -1.0f,
-        1.0f,   1.0f,   -1.0f,
-
-        // Left Face
-        -1.0f,   1.0f,   -1.0f,
-        -1.0f,   1.0f,    1.0f,
-        -1.0f,  -1.0f,    1.0f,
-        -1.0f,  -1.0f,    1.0f,
-        -1.0f,  -1.0f,   -1.0f,
-        -1.0f,   1.0f,   -1.0f,
+        1.0f, -1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f,  1.0f,   // Top Left
+       -1.0f, -1.0f,  1.0f,   // Bottom Left
 
         // Right Face
-        1.0f,   1.0f,   -1.0f,
-        1.0f,   1.0f,   1.0f,
-        1.0f,  -1.0f,   1.0f,
-        1.0f,  -1.0f,   1.0f,
-        1.0f,  -1.0f,  -1.0f,
-        1.0f,   1.0f,   -1.0f
+        1.0f,  1.0f, -1.0f,   // Top Right
+        1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+        1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f,  1.0f,   // Bottom Left
+
+        // Back Face
+        1.0f,  1.0f, -1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
+
+        // Left Face
+       -1.0f,  1.0f,  1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f,  1.0f,   // Bottom Right
+
+       -1.0f, -1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
+
+        // Top Face
+        1.0f,  1.0f, -1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+        1.0f,  1.0f,  1.0f,   // Bottom Right
+
+        1.0f,  1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f,  1.0f,  1.0f,   // Bottom Left
+
+        // Bottom Face
+        1.0f, -1.0f,  1.0f,   // Top Right
+       -1.0f, -1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+       -1.0f, -1.0f,  1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
     };
 
     float cube_color[] = 
     {
-        // SIDE 1 ( TOP )
-        1.0f,   0.0f,   0.0f,  
-        1.0f,   0.0f,   0.0f,  
-        1.0f,   0.0f,   0.0f,  
-
-        1.0f,   0.0f,   0.0f,  
-        1.0f,   0.0f,   0.0f,  
-        1.0f,   0.0f,   0.0f,  
-
-        // SIDE 2 ( BOTTOM )
-        0.0f,   1.0f,   0.0f,  
-        0.0f,   1.0f,   0.0f,  
-        0.0f,   1.0f,   0.0f,  
-
-        0.0f,   1.0f,   0.0f,  
-        0.0f,   1.0f,   0.0f,  
-        0.0f,   1.0f,   0.0f,  
-
-        // SIDE 3 ( FRONT )
+        // Front Face
         0.0f,   0.0f,   1.0f,  
         0.0f,   0.0f,   1.0f,  
         0.0f,   0.0f,   1.0f,  
 
         0.0f,   0.0f,   1.0f,  
         0.0f,   0.0f,   1.0f,  
-        0.0f,   0.0f,   1.0f,  
-
-        // SIDE 4 ( BACK )
-        0.0f,   1.0f,   1.0f,  
-        0.0f,   1.0f,   1.0f,  
-        0.0f,   1.0f,   1.0f,  
-
-        0.0f,   1.0f,   1.0f,  
-        0.0f,   1.0f,   1.0f,  
-        0.0f,   1.0f,   1.0f,  
-
-        // SIDE 5 ( LEFT )
-        1.0f,   0.0f,   1.0f,  
-        1.0f,   0.0f,   1.0f,  
-        1.0f,   0.0f,   1.0f,  
-
-        1.0f,   0.0f,   1.0f,  
-        1.0f,   0.0f,   1.0f,  
-        1.0f,   0.0f,   1.0f,  
-
-        // SIDE 6 ( RIGHT )
+        0.0f,   0.0f,   1.0f, 
+        
+        // Right Face
         1.0f,   1.0f,   0.0f,  
         1.0f,   1.0f,   0.0f,  
         1.0f,   1.0f,   0.0f,  
 
         1.0f,   1.0f,   0.0f,  
         1.0f,   1.0f,   0.0f,  
-        1.0f,   1.0f,   0.0f
+        1.0f,   1.0f,   0.0f,
+
+        // Back Face
+        0.0f,   1.0f,   1.0f,  
+        0.0f,   1.0f,   1.0f,  
+        0.0f,   1.0f,   1.0f,  
+
+        0.0f,   1.0f,   1.0f,  
+        0.0f,   1.0f,   1.0f,  
+        0.0f,   1.0f,   1.0f,  
+
+        // Left Face
+        1.0f,   0.0f,   1.0f,  
+        1.0f,   0.0f,   1.0f,  
+        1.0f,   0.0f,   1.0f,  
+
+        1.0f,   0.0f,   1.0f,  
+        1.0f,   0.0f,   1.0f,  
+        1.0f,   0.0f,   1.0f,
+        
+        // Top Face
+        1.0f,   0.0f,   0.0f,  
+        1.0f,   0.0f,   0.0f,  
+        1.0f,   0.0f,   0.0f,  
+
+        1.0f,   0.0f,   0.0f,  
+        1.0f,   0.0f,   0.0f,  
+        1.0f,   0.0f,   0.0f,  
+
+        // Bottom Face
+        0.0f,   1.0f,   0.0f,  
+        0.0f,   1.0f,   0.0f,  
+        0.0f,   1.0f,   0.0f,  
+
+        0.0f,   1.0f,   0.0f,  
+        0.0f,   1.0f,   0.0f,  
+        0.0f,   1.0f,   0.0f
     };
 
     // Code

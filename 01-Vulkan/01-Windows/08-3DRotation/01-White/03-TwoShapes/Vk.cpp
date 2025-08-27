@@ -173,7 +173,7 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
-const float fAnimationSpeed = 0.5f;
+const float fAnimationSpeed = 0.02f;
 float fAngle = 0.0f;
 
 // Entry Point Function
@@ -2755,53 +2755,59 @@ VkResult createVertexBuffer(void)
 
     float cube_position[] = 
     {
-        // Top Face
-        -1.0f,  1.0f,   -1.0f,
-        1.0f,   1.0f,   -1.0f,
-        1.0f,   1.0f,    1.0f,
-        1.0f,   1.0f,    1.0f,
-        -1.0f,  1.0f,    1.0f,
-        -1.0f,  1.0f,   -1.0f,
-
-        // Bottom Face
-        -1.0f,  -1.0f,   -1.0f,
-        1.0f,   -1.0f,   -1.0f,
-        1.0f,   -1.0f,    1.0f,
-        1.0f,   -1.0f,    1.0f,
-        -1.0f,  -1.0f,    1.0f,
-        -1.0f,  -1.0f,   -1.0f,
-
         // Front Face
-        1.0f,   1.0f,   1.0f,
-        -1.0f,  1.0f,   1.0f,
-        -1.0f,  -1.0f,  1.0f,
-        -1.0f,  -1.0f,  1.0f,
-        1.0f,   -1.0f,  1.0f,
-        1.0f,   1.0f,   1.0f,
+        1.0f,  1.0f,  1.0f,   // Top Right
+       -1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f,  1.0f,   // Bottom Right
 
-        // Back Face
-        1.0f,   1.0f,   -1.0f,
-        -1.0f,  1.0f,   -1.0f,
-        -1.0f,  -1.0f,  -1.0f,
-        -1.0f,  -1.0f,  -1.0f,
-        1.0f,   -1.0f,  -1.0f,
-        1.0f,   1.0f,   -1.0f,
-
-        // Left Face
-        -1.0f,   1.0f,   -1.0f,
-        -1.0f,   1.0f,    1.0f,
-        -1.0f,  -1.0f,    1.0f,
-        -1.0f,  -1.0f,    1.0f,
-        -1.0f,  -1.0f,   -1.0f,
-        -1.0f,   1.0f,   -1.0f,
+        1.0f, -1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f,  1.0f,   // Top Left
+       -1.0f, -1.0f,  1.0f,   // Bottom Left
 
         // Right Face
-        1.0f,   1.0f,   -1.0f,
-        1.0f,   1.0f,   1.0f,
-        1.0f,  -1.0f,   1.0f,
-        1.0f,  -1.0f,   1.0f,
-        1.0f,  -1.0f,  -1.0f,
-        1.0f,   1.0f,   -1.0f
+        1.0f,  1.0f, -1.0f,   // Top Right
+        1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+        1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f,  1.0f,   // Bottom Left
+
+        // Back Face
+        1.0f,  1.0f, -1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
+
+        // Left Face
+       -1.0f,  1.0f,  1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f,  1.0f,   // Bottom Right
+
+       -1.0f, -1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
+
+        // Top Face
+        1.0f,  1.0f, -1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+        1.0f,  1.0f,  1.0f,   // Bottom Right
+
+        1.0f,  1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f,  1.0f,  1.0f,   // Bottom Left
+
+        // Bottom Face
+        1.0f, -1.0f,  1.0f,   // Top Right
+       -1.0f, -1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+       -1.0f, -1.0f,  1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
     };
 
     // Code

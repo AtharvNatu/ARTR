@@ -170,7 +170,7 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
-const float fAnimationSpeed = 0.5f;
+const float fAnimationSpeed = 0.02f;
 float fAngle = 0.0f;
 
 // Entry Point Function

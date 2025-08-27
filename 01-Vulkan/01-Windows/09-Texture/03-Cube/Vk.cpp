@@ -238,7 +238,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Pyramid with Texture"),
+        TEXT("Atharv Natu : Vulkan Cube with Texture"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -562,14 +562,14 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
 
     //! Create Texture
-    vkResult = createTexture("Stone.png");
+    vkResult = createTexture("Vijay_Kundali.png");
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createTexture() Failed For Stone.png : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createTexture() Failed For Vijay_Kundali.png : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createTexture() Succeeded For Stone.png\n", __func__);
+        fprintf(gpFile, "%s() => createTexture() Succeeded For Vijay_Kundali.png\n", __func__);
 
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
@@ -2761,49 +2761,122 @@ VkResult createVertexBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 3
-    float pyramid_position[] = 
+    float cube_position[] = 
     {
         // Front Face
-        0.0f,   1.0f,   0.0f,
-        -1.0f,  -1.0f,  1.0f,
-        1.0f,   -1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,   // Top Right
+       -1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f,  1.0f,   // Bottom Right
+
+        1.0f, -1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f,  1.0f,   // Top Left
+       -1.0f, -1.0f,  1.0f,   // Bottom Left
 
         // Right Face
-        0.0f,   1.0f,   0.0f,
-        1.0f,   -1.0f,  1.0f,
-        1.0f,   -1.0f,  -1.0f,
+        1.0f,  1.0f, -1.0f,   // Top Right
+        1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+        1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f,  1.0f,   // Bottom Left
 
         // Back Face
-        0.0f,   1.0f,   0.0f,
-        1.0f,  -1.0f,   -1.0f,
-        -1.0f, -1.0f,   -1.0f,
+        1.0f,  1.0f, -1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
 
         // Left Face
-        0.0f,  1.0f,    0.0f,
-        -1.0f, -1.0f,  -1.0f,
-        -1.0f, -1.0f,   1.0f
+       -1.0f,  1.0f,  1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f,  1.0f,   // Bottom Right
+
+       -1.0f, -1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
+
+        // Top Face
+        1.0f,  1.0f, -1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+        1.0f,  1.0f,  1.0f,   // Bottom Right
+
+        1.0f,  1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f,  1.0f,  1.0f,   // Bottom Left
+
+        // Bottom Face
+        1.0f, -1.0f,  1.0f,   // Top Right
+       -1.0f, -1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+       -1.0f, -1.0f,  1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
     };
 
-    float pyramid_texcoords[] = 
+    float cube_texcoords[] = 
     {
-        0.5, 1.0, // front-top
-        0.0, 0.0, // front-left
-        1.0, 0.0, // front-right
+        // Front Face
+        0.0f,  1.0f,   // Top Right
+        1.0f,  1.0f,   // Top Left
+        0.0f,  0.0f,   // Bottom Right
 
-        0.5, 1.0, // right-top
-        1.0, 0.0, // right-left
-        0.0, 0.0, // right-right
+        0.0f,  0.0f,   // Bottom Right
+        1.0f,  1.0f,   // Top Left
+        1.0f,  0.0f,   // Bottom Left
 
-        0.5, 1.0, // back-top
-        1.0, 0.0, // back-left
-        0.0, 0.0, // back-right
+        // Right Face
+        0.0f,  1.0f,   // Top Right
+        1.0f,  1.0f,   // Top Left
+        0.0f,  0.0f,   // Bottom Right
 
-        0.5, 1.0, // left-top
-        0.0, 0.0, // left-left
-        1.0, 0.0, // left-right
+        0.0f,  0.0f,   // Bottom Right
+        1.0f,  1.0f,   // Top Left
+        1.0f,  0.0f,   // Bottom Left
+
+        // Back Face
+        0.0f,  1.0f,   // Top Right
+        1.0f,  1.0f,   // Top Left
+        0.0f,  0.0f,   // Bottom Right
+
+        0.0f,  0.0f,   // Bottom Right
+        1.0f,  1.0f,   // Top Left
+        1.0f,  0.0f,   // Bottom Left
+
+        // Left Face
+        0.0f,  1.0f,   // Top Right
+        1.0f,  1.0f,   // Top Left
+        0.0f,  0.0f,   // Bottom Right
+
+        0.0f,  0.0f,   // Bottom Right
+        1.0f,  1.0f,   // Top Left
+        1.0f,  0.0f,   // Bottom Left
+
+        // Top Face
+        0.0f,  1.0f,   // Top Right
+        1.0f,  1.0f,   // Top Left
+        0.0f,  0.0f,   // Bottom Right
+
+        0.0f,  0.0f,   // Bottom Right
+        1.0f,  1.0f,   // Top Left
+        1.0f,  0.0f,   // Bottom Left
+
+        // Bottom Face
+        0.0f,  1.0f,   // Top Right
+        1.0f,  1.0f,   // Top Left
+        0.0f,  0.0f,   // Bottom Right
+
+        0.0f,  0.0f,   // Bottom Right
+        1.0f,  1.0f,   // Top Left
+        1.0f,  0.0f,   // Bottom Left
     };
+    
 
-    // Code
+    // Code 
     
     //! Vertex Position
     //! ---------------------------------------------------------------------------------------------------------------------------------
@@ -2816,7 +2889,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(pyramid_position);
+    vkBufferCreateInfo.size = sizeof(cube_position);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2882,7 +2955,7 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, pyramid_position, sizeof(pyramid_position));
+    memcpy(data, cube_position, sizeof(cube_position));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
@@ -2898,7 +2971,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(pyramid_texcoords);
+    vkBufferCreateInfo.size = sizeof(cube_texcoords);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2962,7 +3035,7 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Texture Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, pyramid_texcoords, sizeof(pyramid_texcoords));
+    memcpy(data, cube_texcoords, sizeof(cube_texcoords));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory);
@@ -4188,10 +4261,24 @@ VkResult updateUniformBuffer(void)
     memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
 
     //! Update Matrices
+    glm::mat4 translationMatrix = glm::mat4(1.0f);
+    glm::mat4 scaleMatrix = glm::mat4(1.0f);
+    glm::mat4 rotationMatrix_x = glm::mat4(1.0f);
+    glm::mat4 rotationMatrix_y = glm::mat4(1.0f);
+    glm::mat4 rotationMatrix_z = glm::mat4(1.0f);
+    glm::mat4 rotationMatrix = glm::mat4(1.0f);
+
+    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -6.0f));
+    scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.75f, 0.75f, 0.75f));
+    rotationMatrix_x = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+    rotationMatrix_y = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+    rotationMatrix_z = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 0.0f, 1.0f));
+    rotationMatrix = rotationMatrix_x * rotationMatrix_y * rotationMatrix_z;
+
     mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+    mvp_UniformData.modelMatrix = translationMatrix * scaleMatrix * rotationMatrix;
     mvp_UniformData.viewMatrix = glm::mat4(1.0f);
-    
+
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
     perspectiveProjectionMatrix = glm::perspective(
         glm::radians(45.0f),
@@ -5066,7 +5153,7 @@ VkResult buildCommandBuffers(void)
             );
 
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 12, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], 36, 1, 0, 0);
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
