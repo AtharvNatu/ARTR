@@ -2961,9 +2961,6 @@ VkResult createUniformBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-
-    //! Triangle
-    //! -------------------------------------------------------------------------------------------------------------------------------------
     VkBufferCreateInfo vkBufferCreateInfo;
     memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2972,6 +2969,8 @@ VkResult createUniformBuffer(void)
     vkBufferCreateInfo.size = sizeof(MVP_UniformData);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
+    //! Triangle
+    //! -------------------------------------------------------------------------------------------------------------------------------------
     memset((void*)&uniformData_triangle, 0, sizeof(UniformData));
 
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData_triangle.vkBuffer);

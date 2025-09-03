@@ -2987,9 +2987,6 @@ VkResult createUniformBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-
-    //! Pyramid
-    //! -------------------------------------------------------------------------------------------------------------------------------------
     VkBufferCreateInfo vkBufferCreateInfo;
     memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2998,6 +2995,8 @@ VkResult createUniformBuffer(void)
     vkBufferCreateInfo.size = sizeof(MVP_UniformData);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
+    //! Pyramid
+    //! -------------------------------------------------------------------------------------------------------------------------------------
     memset((void*)&uniformData_pyramid, 0, sizeof(UniformData));
 
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData_pyramid.vkBuffer);
