@@ -135,6 +135,7 @@ typedef struct
 {
     VkBuffer vkBuffer;
     VkDeviceMemory vkDeviceMemory;
+    void* data;
 } VertexData;
 
 //? Position Related Variables
@@ -155,8 +156,7 @@ typedef struct
     VkDeviceMemory vkDeviceMemory;
 } UniformData;
 
-UniformData uniformData_straight;
-UniformData uniformData_oblique;
+UniformData uniformData;
 
 //? Texture Related Variables
 VkImage vkImage_texture = VK_NULL_HANDLE;
@@ -178,8 +178,7 @@ VkPipelineLayout vkPipelineLayout = VK_NULL_HANDLE;
 VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
 
 //? Descriptor Set
-VkDescriptorSet vkDescriptorSet_straight = VK_NULL_HANDLE;
-VkDescriptorSet vkDescriptorSet_oblique = VK_NULL_HANDLE;
+VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
 
 //? Pipeline Related Variables
 VkViewport vkViewport;
@@ -191,6 +190,7 @@ byte checkerboard[CHECKERBOARD_HEIGHT][CHECKERBOARD_WIDTH][4];
 VkVertexInputBindingDescription2EXT vkVertexInputBindingDescription2EXT_array[2];
 VkVertexInputAttributeDescription2EXT vkVertexInputAttributeDescription2EXT_array[2];
 PFN_vkCmdSetVertexInputEXT vkCmdSetVertexInputEXT_fnptr = NULL;
+VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vkPhysicalDeviceVertexInputDynamicStateFeaturesEXT;
 
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
@@ -1129,9 +1129,8 @@ void uninitialize(void)
     {
         vkDestroyDescriptorPool(vkDevice, vkDescriptorPool, NULL);
         vkDescriptorPool = VK_NULL_HANDLE;
-        vkDescriptorSet_oblique = VK_NULL_HANDLE;
-        vkDescriptorSet_straight = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool, vkDescriptorSet_oblique, vkDescriptorSet_straight Successfully\n", __func__);
+        vkDescriptorSet = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool, vkDescriptorSet Successfully\n", __func__);
     }
 
     //* Step - 5 of PipelineLayout
@@ -1166,32 +1165,18 @@ void uninitialize(void)
     }
 
     //* Destroy Uniform Buffer
-    if (uniformData_oblique.vkDeviceMemory)
+    if (uniformData.vkDeviceMemory)
     {
-        vkFreeMemory(vkDevice, uniformData_oblique.vkDeviceMemory, NULL);
-        uniformData_oblique.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For uniformData_oblique.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, uniformData.vkDeviceMemory, NULL);
+        uniformData.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For uniformData.vkDeviceMemory\n", __func__);
     }
 
-    if (uniformData_oblique.vkBuffer)
+    if (uniformData.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, uniformData_oblique.vkBuffer, NULL);
-        uniformData_oblique.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_oblique.vkBuffer\n", __func__);
-    }
-
-    if (uniformData_straight.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, uniformData_straight.vkDeviceMemory, NULL);
-        uniformData_straight.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For uniformData_straight.vkDeviceMemory\n", __func__);
-    }
-
-    if (uniformData_straight.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, uniformData_straight.vkBuffer, NULL);
-        uniformData_straight.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_straight.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
+        uniformData.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
     }
 
     //* Texture Related
@@ -1240,6 +1225,7 @@ void uninitialize(void)
 
     if (vertexData_position.vkDeviceMemory)
     {
+        vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
         vkFreeMemory(vkDevice, vertexData_position.vkDeviceMemory, NULL);
         vertexData_position.vkDeviceMemory = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position.vkDeviceMemory\n", __func__);
@@ -1995,21 +1981,34 @@ VkResult getPhysicalDevice(void)
     //* Step - 8
     vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice_selected, &vkPhysicalDeviceMemoryProperties);
 
+    //! Dynamic State
+    memset((void*)&vkPhysicalDeviceVertexInputDynamicStateFeaturesEXT, 0, sizeof(VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT));
+    vkPhysicalDeviceVertexInputDynamicStateFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT;
+    vkPhysicalDeviceVertexInputDynamicStateFeaturesEXT.pNext = NULL;
+    
     //* Step - 9
-    VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures_array;
-    memset((void*)&vkPhysicalDeviceFeatures_array, 0, sizeof(VkPhysicalDeviceFeatures));
-    vkGetPhysicalDeviceFeatures(vkPhysicalDevice_selected, &vkPhysicalDeviceFeatures_array);
+    VkPhysicalDeviceFeatures2 vkPhysicalDeviceFeatures2_array;
+    memset((void*)&vkPhysicalDeviceFeatures2_array, 0, sizeof(VkPhysicalDeviceFeatures));
+    vkPhysicalDeviceFeatures2_array.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    vkPhysicalDeviceFeatures2_array.pNext = &vkPhysicalDeviceVertexInputDynamicStateFeaturesEXT;
+
+    vkGetPhysicalDeviceFeatures2(vkPhysicalDevice_selected, &vkPhysicalDeviceFeatures2_array);
 
     //* Step - 10
-    if (vkPhysicalDeviceFeatures_array.tessellationShader == VK_TRUE)
+    if (vkPhysicalDeviceFeatures2_array.features.tessellationShader == VK_TRUE)
         fprintf(gpFile, "%s() => Selected Physical Device Supports Tessellation Shader\n", __func__);
     else
         fprintf(gpFile, "%s() => Selected Physical Device Does Not Support Tessellation Shader !!!\n", __func__);
 
-    if (vkPhysicalDeviceFeatures_array.geometryShader == VK_TRUE)
+    if (vkPhysicalDeviceFeatures2_array.features.geometryShader == VK_TRUE)
         fprintf(gpFile, "%s() => Selected Physical Device Supports Geometry Shader\n", __func__);
     else
         fprintf(gpFile, "%s() => Selected Physical Device Does Not Support Geometry Shader !!!\n", __func__);
+
+    if (vkPhysicalDeviceVertexInputDynamicStateFeaturesEXT.vertexInputDynamicState == VK_TRUE)
+        fprintf(gpFile, "%s() => Selected Physical Device Supports VK_EXT_vertex_input_dynamic_state extension\n", __func__);
+    else
+        fprintf(gpFile, "%s() => Selected Physical Device Does Not Support VK_EXT_vertex_input_dynamic_state extension !!!\n", __func__);
 
     return vkResult;
 }
@@ -2255,7 +2254,7 @@ VkResult createVulkanDevice(void)
     VkDeviceCreateInfo vkDeviceCreateInfo;
     memset((void*)&vkDeviceCreateInfo, 0, sizeof(VkDeviceCreateInfo));
     vkDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    vkDeviceCreateInfo.pNext = NULL;
+    vkDeviceCreateInfo.pNext = &vkPhysicalDeviceVertexInputDynamicStateFeaturesEXT;
     vkDeviceCreateInfo.flags = 0;
     vkDeviceCreateInfo.enabledExtensionCount = enabledDeviceExtensionCount;
     vkDeviceCreateInfo.ppEnabledExtensionNames = enabledDeviceExtensionNames_array;
@@ -2275,6 +2274,15 @@ VkResult createVulkanDevice(void)
     }      
     else
         fprintf(gpFile, "%s() => vkCreateDevice() Succeeded\n", __func__);
+
+    vkResult = createVertexInputCallbackFunction();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexInputCallbackFunction() Failed : %d !!!\n", __func__, vkResult);
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }      
+    else
+        fprintf(gpFile, "%s() => createVertexInputCallbackFunction() Succeeded\n", __func__);
 
     return vkResult;
 }
@@ -2924,18 +2932,18 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 11
-    void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    // void* data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &vertexData_position.data);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, rectangle_position, sizeof(rectangle_position));
+    memcpy(vertexData_position.data, rectangle_position, sizeof(rectangle_position));
 
     //* Step - 13
-    vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
+    // vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
     //? -----------------------------------------------------------------------------------------------------------------------------------
 
     //? VERTEX COLOR
@@ -3004,7 +3012,7 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Texcoord Buffer\n", __func__);
 
     //* Step - 11
-    data = NULL;
+    void* data = NULL;
     vkResult = vkMapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
@@ -4139,22 +4147,20 @@ VkResult createUniformBuffer(void)
     vkBufferCreateInfo.size = sizeof(MVP_UniformData);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-    //! Straight
-    //! -------------------------------------------------------------------------------------------------------
-    memset((void*)&uniformData_straight, 0, sizeof(UniformData));
+    memset((void*)&uniformData, 0, sizeof(UniformData));
 
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData_straight.vkBuffer);
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData.vkBuffer);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For uniformData_straight : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For uniformData : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For uniformData_straight\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For uniformData\n", __func__);
     
     VkMemoryRequirements vkMemoryRequirements;
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, uniformData_straight.vkBuffer, &vkMemoryRequirements);
+    vkGetBufferMemoryRequirements(vkDevice, uniformData.vkBuffer, &vkMemoryRequirements);
 
     VkMemoryAllocateInfo vkMemoryAllocateInfo;
     memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
@@ -4177,79 +4183,23 @@ VkResult createUniformBuffer(void)
         vkMemoryRequirements.memoryTypeBits >>= 1;
     }
 
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData_straight.vkDeviceMemory);
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For uniformData_straight : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For uniformData : %d !!!\n", __func__, vkResult);
         return vkResult;
     }     
     else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For uniformData_straight\n", __func__);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For uniformData\n", __func__);
 
-    vkResult = vkBindBufferMemory(vkDevice, uniformData_straight.vkBuffer, uniformData_straight.vkDeviceMemory, 0);
+    vkResult = vkBindBufferMemory(vkDevice, uniformData.vkBuffer, uniformData.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For uniformData_straight : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For uniformData : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For uniformData_straight\n", __func__);
-    //! -------------------------------------------------------------------------------------------------------
-
-    //! Oblique
-    //! -------------------------------------------------------------------------------------------------------
-    memset((void*)&uniformData_oblique, 0, sizeof(UniformData));
-
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData_oblique.vkBuffer);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For uniformData_oblique : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For uniformData_oblique\n", __func__);
-    
-    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, uniformData_oblique.vkBuffer, &vkMemoryRequirements);
-
-    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
-    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    vkMemoryAllocateInfo.pNext = NULL;
-    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-    vkMemoryAllocateInfo.memoryTypeIndex = 0;
-
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-    {
-        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
-        {
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-            {
-                vkMemoryAllocateInfo.memoryTypeIndex = i;
-                break;
-            }
-        }
-
-        vkMemoryRequirements.memoryTypeBits >>= 1;
-    }
-
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData_oblique.vkDeviceMemory);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For uniformData_oblique : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }     
-    else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For uniformData_oblique\n", __func__);
-
-    vkResult = vkBindBufferMemory(vkDevice, uniformData_oblique.vkBuffer, uniformData_oblique.vkDeviceMemory, 0);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For uniformData_oblique : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For uniformData_oblique\n", __func__);
-    //! -------------------------------------------------------------------------------------------------------
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For uniformData\n", __func__);
 
     vkResult = updateUniformBuffer();
     if (vkResult != VK_SUCCESS)
@@ -4292,7 +4242,7 @@ VkResult updateUniformBuffer(void)
 
     //! Map Uniform Buffer
     void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, uniformData_straight.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
+    vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
     if (vkResult != VK_SUCCESS)
     {
         fprintf(gpFile, "%s() => vkMapMemory() Failed For uniformData_straight : %d !!!\n", __func__, vkResult);
@@ -4303,41 +4253,7 @@ VkResult updateUniformBuffer(void)
     memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
 
     //! Unmap memory
-    vkUnmapMemory(vkDevice, uniformData_straight.vkDeviceMemory);
-    //! ------------------------------------------------------------------------------------------------------
-
-    //! Oblique
-    //! ------------------------------------------------------------------------------------------------------
-    mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, -4.5f)) 
-                                * glm::rotate(glm::mat4(1.0f), glm::radians(40.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    mvp_UniformData.viewMatrix = glm::mat4(1.0f);
-    
-    perspectiveProjectionMatrix = glm::mat4(1.0f);
-    perspectiveProjectionMatrix = glm::perspective(
-        glm::radians(45.0f),
-        (float)winWidth / (float)winHeight,
-        0.1f,
-        100.0f
-    );
-    //! 2D Matrix with Column Major (Like OpenGL)
-    perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
-    mvp_UniformData.projectionMatrix = perspectiveProjectionMatrix;
-
-    //! Map Uniform Buffer
-    data = NULL;
-    vkResult = vkMapMemory(vkDevice, uniformData_oblique.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For uniformData_oblique : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-
-    //! Copy the data to the mapped buffer (present on device memory)
-    memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
-
-    //! Unmap memory
-    vkUnmapMemory(vkDevice, uniformData_oblique.vkDeviceMemory);
+    vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
     //! ------------------------------------------------------------------------------------------------------
 
     return vkResult;
@@ -4623,9 +4539,7 @@ VkResult createDescriptorSet(void)
     vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
     vkDescriptorSetAllocateInfo.pSetLayouts = &vkDescriptorSetLayout;
 
-    //! Straight
-    //! ------------------------------------------------------------------------------------------------------
-    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet_straight);
+    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet);
     if (vkResult != VK_SUCCESS)
     {
         fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Failed For vkDescriptorSet_straight: %d !!!\n", __func__, vkResult);
@@ -4637,7 +4551,7 @@ VkResult createDescriptorSet(void)
     //* Describe whether we want buffer as uniform or image as uniform
     VkDescriptorBufferInfo vkDescriptorBufferInfo;
     memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
-    vkDescriptorBufferInfo.buffer = uniformData_straight.vkBuffer;
+    vkDescriptorBufferInfo.buffer = uniformData.vkBuffer;
     vkDescriptorBufferInfo.offset = 0;
     vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
 
@@ -4657,7 +4571,7 @@ VkResult createDescriptorSet(void)
 
     vkWriteDescriptorSet_array[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     vkWriteDescriptorSet_array[0].pNext = NULL;
-    vkWriteDescriptorSet_array[0].dstSet = vkDescriptorSet_straight;
+    vkWriteDescriptorSet_array[0].dstSet = vkDescriptorSet;
     vkWriteDescriptorSet_array[0].dstArrayElement = 0;
     vkWriteDescriptorSet_array[0].descriptorCount = 1;
     vkWriteDescriptorSet_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -4668,7 +4582,7 @@ VkResult createDescriptorSet(void)
 
     vkWriteDescriptorSet_array[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     vkWriteDescriptorSet_array[1].pNext = NULL;
-    vkWriteDescriptorSet_array[1].dstSet = vkDescriptorSet_straight;
+    vkWriteDescriptorSet_array[1].dstSet = vkDescriptorSet;
     vkWriteDescriptorSet_array[1].dstArrayElement = 0;
     vkWriteDescriptorSet_array[1].descriptorCount = 1;
     vkWriteDescriptorSet_array[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -4678,56 +4592,6 @@ VkResult createDescriptorSet(void)
     vkWriteDescriptorSet_array[1].dstBinding = 1;
 
     vkUpdateDescriptorSets(vkDevice, _ARRAYSIZE(vkWriteDescriptorSet_array), vkWriteDescriptorSet_array, 0, NULL);
-    //! ------------------------------------------------------------------------------------------------------
-
-    //! Oblique
-    //! ------------------------------------------------------------------------------------------------------
-    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet_oblique);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Failed For vkDescriptorSet_oblique: %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }  
-    else
-        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded For vkDescriptorSet_oblique\n", __func__);
-    
-    //* Describe whether we want buffer as uniform or image as uniform
-    memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
-    vkDescriptorBufferInfo.buffer = uniformData_oblique.vkBuffer;
-    vkDescriptorBufferInfo.offset = 0;
-    vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
-
-    memset((void*)&vkDescriptorImageInfo, 0, sizeof(VkDescriptorImageInfo));
-    vkDescriptorImageInfo.imageView = vkImageView_texture;
-    vkDescriptorImageInfo.sampler = vkSampler_texture;
-    vkDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    memset((void*)vkWriteDescriptorSet_array, 0, sizeof(VkWriteDescriptorSet) * _ARRAYSIZE(vkWriteDescriptorSet_array));
-
-    vkWriteDescriptorSet_array[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    vkWriteDescriptorSet_array[0].pNext = NULL;
-    vkWriteDescriptorSet_array[0].dstSet = vkDescriptorSet_oblique;
-    vkWriteDescriptorSet_array[0].dstArrayElement = 0;
-    vkWriteDescriptorSet_array[0].descriptorCount = 1;
-    vkWriteDescriptorSet_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkWriteDescriptorSet_array[0].pBufferInfo = &vkDescriptorBufferInfo;
-    vkWriteDescriptorSet_array[0].pImageInfo = NULL;
-    vkWriteDescriptorSet_array[0].pTexelBufferView = NULL;
-    vkWriteDescriptorSet_array[0].dstBinding = 0;
-
-    vkWriteDescriptorSet_array[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    vkWriteDescriptorSet_array[1].pNext = NULL;
-    vkWriteDescriptorSet_array[1].dstSet = vkDescriptorSet_oblique;
-    vkWriteDescriptorSet_array[1].dstArrayElement = 0;
-    vkWriteDescriptorSet_array[1].descriptorCount = 1;
-    vkWriteDescriptorSet_array[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    vkWriteDescriptorSet_array[1].pBufferInfo = NULL;
-    vkWriteDescriptorSet_array[1].pImageInfo = &vkDescriptorImageInfo;
-    vkWriteDescriptorSet_array[1].pTexelBufferView = NULL;
-    vkWriteDescriptorSet_array[1].dstBinding = 1;
-
-    vkUpdateDescriptorSets(vkDevice, _ARRAYSIZE(vkWriteDescriptorSet_array), vkWriteDescriptorSet_array, 0, NULL);
-    //! ------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
@@ -4825,25 +4689,32 @@ VkResult createPipeline(void)
     memset((void*)vkVertexInputBindingDescription2EXT_array, 0, sizeof(VkVertexInputBindingDescription2EXT) * _ARRAYSIZE(vkVertexInputBindingDescription2EXT_array));
     
     //! Position
+    vkVertexInputBindingDescription2EXT_array[0].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
     vkVertexInputBindingDescription2EXT_array[0].binding = 0;
     vkVertexInputBindingDescription2EXT_array[0].stride = sizeof(float) * 3; 
     vkVertexInputBindingDescription2EXT_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    vkVertexInputBindingDescription2EXT_array[0].divisor = 1;
     
     //! Texcoord
+    vkVertexInputBindingDescription2EXT_array[1].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
     vkVertexInputBindingDescription2EXT_array[1].binding = 1;
     vkVertexInputBindingDescription2EXT_array[1].stride = sizeof(float) * 2; 
     vkVertexInputBindingDescription2EXT_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    vkVertexInputBindingDescription2EXT_array[1].divisor = 1;
+    
 
     //* Input Attribute Description
     memset((void*)vkVertexInputAttributeDescription2EXT_array, 0, sizeof(VkVertexInputAttributeDescription2EXT) * _ARRAYSIZE(vkVertexInputAttributeDescription2EXT_array));
     
     //! Position
+    vkVertexInputAttributeDescription2EXT_array[0].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
     vkVertexInputAttributeDescription2EXT_array[0].binding = 0;
     vkVertexInputAttributeDescription2EXT_array[0].location = 0;
     vkVertexInputAttributeDescription2EXT_array[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     vkVertexInputAttributeDescription2EXT_array[0].offset = 0;
     
     //! Texcoord
+    vkVertexInputAttributeDescription2EXT_array[1].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
     vkVertexInputAttributeDescription2EXT_array[1].binding = 1;
     vkVertexInputAttributeDescription2EXT_array[1].location = 1;
     vkVertexInputAttributeDescription2EXT_array[1].format = VK_FORMAT_R32G32_SFLOAT;
@@ -4999,7 +4870,7 @@ VkResult createPipeline(void)
     vkGraphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     vkGraphicsPipelineCreateInfo.pNext = NULL;
     vkGraphicsPipelineCreateInfo.flags = 0;
-    vkGraphicsPipelineCreateInfo.pVertexInputState = NULL;
+    vkGraphicsPipelineCreateInfo.pVertexInputState = VK_NULL_HANDLE;
     vkGraphicsPipelineCreateInfo.pInputAssemblyState = &vkPipelineInputAssemblyStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pRasterizationState = &vkPipelineRasterizationStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pColorBlendState = &vkPipelineColorBlendStateCreateInfo;
@@ -5154,6 +5025,7 @@ VkResult buildCommandBuffers(void)
 {
     // Code
     VkResult vkResult = VK_SUCCESS;
+    float position[18];
 
     //! Loop per swapchain image
     for (uint32_t i = 0; i < swapchainImageCount; i++)
@@ -5213,8 +5085,6 @@ VkResult buildCommandBuffers(void)
             //! Bind with Pipeline
             vkCmdBindPipeline(vkCommandBuffer_array[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
 
-            //? Straight
-            //? --------------------------------------------------------------------------------------------------------------
             //! Bind the Descriptor Set to the Pipeline
             vkCmdBindDescriptorSets(
                 vkCommandBuffer_array[i],
@@ -5222,10 +5092,34 @@ VkResult buildCommandBuffers(void)
                 vkPipelineLayout,
                 0,
                 1,
-                &vkDescriptorSet_straight,
+                &vkDescriptorSet,
                 0,
                 NULL
             );
+
+            //? Straight
+            //? --------------------------------------------------------------------------------------------------------------
+
+            // position[0] = -2.0f;
+            // position[1] = 1.0f;
+            // position[2] = 0.0f;
+            // position[3] = 0.0f;
+            // position[4] = 1.0f;
+            // position[5] = 0.0f;
+            // position[6] = -2.0f;
+            // position[7] = -1.0f;
+            // position[8] = 0.0f;
+            // position[9] = -2.0f;
+            // position[10] = -1.0f;
+            // position[11] = 0.0f;
+            // position[12] = 0.0f;
+            // position[13] = 1.0f;
+            // position[14] = 0.0f;
+            // position[15] = 0.0f;
+            // position[16] = -1.0f;
+            // position[17] = 0.0f;
+            
+            // memcpy(vertexData_position.data, position, sizeof(position));
 
             //! Bind with Vertex Position Buffer
             VkDeviceSize vkDeviceSize_offset_position[1];
@@ -5263,40 +5157,49 @@ VkResult buildCommandBuffers(void)
 
             //? Oblique
             //? --------------------------------------------------------------------------------------------------------------
-            //! Bind the Descriptor Set to the Pipeline
-            vkCmdBindDescriptorSets(
-                vkCommandBuffer_array[i],
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                vkPipelineLayout,
-                0,
-                1,
-                &vkDescriptorSet_oblique,
-                0,
-                NULL
-            );
+            // position[0] = 1.0f;
+            // position[1] = 1.0f;
+            // position[2] = 0.0f;
+            // position[3] = 2.41421f;
+            // position[4] = 1.0f;
+            // position[5] = 1.41421f;
+            // position[6] = 1.0f;
+            // position[7] = -1.0f;
+            // position[8] = 0.0f;
+            // position[9] = 1.0f;
+            // position[10] = -1.0f;
+            // position[11] = 0.0f;
+            // position[12] = 2.41421f;
+            // position[13] = 1.0f;
+            // position[14] = 1.41421f;
+            // position[15] = 2.41421f;
+            // position[16] = -1.0f;
+            // position[17] = 1.41421f;
 
-            //! Bind with Vertex Position Buffer
-            memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-            vkCmdBindVertexBuffers(
-                vkCommandBuffer_array[i], 
-                0, 
-                1, 
-                &vertexData_position.vkBuffer, 
-                vkDeviceSize_offset_position
-            );
+            // memcpy(vertexData_position.data, position, sizeof(position));
 
-            //! Bind with Vertex Texcoord Buffer
-            memset((void*)vkDeviceSize_offset_texcoord, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_texcoord));
-            vkCmdBindVertexBuffers(
-                vkCommandBuffer_array[i], 
-                1, 
-                1, 
-                &vertexData_texcoord.vkBuffer, 
-                vkDeviceSize_offset_texcoord
-            );
+            // //! Bind with Vertex Position Buffer
+            // memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+            // vkCmdBindVertexBuffers(
+            //     vkCommandBuffer_array[i], 
+            //     0, 
+            //     1, 
+            //     &vertexData_position.vkBuffer, 
+            //     vkDeviceSize_offset_position
+            // );
 
-            //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 6, 1, 0, 0);
+            // //! Bind with Vertex Texcoord Buffer
+            // memset((void*)vkDeviceSize_offset_texcoord, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_texcoord));
+            // vkCmdBindVertexBuffers(
+            //     vkCommandBuffer_array[i], 
+            //     1, 
+            //     1, 
+            //     &vertexData_texcoord.vkBuffer, 
+            //     vkDeviceSize_offset_texcoord
+            // );
+
+            // //! Vulkan Drawing Function
+            // vkCmdDraw(vkCommandBuffer_array[i], 6, 1, 0, 0);
             //? --------------------------------------------------------------------------------------------------------------
         }
         //* Step - 7
