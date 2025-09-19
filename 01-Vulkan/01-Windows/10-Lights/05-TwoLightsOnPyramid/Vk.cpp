@@ -143,9 +143,15 @@ typedef struct
     glm::mat4 projectionMatrix;
 
     // Light Related Uniforms
-    float lightDiffuse[4];
-    float lightPosition[4];
+    float lightAmbient[2][4];
+    float lightDiffuse[2][4];
+    float lightSpecular[2][4];
+    float lightPosition[2][4];
+
+    float materialAmbient[4];
     float materialDiffuse[4];
+    float materialSpecular[4];
+    float materialShininess;
 
     // Key Press Related Uniform
     unsigned int keyPressed;
@@ -3051,20 +3057,66 @@ VkResult updateUniformBuffer(void)
     host_uniformData.projectionMatrix = perspectiveProjectionMatrix;
 
     //! Update Light Related Uniforms
-    host_uniformData.lightDiffuse[0] = 1.0f;
-    host_uniformData.lightDiffuse[1] = 1.0f;
-    host_uniformData.lightDiffuse[2] = 1.0f;
-    host_uniformData.lightDiffuse[3] = 1.0f;
 
-    host_uniformData.lightPosition[0] = 0.0f;
-    host_uniformData.lightPosition[1] = 0.0f;
-    host_uniformData.lightPosition[2] = 2.0f;
-    host_uniformData.lightPosition[3] = 1.0f;
+    //* Light 1
+    host_uniformData.lightAmbient[0][0] = 0.0f;
+    host_uniformData.lightAmbient[0][1] = 0.0f;
+    host_uniformData.lightAmbient[0][2] = 0.0f;
+    host_uniformData.lightAmbient[0][3] = 1.0f;
 
-    host_uniformData.materialDiffuse[0] = 0.5f;
-    host_uniformData.materialDiffuse[1] = 0.5f;
-    host_uniformData.materialDiffuse[2] = 0.5f;
+    host_uniformData.lightDiffuse[0][0] = 1.0f;
+    host_uniformData.lightDiffuse[0][1] = 0.0f;
+    host_uniformData.lightDiffuse[0][2] = 0.0f;
+    host_uniformData.lightDiffuse[0][3] = 1.0f;
+
+    host_uniformData.lightSpecular[0][0] = 1.0f;
+    host_uniformData.lightSpecular[0][1] = 0.0f;
+    host_uniformData.lightSpecular[0][2] = 0.0f;
+    host_uniformData.lightSpecular[0][3] = 1.0f;
+
+    host_uniformData.lightPosition[0][0] = -2.0f;
+    host_uniformData.lightPosition[0][1] = 0.0f;
+    host_uniformData.lightPosition[0][2] = 0.0f;
+    host_uniformData.lightPosition[0][3] = 1.0f;
+
+    //* Light 2
+    host_uniformData.lightAmbient[1][0] = 0.0f;
+    host_uniformData.lightAmbient[1][1] = 0.0f;
+    host_uniformData.lightAmbient[1][2] = 0.0f;
+    host_uniformData.lightAmbient[1][3] = 1.0f;
+
+    host_uniformData.lightDiffuse[1][0] = 0.0f;
+    host_uniformData.lightDiffuse[1][1] = 0.0f;
+    host_uniformData.lightDiffuse[1][2] = 1.0f;
+    host_uniformData.lightDiffuse[1][3] = 1.0f;
+
+    host_uniformData.lightSpecular[1][0] = 0.0f;
+    host_uniformData.lightSpecular[1][1] = 0.0f;
+    host_uniformData.lightSpecular[1][2] = 1.0f;
+    host_uniformData.lightSpecular[1][3] = 1.0f;
+
+    host_uniformData.lightPosition[1][0] = 2.0f;
+    host_uniformData.lightPosition[1][1] = 0.0f;
+    host_uniformData.lightPosition[1][2] = 0.0f;
+    host_uniformData.lightPosition[1][3] = 1.0f;
+
+    // Materials
+    host_uniformData.materialAmbient[0] = 0.0f;
+    host_uniformData.materialAmbient[1] = 0.0f;
+    host_uniformData.materialAmbient[2] = 0.0f;
+    host_uniformData.materialAmbient[3] = 1.0f;
+
+    host_uniformData.materialDiffuse[0] = 1.0f;
+    host_uniformData.materialDiffuse[1] = 1.0f;
+    host_uniformData.materialDiffuse[2] = 1.0f;
     host_uniformData.materialDiffuse[3] = 1.0f;
+
+    host_uniformData.materialSpecular[0] = 1.0f;
+    host_uniformData.materialSpecular[1] = 1.0f;
+    host_uniformData.materialSpecular[2] = 1.0f;
+    host_uniformData.materialSpecular[3] = 1.0f;
+
+    host_uniformData.materialShininess = 50.0f;
 
     //! Update Key Pressed Related Uniform
     if (bLight)

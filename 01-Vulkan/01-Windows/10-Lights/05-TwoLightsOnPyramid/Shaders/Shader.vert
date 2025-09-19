@@ -4,7 +4,7 @@
 layout(location = 0) in vec4 vPosition;
 layout(location = 1) in vec3 vNormal;
 
-layout(location = 0) out vec3 out_diffused_light_color;
+layout(location = 0) out vec3 phong_ads_light;
 
 layout(binding = 0) uniform ubo 
 {
@@ -14,12 +14,20 @@ layout(binding = 0) uniform ubo
     mat4 projectionMatrix;
 
     // Light Related Uniforms
-    vec4 lightDiffuse;
-    vec4 lightPosition;
+    vec4 lightAmbient[2];
+    vec4 lightDiffuse[2];
+    vec4 lightSpecular[2];
+    vec4 lightPosition[2];
+
+    // Material Related Uniforms
+    vec4 materialAmbient;
     vec4 materialDiffuse;
+    vec4 materialSpecular;
+    float materialShininess;
 
     // Key Press Related Uniform
     uint keyPressed;
+
 } uniformData;
 
 void main(void)
@@ -29,15 +37,31 @@ void main(void)
 
     if (uniformData.keyPressed == 1)
     {
+        vec4 ambient[2];
+        vec4 diffuse[2];
+        vec4 specular[2];
+        vec3 lightDirection[2];
+        vec3 reflectionVector[2];
+
         vec4 eyeCoordinates = uniformData.viewMatrix * uniformData.modelMatrix * vPosition;
-        mat3 normalMatrix = mat3(transpose(inverse(uniformData.viewMatrix * uniformData.modelMatrix)));
+        mat3 normalMatrix = mat3(uniformData.viewMatrix * uniformData.modelMatrix);
         vec3 transformedNormals = normalize(normalMatrix * vNormal);
-        vec3 lightDirection = normalize(vec3(uniformData.lightPosition - eyeCoordinates));
-        out_diffused_light_color = vec3(uniformData.lightDiffuse) * vec3(uniformData.materialDiffuse) * max(dot(lightDirection, transformedNormals), 0.0);
+        vec3 viewerVector = normalize(-eyeCoordinates.xyz);
+
+        for (int i = 0; i < 2; i++)
+        {
+            ambient[i] = uniformData.lightAmbient[i] * uniformData.materialAmbient;
+            lightDirection[i] = normalize(vec3(uniformData.lightPosition[i] - eyeCoordinates));
+            diffuse[i] = uniformData.lightDiffuse[i] * uniformData.materialDiffuse * max(dot(lightDirection[i], transformedNormals), 0.0);
+            reflectionVector[i] = reflect(-lightDirection[i], transformedNormals);
+            specular[i] = uniformData.lightSpecular[i] * uniformData.materialSpecular * pow(max(dot(reflectionVector[i], viewerVector), 0.0), uniformData.materialShininess);
+
+            phong_ads_light += vec3(ambient[i]) + vec3(diffuse[i]) + vec3(specular[i]);
+        }
     }
     else
     {
-        out_diffused_light_color = vec3(1.0, 1.0, 1.0);
+        phong_ads_light = vec3(1.0, 1.0, 1.0);
     }
 
 }
