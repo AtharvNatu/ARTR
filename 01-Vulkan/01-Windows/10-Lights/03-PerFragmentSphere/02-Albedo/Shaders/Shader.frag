@@ -34,7 +34,7 @@ layout(binding = 0) uniform ubo
 void main(void)
 {
     // Code
-    vec3 phongAdsLight;
+    vec3 phong_ads_light;
 
     if (uniformData.keyPressed == 1)
     {
@@ -46,12 +46,12 @@ void main(void)
         vec3 normalizedViewerVector = normalize(viewerVector);
         vec4 specular = uniformData.lightSpecular * uniformData.materialSpecular * pow(max(dot(reflectionVector, normalizedViewerVector), 0.0), uniformData.materialShininess);
 
-        phongAdsLight = vec3(ambient) + vec3(diffuse) + vec3(specular);
+        phong_ads_light = vec3(ambient) + vec3(diffuse) + vec3(specular);
     }
     else
     {
-        phongAdsLight = vec3(1.0, 1.0, 1.0);
+        phong_ads_light = vec3(1.0, 1.0, 1.0);
     }
 
-    FragColor = vec4(phongAdsLight, 1.0);
+    FragColor = vec4(phong_ads_light, 1.0);
 }
