@@ -14,10 +14,10 @@ layout(binding = 0) uniform ubo
     mat4 projectionMatrix;
 
     // Light Related Uniforms
-    vec4 lightAmbient[2];
-    vec4 lightDiffuse[2];
-    vec4 lightSpecular[2];
-    vec4 lightPosition[2];
+    vec4 lightAmbient[3];
+    vec4 lightDiffuse[3];
+    vec4 lightSpecular[3];
+    vec4 lightPosition[3];
 
     // Material Related Uniforms
     vec4 materialAmbient;
@@ -39,18 +39,18 @@ void main(void)
 
     if (uniformData.keyPressed == 1)
     {
-        vec4 ambient[2];
-        vec4 diffuse[2];
-        vec4 specular[2];
-        vec3 lightDirection[2];
-        vec3 reflectionVector[2];
+        vec4 ambient[3];
+        vec4 diffuse[3];
+        vec4 specular[3];
+        vec3 lightDirection[3];
+        vec3 reflectionVector[3];
 
         vec4 eyeCoordinates = uniformData.viewMatrix * uniformData.modelMatrix * vPosition;
         mat3 normalMatrix = mat3(uniformData.viewMatrix * uniformData.modelMatrix);
         vec3 transformedNormals = normalize(normalMatrix * vNormal);
         vec3 viewerVector = normalize(-eyeCoordinates.xyz);
 
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 3; i++)
         {
             ambient[i] = uniformData.lightAmbient[i] * uniformData.materialAmbient;
             lightDirection[i] = normalize(vec3(uniformData.lightPosition[i] - eyeCoordinates));
@@ -65,4 +65,5 @@ void main(void)
     {
         phong_ads_light = vec3(1.0, 1.0, 1.0);
     }
+
 }

@@ -2861,9 +2861,9 @@ VkResult createVertexBuffer(void)
     //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_normals.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Normals Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Position Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Normals Buffer\n", __func__);
     
     //* Step - 7
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
@@ -4043,7 +4043,7 @@ VkResult buildCommandBuffers(void)
                 vkDeviceSize_offset_position
             );
 
-            // //! Bind with Vertex Normals Buffer
+            //! Bind with Vertex Normals Buffer
             VkDeviceSize vkDeviceSize_offset_normals[1];
             memset((void*)vkDeviceSize_offset_normals, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_normals));
             vkCmdBindVertexBuffers(

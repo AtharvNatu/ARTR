@@ -155,10 +155,10 @@ typedef struct
     glm::mat4 projectionMatrix;
 
     // Light Related Uniforms
-    float lightAmbient[4];
-    float lightDiffuse[4];
-    float lightSpecular[4];
-    float lightPosition[4];
+    float lightAmbient[3][4];
+    float lightDiffuse[3][4];
+    float lightSpecular[3][4];
+    float lightPosition[3][4];
 
     float materialAmbient[4];
     float materialDiffuse[4];
@@ -179,8 +179,11 @@ typedef struct
 UniformData uniformData;
 
 //? Shader Related Variables
-VkShaderModule vkShaderModule_vertex_shader = VK_NULL_HANDLE;
-VkShaderModule vkShaderModule_fragment_shader = VK_NULL_HANDLE;
+VkShaderModule vkShaderModule_vertex_shader_pv = VK_NULL_HANDLE;
+VkShaderModule vkShaderModule_fragment_shader_pv = VK_NULL_HANDLE;
+
+VkShaderModule vkShaderModule_vertex_shader_pf = VK_NULL_HANDLE;
+VkShaderModule vkShaderModule_fragment_shader_pf = VK_NULL_HANDLE;
 
 //? DescriptorSetLayout Related Variables
 VkDescriptorSetLayout vkDescriptorSetLayout = VK_NULL_HANDLE;
@@ -197,9 +200,18 @@ VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
 //? Pipeline Related Variables
 VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
-VkPipeline vkPipeline = VK_NULL_HANDLE;
+VkPipeline vkPipeline_pv = VK_NULL_HANDLE;
+VkPipeline vkPipeline_pf = VK_NULL_HANDLE;
 
 BOOL bLight = FALSE;
+char chosenShader = 'v';
+const float fAnimationSpeed = 0.02f;
+
+float lightAngleZero = 0.0f;
+float lightAngleOne = 0.0f;
+float lightAngleTwo = 0.0f;
+
+float radius = 30.0f;
 
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
@@ -255,7 +267,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Normal Per-Vertex Light On Sphere"),
+        TEXT("Atharv Natu : Vulkan 3 Rotating Lights On Sphere"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -332,6 +344,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
     void ToggleFullScreen(void);
     VkResult resize(int, int);
     void uninitialize(void);
+    VkResult buildCommandBuffers(void);
 
     // Code
     switch(iMsg)
@@ -364,7 +377,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
             switch(wParam)
             {
                 case 27:
-                    DestroyWindow(hwnd);
+                    ToggleFullScreen();
                 break;
 
                 default:
@@ -377,14 +390,26 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
             switch(wParam)
             {
-                case 'F':
-                case 'f':
-                    ToggleFullScreen();
-                break;
-
                 case 'L':
                 case 'l':
                     bLight = !bLight;
+                break;
+
+                case 'F':
+                case 'f':
+                    chosenShader = 'f';
+                    buildCommandBuffers();
+                break;
+
+                case 'V':
+                case 'v':
+                    chosenShader = 'v';
+                    buildCommandBuffers();
+                break;
+
+                case 'Q':
+                case 'q':
+                    DestroyWindow(hwnd);
                 break;
 
                 default:
@@ -481,7 +506,7 @@ VkResult initialize(void)
     VkResult createDescriptorPool(void);
     VkResult createDescriptorSet(void);
     VkResult createRenderPass(void);
-    VkResult createPipeline(void);
+    VkResult createPipeline(VkPipeline*, const char*);
     VkResult createFramebuffers(void);
     VkResult createSemaphores(void);
     VkResult createFences(void);
@@ -677,15 +702,25 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createRenderPass() Succeeded\n", __func__);
 
     //! Create Pipeline
-    vkResult = createPipeline();
+    vkResult = createPipeline(&vkPipeline_pv, "vertex");
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createPipeline() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createPipeline() Failed For Per-Vertex : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createPipeline() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => createPipeline() Succeeded For Per-Vertex\n", __func__);
+
+    vkResult = createPipeline(&vkPipeline_pf, "fragment");
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createPipeline() Failed For Per-Fragment : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createPipeline() Succeeded For Per-Fragment\n", __func__);
 
     //! Create Framebuffers
     vkResult = createFramebuffers();
@@ -757,7 +792,7 @@ VkResult resize(int width, int height)
     VkResult createCommandBuffers(void);
     VkResult createPipelineLayout(void);
     VkResult createRenderPass(void);
-    VkResult createPipeline(void);
+    VkResult createPipeline(VkPipeline*, const char *);
     VkResult createFramebuffers(void);
     VkResult buildCommandBuffers(void);
 
@@ -823,10 +858,16 @@ VkResult resize(int width, int height)
         }
 
         //* Destroy Pipeline
-        if (vkPipeline)
+        if (vkPipeline_pf)
         {
-            vkDestroyPipeline(vkDevice, vkPipeline, NULL);
-            vkPipeline = VK_NULL_HANDLE;
+            vkDestroyPipeline(vkDevice, vkPipeline_pf, NULL);
+            vkPipeline_pf = VK_NULL_HANDLE;
+        }
+
+        if (vkPipeline_pv)
+        {
+            vkDestroyPipeline(vkDevice, vkPipeline_pv, NULL);
+            vkPipeline_pv = VK_NULL_HANDLE;
         }
 
         //* Destroy Render Pass
@@ -921,10 +962,17 @@ VkResult resize(int width, int height)
         }
 
         //* Create Pipeline
-        vkResult = createPipeline();
+        vkResult = createPipeline(&vkPipeline_pv, "vertex");
         if (vkResult != VK_SUCCESS)
         {
-            fprintf(gpFile, "%s() => createPipeline() Failed : %d !!!\n", __func__, vkResult);
+            fprintf(gpFile, "%s() => createPipeline() Failed For Per-Vertex : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        vkResult = createPipeline(&vkPipeline_pf, "fragment");
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createPipeline() Failed For Per-Fragment : %d !!!\n", __func__, vkResult);
             return vkResult;
         }
 
@@ -1063,6 +1111,17 @@ VkResult display(void)
 void update(void)
 {
     // Code
+    lightAngleZero += fAnimationSpeed;
+    if (lightAngleZero >= 360.0f)
+        lightAngleZero = 0.0f;
+
+    lightAngleOne += fAnimationSpeed;
+    if (lightAngleOne >= 360.0f)
+        lightAngleOne = 0.0f;
+
+    lightAngleTwo += fAnimationSpeed;
+    if (lightAngleTwo >= 360.0f)
+        lightAngleTwo = 0.0f;
 }
 
 void uninitialize(void)
@@ -1128,11 +1187,18 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => free() Succeeded For vkFramebuffer_array\n", __func__);
     }
 
-    if (vkPipeline)
+    if (vkPipeline_pf)
     {
-        vkDestroyPipeline(vkDevice, vkPipeline, NULL);
-        vkPipeline = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyPipeline() Succeeded\n", __func__);
+        vkDestroyPipeline(vkDevice, vkPipeline_pf, NULL);
+        vkPipeline_pf = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyPipeline() Succeeded For vkPipeline_pf\n", __func__);
+    }
+
+    if (vkPipeline_pv)
+    {
+        vkDestroyPipeline(vkDevice, vkPipeline_pv, NULL);
+        vkPipeline_pv = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyPipeline() Succeeded For vkPipeline_pv\n", __func__);
     }
 
     //* Step - 6 of Render Pass
@@ -1169,18 +1235,32 @@ void uninitialize(void)
     }
 
     //* Step - 11 of Shaders
-    if (vkShaderModule_fragment_shader)
+    if (vkShaderModule_fragment_shader_pf)
     {
-        vkDestroyShaderModule(vkDevice, vkShaderModule_fragment_shader, NULL);
-        vkShaderModule_fragment_shader = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Fragment Shader\n", __func__);
+        vkDestroyShaderModule(vkDevice, vkShaderModule_fragment_shader_pf, NULL);
+        vkShaderModule_fragment_shader_pf = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Per-Fragment Fragment Shader\n", __func__);
     }
 
-    if (vkShaderModule_vertex_shader)
+    if (vkShaderModule_vertex_shader_pf)
     {
-        vkDestroyShaderModule(vkDevice, vkShaderModule_vertex_shader, NULL);
-        vkShaderModule_vertex_shader = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Vertex Shader\n", __func__);
+        vkDestroyShaderModule(vkDevice, vkShaderModule_vertex_shader_pf, NULL);
+        vkShaderModule_vertex_shader_pf = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Per-Fragment Vertex Shader\n", __func__);
+    }
+
+    if (vkShaderModule_fragment_shader_pv)
+    {
+        vkDestroyShaderModule(vkDevice, vkShaderModule_fragment_shader_pv, NULL);
+        vkShaderModule_fragment_shader_pv = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Per-Vertex Fragment Shader\n", __func__);
+    }
+
+    if (vkShaderModule_vertex_shader_pv)
+    {
+        vkDestroyShaderModule(vkDevice, vkShaderModule_vertex_shader_pv, NULL);
+        vkShaderModule_vertex_shader_pv = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Per-Vertex Vertex Shader\n", __func__);
     }
 
     //* Destroy Uniform Buffer
@@ -2884,9 +2964,9 @@ VkResult createVertexBuffer(void)
     //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_normals.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Normals Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Normals Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Position Buffer\n", __func__);
     
     //* Step - 7
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
@@ -3213,88 +3293,257 @@ VkResult updateUniformBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    Host_UniformData host_uniformData;
-    memset((void*)&host_uniformData, 0, sizeof(Host_UniformData));
+    Host_UniformData host_uniformData_pv, host_uniformData_pf;
+    memset((void*)&host_uniformData_pv, 0, sizeof(Host_UniformData));
+    memset((void*)&host_uniformData_pf, 0, sizeof(Host_UniformData));
 
     //! Update Matrices
     glm::mat4 translationMatrix = glm::mat4(1.0f);
 
     translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
 
-    host_uniformData.modelMatrix = glm::mat4(1.0f);
-    host_uniformData.modelMatrix = translationMatrix;
-    host_uniformData.viewMatrix = glm::mat4(1.0f);
-    
-    glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
-    perspectiveProjectionMatrix = glm::perspective(
-        glm::radians(45.0f),
-        (float)winWidth / (float)winHeight,
-        0.1f,
-        100.0f
-    );
-    //! 2D Matrix with Column Major (Like OpenGL)
-    perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
-    host_uniformData.projectionMatrix = perspectiveProjectionMatrix;
-
-    //! Update Light Related Uniforms
-    host_uniformData.lightAmbient[0] = 0.0f;
-    host_uniformData.lightAmbient[1] = 0.0f;
-    host_uniformData.lightAmbient[2] = 0.0f;
-    host_uniformData.lightAmbient[3] = 1.0f;
-
-    host_uniformData.lightDiffuse[0] = 1.0f;
-    host_uniformData.lightDiffuse[1] = 1.0f;
-    host_uniformData.lightDiffuse[2] = 1.0f;
-    host_uniformData.lightDiffuse[3] = 1.0f;
-
-    host_uniformData.lightSpecular[0] = 1.0f;
-    host_uniformData.lightSpecular[1] = 1.0f;
-    host_uniformData.lightSpecular[2] = 1.0f;
-    host_uniformData.lightSpecular[3] = 1.0f;
-
-    host_uniformData.lightPosition[0] = 100.0f;
-    host_uniformData.lightPosition[1] = 100.0f;
-    host_uniformData.lightPosition[2] = 100.0f;
-    host_uniformData.lightPosition[3] = 1.0f;
-
-    host_uniformData.materialAmbient[0] = 0.0f;
-    host_uniformData.materialAmbient[1] = 0.0f;
-    host_uniformData.materialAmbient[2] = 0.0f;
-    host_uniformData.materialAmbient[3] = 1.0f;
-
-    host_uniformData.materialDiffuse[0] = 1.0f;
-    host_uniformData.materialDiffuse[1] = 1.0f;
-    host_uniformData.materialDiffuse[2] = 1.0f;
-    host_uniformData.materialDiffuse[3] = 1.0f;
-
-    host_uniformData.materialSpecular[0] = 1.0f;
-    host_uniformData.materialSpecular[1] = 1.0f;
-    host_uniformData.materialSpecular[2] = 1.0f;
-    host_uniformData.materialSpecular[3] = 1.0f;
-
-    host_uniformData.materialShininess = 50.0f;
-
-    //! Update Key Pressed Related Uniform
-    if (bLight)
-        host_uniformData.keyPressed = 1;
-    else
-        host_uniformData.keyPressed = 0;
-
-    //! Map Uniform Buffer
-    void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(Host_UniformData), 0, &data);
-    if (vkResult != VK_SUCCESS)
+    if (chosenShader == 'v')
     {
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
-        return vkResult;
+        host_uniformData_pv.modelMatrix = glm::mat4(1.0f);
+        host_uniformData_pv.modelMatrix = translationMatrix;
+        host_uniformData_pv.viewMatrix = glm::mat4(1.0f);
+        
+        glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
+        perspectiveProjectionMatrix = glm::perspective(
+            glm::radians(45.0f),
+            (float)winWidth / (float)winHeight,
+            0.1f,
+            100.0f
+        );
+        //! 2D Matrix with Column Major (Like OpenGL)
+        perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
+        host_uniformData_pv.projectionMatrix = perspectiveProjectionMatrix;
+
+        //! Update Light Related Uniforms
+
+        //* Light 0
+        host_uniformData_pv.lightAmbient[0][0] = 0.0f;
+        host_uniformData_pv.lightAmbient[0][1] = 0.0f;
+        host_uniformData_pv.lightAmbient[0][2] = 0.0f;
+        host_uniformData_pv.lightAmbient[0][3] = 1.0f;
+
+        host_uniformData_pv.lightDiffuse[0][0] = 1.0f;
+        host_uniformData_pv.lightDiffuse[0][1] = 0.0f;
+        host_uniformData_pv.lightDiffuse[0][2] = 0.0f;
+        host_uniformData_pv.lightDiffuse[0][3] = 1.0f;
+
+        host_uniformData_pv.lightSpecular[0][0] = 1.0f;
+        host_uniformData_pv.lightSpecular[0][1] = 0.0f;
+        host_uniformData_pv.lightSpecular[0][2] = 0.0f;
+        host_uniformData_pv.lightSpecular[0][3] = 1.0f;
+
+        host_uniformData_pv.lightPosition[0][0] = 0.0f;
+        host_uniformData_pv.lightPosition[0][1] = radius * cos(glm::radians(lightAngleZero));
+        host_uniformData_pv.lightPosition[0][2] = radius * sin(glm::radians(lightAngleZero));
+        host_uniformData_pv.lightPosition[0][3] = 1.0f;
+
+        //* Light 1
+        host_uniformData_pv.lightAmbient[1][0] = 0.0f;
+        host_uniformData_pv.lightAmbient[1][1] = 0.0f;
+        host_uniformData_pv.lightAmbient[1][2] = 0.0f;
+        host_uniformData_pv.lightAmbient[1][3] = 1.0f;
+
+        host_uniformData_pv.lightDiffuse[1][0] = 0.0f;
+        host_uniformData_pv.lightDiffuse[1][1] = 1.0f;
+        host_uniformData_pv.lightDiffuse[1][2] = 0.0f;
+        host_uniformData_pv.lightDiffuse[1][3] = 1.0f;
+
+        host_uniformData_pv.lightSpecular[1][0] = 0.0f;
+        host_uniformData_pv.lightSpecular[1][1] = 1.0f;
+        host_uniformData_pv.lightSpecular[1][2] = 0.0f;
+        host_uniformData_pv.lightSpecular[1][3] = 1.0f;
+
+        host_uniformData_pv.lightPosition[1][0] = radius * cos(glm::radians(lightAngleOne));
+        host_uniformData_pv.lightPosition[1][1] = 0.0f;
+        host_uniformData_pv.lightPosition[1][2] = radius * sin(glm::radians(lightAngleOne));
+        host_uniformData_pv.lightPosition[1][3] = 1.0f;
+
+        //* Light 2
+        host_uniformData_pv.lightAmbient[2][0] = 0.0f;
+        host_uniformData_pv.lightAmbient[2][1] = 0.0f;
+        host_uniformData_pv.lightAmbient[2][2] = 0.0f;
+        host_uniformData_pv.lightAmbient[2][3] = 1.0f;
+
+        host_uniformData_pv.lightDiffuse[2][0] = 0.0f;
+        host_uniformData_pv.lightDiffuse[2][1] = 0.0f;
+        host_uniformData_pv.lightDiffuse[2][2] = 1.0f;
+        host_uniformData_pv.lightDiffuse[2][3] = 1.0f;
+
+        host_uniformData_pv.lightSpecular[2][0] = 0.0f;
+        host_uniformData_pv.lightSpecular[2][1] = 0.0f;
+        host_uniformData_pv.lightSpecular[2][2] = 1.0f;
+        host_uniformData_pv.lightSpecular[2][3] = 1.0f;
+
+        host_uniformData_pv.lightPosition[2][0] = radius * cos(glm::radians(lightAngleTwo));
+        host_uniformData_pv.lightPosition[2][1] = radius * sin(glm::radians(lightAngleTwo));
+        host_uniformData_pv.lightPosition[2][2] = 0.0f;
+        host_uniformData_pv.lightPosition[2][3] = 1.0f;
+
+        //* Material
+        host_uniformData_pv.materialAmbient[0] = 0.0f;
+        host_uniformData_pv.materialAmbient[1] = 0.0f;
+        host_uniformData_pv.materialAmbient[2] = 0.0f;
+        host_uniformData_pv.materialAmbient[3] = 1.0f;
+
+        host_uniformData_pv.materialDiffuse[0] = 1.0f;
+        host_uniformData_pv.materialDiffuse[1] = 1.0f;
+        host_uniformData_pv.materialDiffuse[2] = 1.0f;
+        host_uniformData_pv.materialDiffuse[3] = 1.0f;
+
+        host_uniformData_pv.materialSpecular[0] = 1.0f;
+        host_uniformData_pv.materialSpecular[1] = 1.0f;
+        host_uniformData_pv.materialSpecular[2] = 1.0f;
+        host_uniformData_pv.materialSpecular[3] = 1.0f;
+
+        host_uniformData_pv.materialShininess = 50.0f;
+
+        //! Update Key Pressed Related Uniform
+        if (bLight)
+            host_uniformData_pv.keyPressed = 1;
+        else
+            host_uniformData_pv.keyPressed = 0;
+
+        //! Map Uniform Buffer
+        void* data = NULL;
+        vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(Host_UniformData), 0, &data);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //! Copy the data to the mapped buffer (present on device memory)
+        memcpy(data, &host_uniformData_pv, sizeof(Host_UniformData));
+
+        //! Unmap memory
+        vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
     }
+    else if (chosenShader == 'f')
+    {
+        host_uniformData_pf.modelMatrix = glm::mat4(1.0f);
+        host_uniformData_pf.modelMatrix = translationMatrix;
+        host_uniformData_pf.viewMatrix = glm::mat4(1.0f);
+        
+        glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
+        perspectiveProjectionMatrix = glm::perspective(
+            glm::radians(45.0f),
+            (float)winWidth / (float)winHeight,
+            0.1f,
+            100.0f
+        );
+        //! 2D Matrix with Column Major (Like OpenGL)
+        perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
+        host_uniformData_pf.projectionMatrix = perspectiveProjectionMatrix;
 
-    //! Copy the data to the mapped buffer (present on device memory)
-    memcpy(data, &host_uniformData, sizeof(Host_UniformData));
+        //! Update Light Related Uniforms
 
-    //! Unmap memory
-    vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
+        //* Light 0
+        host_uniformData_pf.lightAmbient[0][0] = 0.0f;
+        host_uniformData_pf.lightAmbient[0][1] = 0.0f;
+        host_uniformData_pf.lightAmbient[0][2] = 0.0f;
+        host_uniformData_pf.lightAmbient[0][3] = 1.0f;
 
+        host_uniformData_pf.lightDiffuse[0][0] = 1.0f;
+        host_uniformData_pf.lightDiffuse[0][1] = 0.0f;
+        host_uniformData_pf.lightDiffuse[0][2] = 0.0f;
+        host_uniformData_pf.lightDiffuse[0][3] = 1.0f;
+
+        host_uniformData_pf.lightSpecular[0][0] = 1.0f;
+        host_uniformData_pf.lightSpecular[0][1] = 0.0f;
+        host_uniformData_pf.lightSpecular[0][2] = 0.0f;
+        host_uniformData_pf.lightSpecular[0][3] = 1.0f;
+
+        host_uniformData_pf.lightPosition[0][0] = 0.0f;
+        host_uniformData_pf.lightPosition[0][1] = radius * cos(glm::radians(lightAngleZero));
+        host_uniformData_pf.lightPosition[0][2] = radius * sin(glm::radians(lightAngleZero));
+        host_uniformData_pf.lightPosition[0][3] = 1.0f;
+
+        //* Light 1
+        host_uniformData_pf.lightAmbient[1][0] = 0.0f;
+        host_uniformData_pf.lightAmbient[1][1] = 0.0f;
+        host_uniformData_pf.lightAmbient[1][2] = 0.0f;
+        host_uniformData_pf.lightAmbient[1][3] = 1.0f;
+
+        host_uniformData_pf.lightDiffuse[1][0] = 0.0f;
+        host_uniformData_pf.lightDiffuse[1][1] = 1.0f;
+        host_uniformData_pf.lightDiffuse[1][2] = 0.0f;
+        host_uniformData_pf.lightDiffuse[1][3] = 1.0f;
+
+        host_uniformData_pf.lightSpecular[1][0] = 0.0f;
+        host_uniformData_pf.lightSpecular[1][1] = 1.0f;
+        host_uniformData_pf.lightSpecular[1][2] = 0.0f;
+        host_uniformData_pf.lightSpecular[1][3] = 1.0f;
+
+        host_uniformData_pf.lightPosition[1][0] = radius * cos(glm::radians(lightAngleOne));
+        host_uniformData_pf.lightPosition[1][1] = 0.0f;
+        host_uniformData_pf.lightPosition[1][2] = radius * sin(glm::radians(lightAngleOne));
+        host_uniformData_pf.lightPosition[1][3] = 1.0f;
+
+        //* Light 2
+        host_uniformData_pf.lightAmbient[2][0] = 0.0f;
+        host_uniformData_pf.lightAmbient[2][1] = 0.0f;
+        host_uniformData_pf.lightAmbient[2][2] = 0.0f;
+        host_uniformData_pf.lightAmbient[2][3] = 1.0f;
+
+        host_uniformData_pf.lightDiffuse[2][0] = 0.0f;
+        host_uniformData_pf.lightDiffuse[2][1] = 0.0f;
+        host_uniformData_pf.lightDiffuse[2][2] = 1.0f;
+        host_uniformData_pf.lightDiffuse[2][3] = 1.0f;
+
+        host_uniformData_pf.lightSpecular[2][0] = 0.0f;
+        host_uniformData_pf.lightSpecular[2][1] = 0.0f;
+        host_uniformData_pf.lightSpecular[2][2] = 1.0f;
+        host_uniformData_pf.lightSpecular[2][3] = 1.0f;
+
+        host_uniformData_pf.lightPosition[2][0] = radius * cos(glm::radians(lightAngleTwo));
+        host_uniformData_pf.lightPosition[2][1] = radius * sin(glm::radians(lightAngleTwo));
+        host_uniformData_pf.lightPosition[2][2] = 0.0f;
+        host_uniformData_pf.lightPosition[2][3] = 1.0f;
+
+        //* Material
+        host_uniformData_pf.materialAmbient[0] = 0.0f;
+        host_uniformData_pf.materialAmbient[1] = 0.0f;
+        host_uniformData_pf.materialAmbient[2] = 0.0f;
+        host_uniformData_pf.materialAmbient[3] = 1.0f;
+
+        host_uniformData_pf.materialDiffuse[0] = 1.0f;
+        host_uniformData_pf.materialDiffuse[1] = 1.0f;
+        host_uniformData_pf.materialDiffuse[2] = 1.0f;
+        host_uniformData_pf.materialDiffuse[3] = 1.0f;
+
+        host_uniformData_pf.materialSpecular[0] = 1.0f;
+        host_uniformData_pf.materialSpecular[1] = 1.0f;
+        host_uniformData_pf.materialSpecular[2] = 1.0f;
+        host_uniformData_pf.materialSpecular[3] = 1.0f;
+
+        host_uniformData_pf.materialShininess = 50.0f;
+
+        //! Update Key Pressed Related Uniform
+        if (bLight)
+            host_uniformData_pf.keyPressed = 1;
+        else
+            host_uniformData_pf.keyPressed = 0;
+
+        //! Map Uniform Buffer
+        void* data = NULL;
+        vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(Host_UniformData), 0, &data);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //! Copy the data to the mapped buffer (present on device memory)
+        memcpy(data, &host_uniformData_pf, sizeof(Host_UniformData));
+
+        //! Unmap memory
+        vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
+    }
 
     return vkResult;
 }
@@ -3304,10 +3553,13 @@ VkResult createShaders(void)
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
+    //? PER-VERTEX
+    //? ---------------------------------------------------------------------------------------------------------------------------------
+
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "Shader.vert.spv";
+    const char* szFileName = "PerVertexShader.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -3365,11 +3617,11 @@ VkResult createShaders(void)
     vkShaderModuleCreateInfo.codeSize = size;
 
     //* Step - 8
-    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_vertex_shader);
+    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_vertex_shader_pv);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Vertex Shader : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Per-Vertex Vertex Shader : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Vertex Shader\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Per-Vertex Vertex Shader\n", __func__);
 
     //* Step - 9
     if (shaderData)
@@ -3379,12 +3631,12 @@ VkResult createShaders(void)
         fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
     }
 
-    fprintf(gpFile, "%s() => Vertex Shader Module Successfully Created\n", __func__);
+    fprintf(gpFile, "%s() => Per-Vertex Vertex Shader Module Successfully Created\n", __func__);
     //! ---------------------------------------------------------------------------------------------------------------------------
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Shader.frag.spv";
+    szFileName = "PerVertexShader.frag.spv";
 
     fp = fopen(szFileName, "rb");
     if (fp == NULL)
@@ -3439,11 +3691,11 @@ VkResult createShaders(void)
     vkShaderModuleCreateInfo.codeSize = size;
 
     //* Step - 8
-    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_fragment_shader);
+    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_fragment_shader_pv);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Fragment Shader : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Per-Vertex Fragment Shader : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Fragment Shader\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Per-Vertex Fragment Shader\n", __func__);
 
     //* Step - 9
     if (shaderData)
@@ -3453,8 +3705,162 @@ VkResult createShaders(void)
         fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
     }
 
-    fprintf(gpFile, "%s() => Fragment Shader Module Successfully Created\n", __func__);
+    fprintf(gpFile, "%s() => Per-Vertex Fragment Shader Module Successfully Created\n", __func__);
     //! ---------------------------------------------------------------------------------------------------------------------------
+    //? ---------------------------------------------------------------------------------------------------------------------------------
+
+    //? PER-FRAGMENT
+    //? ---------------------------------------------------------------------------------------------------------------------------------
+    //! Vertex Shader
+    //! ---------------------------------------------------------------------------------------------------------------------------
+    //* Step - 6
+    szFileName = "PerFragmentShader.vert.spv";
+    fp = NULL;
+
+    fp = fopen(szFileName, "rb");
+    if (fp == NULL)
+    {
+        fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File : %s !!!", __func__, szFileName);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => Succeeded In Opening SPIR-V Shader File : %s\n", __func__, szFileName);
+
+    fseek(fp, 0L, SEEK_END);
+    size = ftell(fp);
+    if (size == 0)
+    {
+        fprintf(gpFile, "%s() => Empty SPIR-V Shader File : %s !!!", __func__, szFileName);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    fseek(fp, 0L, SEEK_SET);
+
+    shaderData = (char*)malloc(size * sizeof(char));
+    if (shaderData == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For shaderData !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    retVal = fread(shaderData, size, 1, fp);
+    if (retVal != 1)
+    {
+        fprintf(gpFile, "%s() => Failed To Read From SPIR-V Shader File : %s !!!", __func__, szFileName);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => Successfully Read Shader From SPIR-V Shader File : %s\n", __func__, szFileName);
+    
+    if (fp)
+    {
+        fclose(fp);
+        fp = NULL;
+        fprintf(gpFile, "%s() => Closed SPIR-V File : %s\n", __func__, szFileName);
+    }
+
+    //* Step - 7
+    memset((void*)&vkShaderModuleCreateInfo, 0, sizeof(VkShaderModuleCreateInfo));
+    vkShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    vkShaderModuleCreateInfo.pNext = NULL;
+    vkShaderModuleCreateInfo.flags = 0; //! Reserved, must be 0
+    vkShaderModuleCreateInfo.pCode = (uint32_t*)shaderData;
+    vkShaderModuleCreateInfo.codeSize = size;
+
+    //* Step - 8
+    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_vertex_shader_pf);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Per-Fragment Vertex Shader : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Per-Fragment Vertex Shader\n", __func__);
+
+    //* Step - 9
+    if (shaderData)
+    {
+        free(shaderData);
+        shaderData = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
+    }
+
+    fprintf(gpFile, "%s() => Per-Fragment Vertex Shader Module Successfully Created\n", __func__);
+    //! ---------------------------------------------------------------------------------------------------------------------------
+
+    //! Fragment Shader
+    //! ---------------------------------------------------------------------------------------------------------------------------
+    szFileName = "PerFragmentShader.frag.spv";
+
+    fp = fopen(szFileName, "rb");
+    if (fp == NULL)
+    {
+        fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File :  %s !!!", __func__, szFileName);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => Succeeded In Opening SPIR-V Shader File : %s\n", __func__, szFileName);
+
+    fseek(fp, 0L, SEEK_END);
+    size = ftell(fp);
+    if (size == 0)
+    {
+        fprintf(gpFile, "%s() => Empty SPIR-V Shader File : %s !!!", __func__, szFileName);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    fseek(fp, 0L, SEEK_SET);
+
+    shaderData = (char*)malloc(size * sizeof(char));
+    if (shaderData == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For shaderData !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    retVal = fread(shaderData, size, 1, fp);
+    if (retVal != 1)
+    {
+        fprintf(gpFile, "%s() => Failed To Read From SPIR-V Shader File : %s !!!", __func__, szFileName);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => Successfully Read Shader From SPIR-V Shader File : %s\n", __func__, szFileName);
+    
+    if (fp)
+    {
+        fclose(fp);
+        fp = NULL;
+        fprintf(gpFile, "%s() => Closed SPIR-V File : %s\n", __func__, szFileName);
+    }
+
+    //* Step - 7
+    memset((void*)&vkShaderModuleCreateInfo, 0, sizeof(VkShaderModuleCreateInfo));
+    vkShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    vkShaderModuleCreateInfo.pNext = NULL;
+    vkShaderModuleCreateInfo.flags = 0; //! Reserved, must be 0
+    vkShaderModuleCreateInfo.pCode = (uint32_t*)shaderData;
+    vkShaderModuleCreateInfo.codeSize = size;
+
+    //* Step - 8
+    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_fragment_shader_pf);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Per-Fragment Fragment Shader : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Per-Fragment Fragment Shader\n", __func__);
+
+    //* Step - 9
+    if (shaderData)
+    {
+        free(shaderData);
+        shaderData = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
+    }
+
+    fprintf(gpFile, "%s() => Per-Fragment Fragment Shader Module Successfully Created\n", __func__);
+    //! ---------------------------------------------------------------------------------------------------------------------------
+    //? ---------------------------------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
@@ -3470,7 +3876,7 @@ VkResult createDescriptorSetLayout(void)
     vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
     vkDescriptorSetLayoutBinding.descriptorCount = 1;
-    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
 
     //* Step - 3
@@ -3685,10 +4091,11 @@ VkResult createRenderPass(void)
     return vkResult;
 }
 
-VkResult createPipeline(void)
+VkResult createPipeline(VkPipeline* pPipeline, const char* szChosenShader)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
+    VkPipeline vkPipeline = VK_NULL_HANDLE;
 
     //* Code
 
@@ -3835,23 +4242,46 @@ VkResult createPipeline(void)
     VkPipelineShaderStageCreateInfo vkPipelineShaderStageCreateInfo_array[2];
     memset((void*)vkPipelineShaderStageCreateInfo_array, 0, sizeof(VkPipelineShaderStageCreateInfo) * _ARRAYSIZE(vkPipelineShaderStageCreateInfo_array));
     
-    //* Vertex Shader
-    vkPipelineShaderStageCreateInfo_array[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vkPipelineShaderStageCreateInfo_array[0].pNext = NULL;
-    vkPipelineShaderStageCreateInfo_array[0].flags = 0;
-    vkPipelineShaderStageCreateInfo_array[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vkPipelineShaderStageCreateInfo_array[0].module = vkShaderModule_vertex_shader;
-    vkPipelineShaderStageCreateInfo_array[0].pName = "main";
-    vkPipelineShaderStageCreateInfo_array[0].pSpecializationInfo = NULL;
+    if (strcmp(szChosenShader, "vertex") == 0)
+    {
+        //* Vertex Shader
+        vkPipelineShaderStageCreateInfo_array[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vkPipelineShaderStageCreateInfo_array[0].pNext = NULL;
+        vkPipelineShaderStageCreateInfo_array[0].flags = 0;
+        vkPipelineShaderStageCreateInfo_array[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vkPipelineShaderStageCreateInfo_array[0].module = vkShaderModule_vertex_shader_pv;
+        vkPipelineShaderStageCreateInfo_array[0].pName = "main";
+        vkPipelineShaderStageCreateInfo_array[0].pSpecializationInfo = NULL;
 
-    //* Fragment Shader
-    vkPipelineShaderStageCreateInfo_array[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vkPipelineShaderStageCreateInfo_array[1].pNext = NULL;
-    vkPipelineShaderStageCreateInfo_array[1].flags = 0;
-    vkPipelineShaderStageCreateInfo_array[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    vkPipelineShaderStageCreateInfo_array[1].module = vkShaderModule_fragment_shader;
-    vkPipelineShaderStageCreateInfo_array[1].pName = "main";
-    vkPipelineShaderStageCreateInfo_array[1].pSpecializationInfo = NULL;
+        //* Fragment Shader
+        vkPipelineShaderStageCreateInfo_array[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vkPipelineShaderStageCreateInfo_array[1].pNext = NULL;
+        vkPipelineShaderStageCreateInfo_array[1].flags = 0;
+        vkPipelineShaderStageCreateInfo_array[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        vkPipelineShaderStageCreateInfo_array[1].module = vkShaderModule_fragment_shader_pv;
+        vkPipelineShaderStageCreateInfo_array[1].pName = "main";
+        vkPipelineShaderStageCreateInfo_array[1].pSpecializationInfo = NULL;
+    }
+    else if (strcmp(szChosenShader, "fragment") == 0)
+    {
+        //* Vertex Shader
+        vkPipelineShaderStageCreateInfo_array[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vkPipelineShaderStageCreateInfo_array[0].pNext = NULL;
+        vkPipelineShaderStageCreateInfo_array[0].flags = 0;
+        vkPipelineShaderStageCreateInfo_array[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vkPipelineShaderStageCreateInfo_array[0].module = vkShaderModule_vertex_shader_pf;
+        vkPipelineShaderStageCreateInfo_array[0].pName = "main";
+        vkPipelineShaderStageCreateInfo_array[0].pSpecializationInfo = NULL;
+
+        //* Fragment Shader
+        vkPipelineShaderStageCreateInfo_array[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vkPipelineShaderStageCreateInfo_array[1].pNext = NULL;
+        vkPipelineShaderStageCreateInfo_array[1].flags = 0;
+        vkPipelineShaderStageCreateInfo_array[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        vkPipelineShaderStageCreateInfo_array[1].module = vkShaderModule_fragment_shader_pf;
+        vkPipelineShaderStageCreateInfo_array[1].pName = "main";
+        vkPipelineShaderStageCreateInfo_array[1].pSpecializationInfo = NULL;
+    }
 
     //! Tessellation State !//
 
@@ -3897,6 +4327,7 @@ VkResult createPipeline(void)
         fprintf(gpFile, "%s() => vkCreateGraphicsPipelines() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkCreateGraphicsPipelines() Succeeded\n", __func__);
+    
 
     //* Destroy Pipeline Cache
     if (vkPipelineCache)
@@ -3905,6 +4336,9 @@ VkResult createPipeline(void)
         vkPipelineCache = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyPipelineCache() Succeeded\n", __func__);
     }
+
+    // Return the pipeline
+    *pPipeline = vkPipeline;
 
     return vkResult;
 }
@@ -4087,7 +4521,10 @@ VkResult buildCommandBuffers(void)
         vkCmdBeginRenderPass(vkCommandBuffer_array[i], &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         {
             //! Bind with Pipeline
-            vkCmdBindPipeline(vkCommandBuffer_array[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
+            if (chosenShader == 'v')
+                vkCmdBindPipeline(vkCommandBuffer_array[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline_pv);
+            else if (chosenShader == 'f')
+                vkCmdBindPipeline(vkCommandBuffer_array[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline_pf);
 
             //! Bind the Descriptor Set to the Pipeline
             vkCmdBindDescriptorSets(
@@ -4112,7 +4549,7 @@ VkResult buildCommandBuffers(void)
                 vkDeviceSize_offset_position
             );
 
-            //! Bind with Vertex Normals Buffer
+            // //! Bind with Vertex Normals Buffer
             VkDeviceSize vkDeviceSize_offset_normals[1];
             memset((void*)vkDeviceSize_offset_normals, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_normals));
             vkCmdBindVertexBuffers(
