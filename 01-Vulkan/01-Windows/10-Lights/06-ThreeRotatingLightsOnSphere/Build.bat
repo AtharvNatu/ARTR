@@ -31,14 +31,10 @@ if %SPV%==1 (
     echo Compiling Shader Files To SPIR-V Binaries ...
     echo ----------------------------------------------------------------------------------------------------------------
     cd Shaders
-    C:\VulkanSDK\Vulkan\Bin\glslangValidator.exe -V -H -o PerVertexShader.vert.spv PerVertexShader.vert
-    C:\VulkanSDK\Vulkan\Bin\glslangValidator.exe -V -H -o PerVertexShader.frag.spv PerVertexShader.frag
-    C:\VulkanSDK\Vulkan\Bin\glslangValidator.exe -V -H -o PerFragmentShader.vert.spv PerFragmentShader.vert
-    C:\VulkanSDK\Vulkan\Bin\glslangValidator.exe -V -H -o PerFragmentShader.frag.spv PerFragmentShader.frag
-    move PerVertexShader.vert.spv ../
-    move PerVertexShader.frag.spv ../
-    move PerFragmentShader.vert.spv ../
-    move PerFragmentShader.frag.spv ../
+    C:\VulkanSDK\Vulkan\Bin\glslangValidator.exe -V -H -o Shader.vert.spv Shader.vert
+    C:\VulkanSDK\Vulkan\Bin\glslangValidator.exe -V -H -o Shader.frag.spv Shader.frag
+    move Shader.vert.spv ../
+    move Shader.frag.spv ../
     cd ..
 )
 

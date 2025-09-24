@@ -143,10 +143,10 @@ typedef struct
     glm::mat4 projectionMatrix;
 
     // Light Related Uniforms
-    float lightAmbient[2][4];
-    float lightDiffuse[2][4];
-    float lightSpecular[2][4];
-    float lightPosition[2][4];
+    glm::vec4 lightAmbient[2];
+    glm::vec4 lightDiffuse[2];
+    glm::vec4 lightSpecular[2];
+    glm::vec4 lightPosition[2];
 
     float materialAmbient[4];
     float materialDiffuse[4];
@@ -187,7 +187,7 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
-const float fAnimationSpeed = 0.02f;
+const float fAnimationSpeed = 0.5f;
 float fAngle = 0.0f;
 
 BOOL bLight = FALSE;
@@ -3059,46 +3059,16 @@ VkResult updateUniformBuffer(void)
     //! Update Light Related Uniforms
 
     //* Light 1
-    host_uniformData.lightAmbient[0][0] = 0.0f;
-    host_uniformData.lightAmbient[0][1] = 0.0f;
-    host_uniformData.lightAmbient[0][2] = 0.0f;
-    host_uniformData.lightAmbient[0][3] = 1.0f;
-
-    host_uniformData.lightDiffuse[0][0] = 1.0f;
-    host_uniformData.lightDiffuse[0][1] = 0.0f;
-    host_uniformData.lightDiffuse[0][2] = 0.0f;
-    host_uniformData.lightDiffuse[0][3] = 1.0f;
-
-    host_uniformData.lightSpecular[0][0] = 1.0f;
-    host_uniformData.lightSpecular[0][1] = 0.0f;
-    host_uniformData.lightSpecular[0][2] = 0.0f;
-    host_uniformData.lightSpecular[0][3] = 1.0f;
-
-    host_uniformData.lightPosition[0][0] = -2.0f;
-    host_uniformData.lightPosition[0][1] = 0.0f;
-    host_uniformData.lightPosition[0][2] = 0.0f;
-    host_uniformData.lightPosition[0][3] = 1.0f;
+    host_uniformData.lightAmbient[0] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    host_uniformData.lightDiffuse[0] = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    host_uniformData.lightSpecular[0] = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    host_uniformData.lightPosition[0] = glm::vec4(-2.0f, 0.0f, 0.0f, 1.0f);
 
     //* Light 2
-    host_uniformData.lightAmbient[1][0] = 0.0f;
-    host_uniformData.lightAmbient[1][1] = 0.0f;
-    host_uniformData.lightAmbient[1][2] = 0.0f;
-    host_uniformData.lightAmbient[1][3] = 1.0f;
-
-    host_uniformData.lightDiffuse[1][0] = 0.0f;
-    host_uniformData.lightDiffuse[1][1] = 0.0f;
-    host_uniformData.lightDiffuse[1][2] = 1.0f;
-    host_uniformData.lightDiffuse[1][3] = 1.0f;
-
-    host_uniformData.lightSpecular[1][0] = 0.0f;
-    host_uniformData.lightSpecular[1][1] = 0.0f;
-    host_uniformData.lightSpecular[1][2] = 1.0f;
-    host_uniformData.lightSpecular[1][3] = 1.0f;
-
-    host_uniformData.lightPosition[1][0] = 2.0f;
-    host_uniformData.lightPosition[1][1] = 0.0f;
-    host_uniformData.lightPosition[1][2] = 0.0f;
-    host_uniformData.lightPosition[1][3] = 1.0f;
+    host_uniformData.lightAmbient[1] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    host_uniformData.lightDiffuse[1] = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+    host_uniformData.lightSpecular[1] = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+    host_uniformData.lightPosition[1] = glm::vec4(2.0f, 0.0f, 0.0f, 1.0f);
 
     // Materials
     host_uniformData.materialAmbient[0] = 0.0f;
@@ -3313,7 +3283,7 @@ VkResult createDescriptorSetLayout(void)
     vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
     vkDescriptorSetLayoutBinding.descriptorCount = 1;
-    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
 
     //* Step - 3

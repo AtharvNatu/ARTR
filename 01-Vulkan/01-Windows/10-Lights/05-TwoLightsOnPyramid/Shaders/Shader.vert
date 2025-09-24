@@ -4,7 +4,9 @@
 layout(location = 0) in vec4 vPosition;
 layout(location = 1) in vec3 vNormal;
 
-layout(location = 0) out vec3 phong_ads_light;
+layout(location = 0) out vec3 transformedNormals;
+layout(location = 1) out vec3 lightDirection[2];
+layout(location = 4) out vec3 viewerVector;
 
 layout(binding = 0) uniform ubo 
 {
@@ -35,34 +37,16 @@ void main(void)
     // Code
     gl_Position = uniformData.projectionMatrix * uniformData.viewMatrix * uniformData.modelMatrix * vPosition;
 
-    phong_ads_light = vec3(0.0);
-
     if (uniformData.keyPressed == 1)
     {
-        vec4 ambient[2];
-        vec4 diffuse[2];
-        vec4 specular[2];
-        vec3 lightDirection[2];
-        vec3 reflectionVector[2];
-
         vec4 eyeCoordinates = uniformData.viewMatrix * uniformData.modelMatrix * vPosition;
         mat3 normalMatrix = mat3(uniformData.viewMatrix * uniformData.modelMatrix);
-        vec3 transformedNormals = normalize(normalMatrix * vNormal);
-        vec3 viewerVector = normalize(-eyeCoordinates.xyz);
+        transformedNormals = normalMatrix * vNormal;
+        viewerVector = -eyeCoordinates.xyz;
 
         for (int i = 0; i < 2; i++)
         {
-            ambient[i] = uniformData.lightAmbient[i] * uniformData.materialAmbient;
-            lightDirection[i] = normalize(vec3(uniformData.lightPosition[i] - eyeCoordinates));
-            diffuse[i] = uniformData.lightDiffuse[i] * uniformData.materialDiffuse * max(dot(lightDirection[i], transformedNormals), 0.0);
-            reflectionVector[i] = reflect(-lightDirection[i], transformedNormals);
-            specular[i] = uniformData.lightSpecular[i] * uniformData.materialSpecular * pow(max(dot(reflectionVector[i], viewerVector), 0.0), uniformData.materialShininess);
-
-            phong_ads_light += vec3(ambient[i]) + vec3(diffuse[i]) + vec3(specular[i]);
+            lightDirection[i] = vec3(uniformData.lightPosition[i] - eyeCoordinates);
         }
-    }
-    else
-    {
-        phong_ads_light = vec3(1.0, 1.0, 1.0);
     }
 }
