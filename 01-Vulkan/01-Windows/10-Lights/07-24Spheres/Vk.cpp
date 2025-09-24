@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define _USE_MATH_DEFINES 1
+#include <math.h>
+
 //! Vulkan Related Header Files
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
@@ -155,15 +158,10 @@ typedef struct
     glm::mat4 projectionMatrix;
 
     // Light Related Uniforms
-    glm::vec4 lightAmbient[3];
-    glm::vec4 lightDiffuse[3];
-    glm::vec4 lightSpecular[3];
-    glm::vec4 lightPosition[3];
-
-    float materialAmbient[4];
-    float materialDiffuse[4];
-    float materialSpecular[4];
-    float materialShininess;
+    glm::vec4 lightAmbient;
+    glm::vec4 lightDiffuse;
+    glm::vec4 lightSpecular;
+    glm::vec4 lightPosition;
 
     // Key Press Related Uniform
     unsigned int keyPressed;
@@ -177,6 +175,17 @@ typedef struct
 } UniformData;
 
 UniformData uniformData;
+
+typedef struct
+{
+    // Materials
+    glm::vec4 materialAmbient;
+    glm::vec4 materialDiffuse;
+    glm::vec4 materialSpecular;
+    float materialShininess;
+} PushConstantData_Material;
+
+PushConstantData_Material pushConstantData_Material;
 
 //? Shader Related Variables
 VkShaderModule vkShaderModule_vertex_shader = VK_NULL_HANDLE;
@@ -195,19 +204,14 @@ VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
 VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
 
 //? Pipeline Related Variables
-VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
 BOOL bLight = FALSE;
 
-const float fAnimationSpeed = 0.6f;
-
-float lightAngleZero = 0.0f;
-float lightAngleOne = 0.0f;
-float lightAngleTwo = 0.0f;
-
-float radius = 30.0f;
+float lightAngle = 0.0f;
+float rotationRadius = 40.0f;
+char chosenAxis = ' ';
 
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
@@ -222,7 +226,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     WNDCLASSEX wndclass;
     HWND hwnd;
     MSG msg;
-    TCHAR szAppName[255];
+    TCHAR szAppName[300];
     BOOL bDone = FALSE;
     VkResult vkResult = VK_SUCCESS;
 
@@ -263,7 +267,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan 3 Rotating Lights On Sphere"),
+        TEXT("Atharv Natu : Vulkan 24 Spheres"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -340,7 +344,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
     void ToggleFullScreen(void);
     VkResult resize(int, int);
     void uninitialize(void);
-    VkResult buildCommandBuffers(void);
 
     // Code
     switch(iMsg)
@@ -373,7 +376,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
             switch(wParam)
             {
                 case 27:
-                    ToggleFullScreen();
+                    DestroyWindow(hwnd);
                 break;
 
                 default:
@@ -386,14 +389,29 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
             switch(wParam)
             {
+                case 'F':
+                case 'f':
+                    ToggleFullScreen();
+                break;
+
                 case 'L':
                 case 'l':
                     bLight = !bLight;
                 break;
 
-                case 'Q':
-                case 'q':
-                    DestroyWindow(hwnd);
+                case 'X':
+                case 'x':
+                    chosenAxis = 'x';
+                break;
+
+                case 'Y':
+                case 'y':
+                    chosenAxis = 'y';
+                break;
+
+                case 'Z':
+                case 'z':
+                    chosenAxis = 'z';
                 break;
 
                 default:
@@ -689,12 +707,12 @@ VkResult initialize(void)
     vkResult = createPipeline();
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createPipeline() Failed For Per-Vertex : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createPipeline() Failed : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createPipeline() Succeeded For Per-Vertex\n", __func__);
+        fprintf(gpFile, "%s() => createPipeline() Succeeded\n", __func__);
 
     //! Create Framebuffers
     vkResult = createFramebuffers();
@@ -731,9 +749,9 @@ VkResult initialize(void)
 
     //! Initialize Clear Color Values (Analogous to glClearColor())
     memset((void*)&vkClearColorValue, 0, sizeof(VkClearColorValue));
-    vkClearColorValue.float32[0] = 0.0f;    //* R
-    vkClearColorValue.float32[1] = 0.0f;    //* G
-    vkClearColorValue.float32[2] = 0.0f;    //* B
+    vkClearColorValue.float32[0] = 0.25f;    //* R
+    vkClearColorValue.float32[1] = 0.25f;    //* G
+    vkClearColorValue.float32[2] = 0.25f;    //* B
     vkClearColorValue.float32[3] = 1.0f;    //* A
 
     //! Set Default Clear Depth and Stencil Values
@@ -1072,17 +1090,13 @@ VkResult display(void)
 void update(void)
 {
     // Code
-    lightAngleZero += fAnimationSpeed;
-    if (lightAngleZero >= 360.0f)
-        lightAngleZero = 0.0f;
-
-    lightAngleOne += fAnimationSpeed;
-    if (lightAngleOne >= 360.0f)
-        lightAngleOne = 0.0f;
-
-    lightAngleTwo += fAnimationSpeed;
-    if (lightAngleTwo >= 360.0f)
-        lightAngleTwo = 0.0f;
+    if (chosenAxis == 'x' || chosenAxis == 'y' || chosenAxis == 'z')
+    {
+        // Radians
+        lightAngle = lightAngle + 0.005f;
+        if (lightAngle > (float)(M_PI * 2.0f))
+            lightAngle = lightAngle - (float)(M_PI * 2.0f);
+    }
 }
 
 void uninitialize(void)
@@ -1152,7 +1166,7 @@ void uninitialize(void)
     {
         vkDestroyPipeline(vkDevice, vkPipeline, NULL);
         vkPipeline = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyPipeline() Succeeded For vkPipeline\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyPipeline() Succeeded\n", __func__);
     }
 
     //* Step - 6 of Render Pass
@@ -2904,9 +2918,9 @@ VkResult createVertexBuffer(void)
     //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_normals.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Normals Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Position Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Normals Buffer\n", __func__);
     
     //* Step - 7
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
@@ -3257,57 +3271,29 @@ VkResult updateUniformBuffer(void)
     host_uniformData.projectionMatrix = perspectiveProjectionMatrix;
 
     //! Update Light Related Uniforms
+    host_uniformData.lightAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    host_uniformData.lightDiffuse = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    host_uniformData.lightSpecular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    host_uniformData.lightPosition = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-    //* Light 0
-    host_uniformData.lightAmbient[0] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    host_uniformData.lightDiffuse[0] = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-    host_uniformData.lightSpecular[0] = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-    host_uniformData.lightPosition[0] = glm::vec4(
-        0.0f, 
-        radius * cos(glm::radians(lightAngleZero)), 
-        radius * sin(glm::radians(lightAngleZero)), 
-        1.0f
-    );
-
-    //* Light 1
-    host_uniformData.lightAmbient[1] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    host_uniformData.lightDiffuse[1] = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-    host_uniformData.lightSpecular[1] = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-    host_uniformData.lightPosition[1] = glm::vec4(
-        radius * cos(glm::radians(lightAngleOne)), 
-        0.0f, 
-        radius * sin(glm::radians(lightAngleOne)), 
-        1.0f
-    );
-
-    //* Light 2
-    host_uniformData.lightAmbient[2] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    host_uniformData.lightDiffuse[2] = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-    host_uniformData.lightSpecular[2] = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-    host_uniformData.lightPosition[2] = glm::vec4(
-        radius * cos(glm::radians(lightAngleTwo)), 
-        radius * sin(glm::radians(lightAngleTwo)), 
-        0.0f, 
-        1.0f
-    );
-
-    //* Material
-    host_uniformData.materialAmbient[0] = 0.0f;
-    host_uniformData.materialAmbient[1] = 0.0f;
-    host_uniformData.materialAmbient[2] = 0.0f;
-    host_uniformData.materialAmbient[3] = 1.0f;
-
-    host_uniformData.materialDiffuse[0] = 1.0f;
-    host_uniformData.materialDiffuse[1] = 1.0f;
-    host_uniformData.materialDiffuse[2] = 1.0f;
-    host_uniformData.materialDiffuse[3] = 1.0f;
-
-    host_uniformData.materialSpecular[0] = 1.0f;
-    host_uniformData.materialSpecular[1] = 1.0f;
-    host_uniformData.materialSpecular[2] = 1.0f;
-    host_uniformData.materialSpecular[3] = 1.0f;
-
-    host_uniformData.materialShininess = 50.0f;
+    if (chosenAxis == 'x')
+    {
+        host_uniformData.lightPosition[0] = 0.0f;
+        host_uniformData.lightPosition[1] = rotationRadius * sin(lightAngle);
+        host_uniformData.lightPosition[2] = rotationRadius * cos(lightAngle);
+    }
+    else if (chosenAxis == 'y')
+    {
+        host_uniformData.lightPosition[0] = rotationRadius * cos(lightAngle);
+        host_uniformData.lightPosition[1] = 0.0f;
+        host_uniformData.lightPosition[2] = rotationRadius * sin(lightAngle);
+    }
+    else if (chosenAxis == 'z')
+    {
+        host_uniformData.lightPosition[0] = rotationRadius * cos(lightAngle);
+        host_uniformData.lightPosition[1] = rotationRadius * sin(lightAngle);
+        host_uniformData.lightPosition[2] = 0.0f;
+    }
 
     //! Update Key Pressed Related Uniform
     if (bLight)
@@ -3329,6 +3315,7 @@ VkResult updateUniformBuffer(void)
 
     //! Unmap memory
     vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
+
 
     return vkResult;
 }
@@ -3531,6 +3518,12 @@ VkResult createPipelineLayout(void)
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
+    VkPushConstantRange vkPushConstantRange;
+    memset((void*)&vkPushConstantRange, 0, sizeof(VkPushConstantRange));
+    vkPushConstantRange.offset = 0;
+    vkPushConstantRange.size = sizeof(PushConstantData_Material);
+    vkPushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
     //* Step - 3
     VkPipelineLayoutCreateInfo vkPipelineLayoutCreateInfo;
     memset((void*)&vkPipelineLayoutCreateInfo, 0, sizeof(VkPipelineLayoutCreateInfo));
@@ -3539,8 +3532,8 @@ VkResult createPipelineLayout(void)
     vkPipelineLayoutCreateInfo.flags = 0;
     vkPipelineLayoutCreateInfo.setLayoutCount = 1;
     vkPipelineLayoutCreateInfo.pSetLayouts = &vkDescriptorSetLayout;
-    vkPipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-    vkPipelineLayoutCreateInfo.pPushConstantRanges = NULL;
+    vkPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+    vkPipelineLayoutCreateInfo.pPushConstantRanges = &vkPushConstantRange;
 
     //* Step - 4
     vkResult = vkCreatePipelineLayout(vkDevice, &vkPipelineLayoutCreateInfo, NULL, &vkPipelineLayout);
@@ -3766,7 +3759,6 @@ VkResult createPipeline(void)
     vkVertexInputAttributeDescription_array[2].format = VK_FORMAT_R32G32_SFLOAT;
     vkVertexInputAttributeDescription_array[2].offset = 0;
 
-
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
     memset((void*)&vkPipelineVertexInputStateCreateInfo, 0, sizeof(VkPipelineVertexInputStateCreateInfo));
     vkPipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -3816,19 +3808,13 @@ VkResult createPipeline(void)
     vkPipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     vkPipelineViewportStateCreateInfo.pNext = NULL;
     vkPipelineViewportStateCreateInfo.flags = 0;
-    vkPipelineViewportStateCreateInfo.viewportCount = 1;    //* We can specify multiple viewports here
+
+    /* For this application, our viewport is going to be "dynamic state". 
+    Hence, viewport initialization will be removed from here, but still as we are going to use viewport, its count must be specified here */
+    vkPipelineViewportStateCreateInfo.viewportCount = 1;
     vkPipelineViewportStateCreateInfo.scissorCount = 1;
 
-    //! Viewport Info     
-    memset((void*)&vkViewport, 0, sizeof(VkViewport));
-    vkViewport.x = 0;
-    vkViewport.y = 0;
-    vkViewport.width = (float)vkExtent2D_swapchain.width;
-    vkViewport.height = (float)vkExtent2D_swapchain.height;
-    vkViewport.minDepth = 0.0f;
-    vkViewport.maxDepth = 1.0f;
-
-    vkPipelineViewportStateCreateInfo.pViewports = &vkViewport;
+    //! Viewport Info
     
     //! Scissor Info
     memset((void*)&vkRect2D_scissor, 0, sizeof(VkRect2D));
@@ -3856,6 +3842,17 @@ VkResult createPipeline(void)
     vkPipelineDepthStencilCreateInfo.front = vkPipelineDepthStencilCreateInfo.back;
 
     //! Dynamic State !//
+    VkDynamicState vkDynamicState_array[1];
+    memset((void*)vkDynamicState_array, 0, sizeof(VkDynamicState) * _ARRAYSIZE(vkDynamicState_array));
+    vkDynamicState_array[0] = VK_DYNAMIC_STATE_VIEWPORT;
+
+    VkPipelineDynamicStateCreateInfo vkPipelineDynamicStateCreateInfo;
+    memset((void*)&vkPipelineDynamicStateCreateInfo, 0, sizeof(VkPipelineDynamicStateCreateInfo));
+    vkPipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    vkPipelineDynamicStateCreateInfo.pNext = NULL;
+    vkPipelineDynamicStateCreateInfo.flags = 0; //! Reserved
+    vkPipelineDynamicStateCreateInfo.dynamicStateCount = 1;
+    vkPipelineDynamicStateCreateInfo.pDynamicStates = vkDynamicState_array;
 
     //! Multi-Sample State
     VkPipelineMultisampleStateCreateInfo vkPipelineMultisampleStateCreateInfo;
@@ -3915,7 +3912,7 @@ VkResult createPipeline(void)
     vkGraphicsPipelineCreateInfo.pColorBlendState = &vkPipelineColorBlendStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pViewportState = &vkPipelineViewportStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pDepthStencilState = &vkPipelineDepthStencilCreateInfo;
-    vkGraphicsPipelineCreateInfo.pDynamicState = NULL;
+    vkGraphicsPipelineCreateInfo.pDynamicState = &vkPipelineDynamicStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pMultisampleState = &vkPipelineMultisampleStateCreateInfo;
     vkGraphicsPipelineCreateInfo.stageCount = _ARRAYSIZE(vkPipelineShaderStageCreateInfo_array);
     vkGraphicsPipelineCreateInfo.pStages = vkPipelineShaderStageCreateInfo_array;
@@ -3931,7 +3928,6 @@ VkResult createPipeline(void)
         fprintf(gpFile, "%s() => vkCreateGraphicsPipelines() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkCreateGraphicsPipelines() Succeeded\n", __func__);
-    
 
     //* Destroy Pipeline Cache
     if (vkPipelineCache)
@@ -4065,6 +4061,7 @@ VkResult buildCommandBuffers(void)
 {
     // Code
     VkResult vkResult = VK_SUCCESS;
+    VkViewport vkViewport;
 
     //! Loop per swapchain image
     for (uint32_t i = 0; i < swapchainImageCount; i++)
@@ -4147,7 +4144,7 @@ VkResult buildCommandBuffers(void)
                 vkDeviceSize_offset_position
             );
 
-            // //! Bind with Vertex Normals Buffer
+            //! Bind with Vertex Normals Buffer
             VkDeviceSize vkDeviceSize_offset_normals[1];
             memset((void*)vkDeviceSize_offset_normals, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_normals));
             vkCmdBindVertexBuffers(
@@ -4177,7 +4174,33 @@ VkResult buildCommandBuffers(void)
                 VK_INDEX_TYPE_UINT16
             );
 
-            //! Vulkan Drawing Function
+            //? First Column
+            
+            //! First Sphere -> Emerald
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 30.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.0215f, 0.1745f, 0.0215f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.07568f, 0.61424f, 0.07568f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.633f, 0.727811f, 0.633f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.6f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
             vkCmdDrawIndexed(
                 vkCommandBuffer_array[i],
                 numIndices,
@@ -4186,6 +4209,796 @@ VkResult buildCommandBuffers(void)
                 0,              //* Starting offset of vertex buffer
                 1               //* Nth instance
             );
+
+            //! Second Sphere -> Jade
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 120.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.135f, 0.2225f, 0.1575f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.54f, 0.89f, 0.63f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.316228f, 0.316228f, 0.316228f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.1f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Third Sphere -> Obsidian
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 210.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.05375f, 0.05f, 0.06625f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.18275f, 0.17f, 0.22525f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.332741f, 0.328634f, 0.346435f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.3f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Fourth Sphere -> Pearl
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 300.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.25f, 0.20725f, 0.20725f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(1.0f, 0.829f, 0.829f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.296648f, 0.296648f, 0.296648f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.088f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Fifth Sphere -> Ruby
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 390.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.1745f, 0.01175f, 0.01175f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.61424f, 0.04136f, 0.04136f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.727811f, 0.626959f, 0.626959f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.6f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Sixth Sphere -> Turquoise
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 480.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.1f, 0.18725f, 0.1745f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.396f, 0.74151f, 0.69102f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.297254f, 0.30829f, 0.306678f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.1f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //? Second Column
+
+            //! First Sphere -> Brass
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 30.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.329412f, 0.223529f, 0.027451f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.780392f, 0.568627f, 0.113725f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.992157f, 0.941176f, 0.807843f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.21794872f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Second Sphere -> Bronze
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 120.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.2125f, 0.1275f, 0.054f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.714f, 0.4284f, 0.18144f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.393548f, 0.271906f, 0.166721f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.2f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Third Sphere -> Chrome
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 210.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.774597f, 0.774597f, 0.774597f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.6f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Fourth Sphere -> Copper
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 300.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.19125f, 0.0735f, 0.0225f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.7038f, 0.27048f, 0.0828f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.256777f, 0.137622f, 0.086014f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.1f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Fifth Sphere -> Gold
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 390.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.24725f, 0.1995f, 0.0745f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.75164f, 0.60648f, 0.22648f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.628281f, 0.555802f, 0.366065f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.4f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Sixth Sphere -> Silver
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 480.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.19225f, 0.19225f, 0.19225f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.50754f, 0.50754f, 0.50754f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.508273f, 0.508273f, 0.508273f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.4f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+
+            //? Third Column
+            
+            //! First Sphere -> Black
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 30.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.50f, 0.50f, 0.50f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.25f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Second Sphere -> Cyan
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 120.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.0f, 0.1f, 0.06f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.0f, 0.50980392f, 0.50980392f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.50196078f, 0.50196078f, 0.50196078f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.25f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Third Sphere -> Green
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 210.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.1f, 0.35f, 0.1f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.45f, 0.55f, 0.45f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.25f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Fourth Sphere -> Red
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 300.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.5f, 0.0f, 0.0f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.7f, 0.6f, 0.6f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.25f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Fifth Sphere -> White
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 390.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.55f, 0.55f, 0.55f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.70f, 0.70f, 0.70f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.25f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Sixth Sphere -> Yellow
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 480.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.5f, 0.5f, 0.0f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.60f, 0.60f, 0.50f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.25f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //? Fourth Column
+            
+            //! First Sphere -> Black
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 30.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.02f, 0.02f, 0.02f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.078125f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Second Sphere -> Jade
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 120.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.0f, 0.05f, 0.05f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.4f, 0.5f, 0.5f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.04f, 0.7f, 0.7f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.078125f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Third Sphere -> Green
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 210.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.0f, 0.05f, 0.0f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.4f, 0.5f, 0.4f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.04f, 0.7f, 0.04f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.078125f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Fourth Sphere -> Red
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 300.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.05f, 0.0f, 0.0f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.5f, 0.4f, 0.4f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.7f, 0.04f, 0.04f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.078125f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Fifth Sphere -> White
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 390.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.078125f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
+            //! Sixth Sphere -> Yellow
+            memset((void*)&vkViewport, 0, sizeof(VkViewport));
+            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
+            vkViewport.y = 480.0f * (float)winHeight / 600.0f;
+            vkViewport.width = (float)winWidth / 8.0f;
+            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.minDepth = 0.0f;
+            vkViewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(vkCommandBuffer_array[i], 0, 1, &vkViewport);
+            memset((void*)&pushConstantData_Material, 0, sizeof(PushConstantData_Material));
+            pushConstantData_Material.materialAmbient = glm::vec4(0.05f, 0.05f, 0.0f, 1.0f);
+            pushConstantData_Material.materialDiffuse = glm::vec4(0.5f, 0.5f, 0.4f, 1.0f);
+            pushConstantData_Material.materialSpecular = glm::vec4(0.7f, 0.7f, 0.04f, 1.0f);
+            pushConstantData_Material.materialShininess = 0.078125f * 128.0f;
+
+            vkCmdPushConstants(
+                vkCommandBuffer_array[i], 
+                vkPipelineLayout, 
+                VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstantData_Material), 
+                &pushConstantData_Material
+            );
+
+            vkCmdDrawIndexed(
+                vkCommandBuffer_array[i],
+                numIndices,
+                1,              //* Count of geometry instances
+                0,              //* Starting offset of index buffer
+                0,              //* Starting offset of vertex buffer
+                1               //* Nth instance
+            );
+
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
