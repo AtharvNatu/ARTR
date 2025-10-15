@@ -22,7 +22,9 @@
         {
             "name": "Linux",
             "includePath": [
-                "/home/atharv/Desktop/Workspace/ARTR/**"
+                "/home/atharv/Desktop/Workspace/ARTR/**",
+                "/home/atharv/VulkanSDK/Vulkan/x86_64/include",
+                "/home/atharv/Desktop/Workspace/ARTR/01-Vulkan/02-Linux/External/glm"
             ],
             "defines": [
                 "_DEBUG",
