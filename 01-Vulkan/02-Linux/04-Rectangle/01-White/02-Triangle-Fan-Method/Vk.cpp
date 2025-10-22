@@ -132,7 +132,6 @@ typedef struct
 
 //? Position Related Variables
 VertexData vertexData_position;
-VertexData vertexData_color;
 
 //? Uniform Related Variables
 typedef struct
@@ -276,7 +275,7 @@ int main(void)
     }
 
     //* Set Window Caption
-    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan Multi-Colored Perspective Triangle");
+    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan White Colored Rectangle Using Triangle Fan");
 
     //* Prepare Window to respond to Window Manager's Close Event
     windowManagerDeleteAtom = XInternAtom(gpDisplay, "WM_DELETE_WINDOW", True);
@@ -1204,21 +1203,6 @@ void uninitialize(void)
         vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
         uniformData.vkBuffer = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
-    }
-
-    //* Destroy Color Buffer
-    if (vertexData_color.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_color.vkDeviceMemory, NULL);
-        vertexData_color.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_color.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_color.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_color.vkBuffer, NULL);
-        vertexData_color.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_color.vkBuffer\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer
@@ -2634,18 +2618,12 @@ VkResult createVertexBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 3
-    float triangle_position[] = 
+    float rectangle_position[] = 
     {
-        0.0f,   1.0f,   0.0f,
-        -1.0f,  -1.0f,  0.0f,
-        1.0f,   -1.0f,  0.0f  
-    };
-
-    float triangle_color[] = 
-    {
-        1.0f,   0.0f,   0.0f,
-        0.0f,   1.0f,   0.0f,
-        0.0f,   0.0f,   1.0f
+        1.0f,   1.0f,   0.0f,   // Top Right
+        -1.0f,  1.0f,   0.0f,   // Top Left
+        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+        1.0f,   -1.0f,  0.0f,   // Bottom Right
     };
 
     // Code
@@ -2661,7 +2639,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(triangle_position);
+    vkBufferCreateInfo.size = sizeof(rectangle_position);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2727,90 +2705,10 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, triangle_position, sizeof(triangle_position));
+    memcpy(data, rectangle_position, sizeof(rectangle_position));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
-    //! ---------------------------------------------------------------------------------------------------------------------------------
-
-    //! Vertex Color
-    //! ---------------------------------------------------------------------------------------------------------------------------------
-    //* Step - 4
-    memset((void*)&vertexData_color, 0, sizeof(VertexData));
-
-    //* Step - 5
-    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
-    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
-    vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(triangle_color);
-    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    
-    //* Step - 6
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_color.vkBuffer);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Color Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Color Buffer\n", __func__);
-    
-    //* Step - 7
-    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, vertexData_color.vkBuffer, &vkMemoryRequirements);
-
-    //* Step - 8
-    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
-    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    vkMemoryAllocateInfo.pNext = NULL;
-    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-    vkMemoryAllocateInfo.memoryTypeIndex = 0;
-    
-    //* Step - 8.1
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-    {
-        //* Step - 8.2
-        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
-        {
-            //* Step - 8.3
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-            {
-                //* Step - 8.4
-                vkMemoryAllocateInfo.memoryTypeIndex = i;
-                break;
-            }
-        }
-
-        //* Step - 8.5
-        vkMemoryRequirements.memoryTypeBits >>= 1;
-    }
-
-    //* Step - 9
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_color.vkDeviceMemory);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Color Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Color Buffer\n", __func__);
-
-    //* Step - 10
-    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
-    vkResult = vkBindBufferMemory(vkDevice, vertexData_color.vkBuffer, vertexData_color.vkDeviceMemory, 0);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Color Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Color Buffer\n", __func__);
-
-    //* Step - 11
-    data = NULL;
-    vkResult = vkMapMemory(vkDevice, vertexData_color.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Color Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Color Buffer\n", __func__);
-
-    //* Step - 12
-    memcpy(data, triangle_color, sizeof(triangle_color));
-
-    //* Step - 13
-    vkUnmapMemory(vkDevice, vertexData_color.vkDeviceMemory);
     //! ---------------------------------------------------------------------------------------------------------------------------------
 
     return vkResult;
@@ -3319,7 +3217,7 @@ VkResult createPipeline(void)
     //* Code
 
     //! Vertex Input State
-    VkVertexInputBindingDescription vkVertexInputBindingDescription_array[2];
+    VkVertexInputBindingDescription vkVertexInputBindingDescription_array[1];
     memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
     
     //! Position
@@ -3327,12 +3225,7 @@ VkResult createPipeline(void)
     vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 3; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    //! Color
-    vkVertexInputBindingDescription_array[1].binding = 1; //! Corresponds to layout(location = 1) in Vertex Shader
-    vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 3; 
-    vkVertexInputBindingDescription_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[2];
+    VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[1];
     memset((void*)vkVertexInputAttributeDescription_array, 0, sizeof(VkVertexInputAttributeDescription) * _ARRAYSIZE(vkVertexInputAttributeDescription_array));
     
     //! Position
@@ -3340,12 +3233,6 @@ VkResult createPipeline(void)
     vkVertexInputAttributeDescription_array[0].location = 0;
     vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     vkVertexInputAttributeDescription_array[0].offset = 0;
-    
-    //! Color
-    vkVertexInputAttributeDescription_array[1].binding = 1;
-    vkVertexInputAttributeDescription_array[1].location = 1;
-    vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    vkVertexInputAttributeDescription_array[1].offset = 0;
 
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
     memset((void*)&vkPipelineVertexInputStateCreateInfo, 0, sizeof(VkPipelineVertexInputStateCreateInfo));
@@ -3363,7 +3250,7 @@ VkResult createPipeline(void)
     vkPipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     vkPipelineInputAssemblyStateCreateInfo.pNext = NULL;
     vkPipelineInputAssemblyStateCreateInfo.flags = 0;
-    vkPipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    vkPipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
 
     //! Rasterization State
     VkPipelineRasterizationStateCreateInfo vkPipelineRasterizationStateCreateInfo;
@@ -3710,19 +3597,8 @@ VkResult buildCommandBuffers(void)
                 vkDeviceSize_offset_position
             );
 
-            //! Bind with Vertex Color Buffer
-            VkDeviceSize vkDeviceSize_offset_color[1];
-            memset((void*)vkDeviceSize_offset_color, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_color));
-            vkCmdBindVertexBuffers(
-                vkCommandBuffer_array[i], 
-                1, 
-                1, 
-                &vertexData_color.vkBuffer, 
-                vkDeviceSize_offset_color
-            );
-
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 3, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], 4, 1, 0, 0);
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);

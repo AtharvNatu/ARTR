@@ -276,7 +276,7 @@ int main(void)
     }
 
     //* Set Window Caption
-    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan Multi-Colored Perspective Triangle");
+    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan Colored Rectangle Using Triangle List");
 
     //* Prepare Window to respond to Window Manager's Close Event
     windowManagerDeleteAtom = XInternAtom(gpDisplay, "WM_DELETE_WINDOW", True);
@@ -1206,7 +1206,6 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
     }
 
-    //* Destroy Color Buffer
     if (vertexData_color.vkDeviceMemory)
     {
         vkFreeMemory(vkDevice, vertexData_color.vkDeviceMemory, NULL);
@@ -2634,18 +2633,30 @@ VkResult createVertexBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 3
-    float triangle_position[] = 
+    float rectangle_position[] = 
     {
-        0.0f,   1.0f,   0.0f,
-        -1.0f,  -1.0f,  0.0f,
-        1.0f,   -1.0f,  0.0f  
+        // Triangle 1
+        1.0f,   1.0f,   0.0f,   // Top Right
+        -1.0f,  1.0f,   0.0f,   // Top Left
+        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+
+        // Triangle 2
+        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+        1.0f,   -1.0f,  0.0f,   // Bottom Right
+        1.0f,   1.0f,   0.0f,   // Top Right
     };
 
-    float triangle_color[] = 
+    float rectangle_color[] = 
     {
-        1.0f,   0.0f,   0.0f,
-        0.0f,   1.0f,   0.0f,
-        0.0f,   0.0f,   1.0f
+        // Triangle 1
+        0.0f,   0.0f,   1.0f,   // Top Right
+        0.0f,   0.0f,   1.0f,   // Top Left
+        0.0f,   0.0f,   1.0f,   // Bottom Left
+
+        // Triangle 2
+        0.0f,   0.0f,   1.0f,   // Bottom Left
+        0.0f,   0.0f,   1.0f,   // Bottom Right
+        0.0f,   0.0f,   1.0f,   // Top Right
     };
 
     // Code
@@ -2661,7 +2672,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(triangle_position);
+    vkBufferCreateInfo.size = sizeof(rectangle_position);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2727,12 +2738,12 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, triangle_position, sizeof(triangle_position));
+    memcpy(data, rectangle_position, sizeof(rectangle_position));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
     //! ---------------------------------------------------------------------------------------------------------------------------------
-
+    
     //! Vertex Color
     //! ---------------------------------------------------------------------------------------------------------------------------------
     //* Step - 4
@@ -2743,7 +2754,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(triangle_color);
+    vkBufferCreateInfo.size = sizeof(rectangle_color);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2807,7 +2818,7 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Color Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, triangle_color, sizeof(triangle_color));
+    memcpy(data, rectangle_color, sizeof(rectangle_color));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_color.vkDeviceMemory);
@@ -3326,9 +3337,9 @@ VkResult createPipeline(void)
     vkVertexInputBindingDescription_array[0].binding = 0;   //! Corresponds to layout(location = 0) in Vertex Shader
     vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 3; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
+    
     //! Color
-    vkVertexInputBindingDescription_array[1].binding = 1; //! Corresponds to layout(location = 1) in Vertex Shader
+    vkVertexInputBindingDescription_array[1].binding = 1;   //! Corresponds to layout(location = 1) in Vertex Shader
     vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 3; 
     vkVertexInputBindingDescription_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
@@ -3722,7 +3733,7 @@ VkResult buildCommandBuffers(void)
             );
 
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 3, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], 6, 1, 0, 0);
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
