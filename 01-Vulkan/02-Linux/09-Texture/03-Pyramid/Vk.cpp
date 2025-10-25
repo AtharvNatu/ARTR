@@ -1,41 +1,50 @@
-#include <Windows.h>
-#include <stdio.h>
-#include <stdlib.h>
+// Standard Headers
+#include <stdio.h>          // For Standard I/O
+#include <stdlib.h>         // For exit()
+#include <memory.h>         // For memset()
+
+// X11 Headers
+#include <X11/Xlib.h>       // For XClient APIs
+#include <X11/Xutil.h>      // For XVisualInfo
+#include <X11/XKBlib.h>     // For Keyboard
+#include <X11/keysym.h>     
+#include <X11/Xatom.h>      // For XA_Atom
 
 //! Vulkan Related Header Files
-#define VK_USE_PLATFORM_WIN32_KHR
+#define VK_USE_PLATFORM_XLIB_KHR
 #include <vulkan/vulkan.h>
 
 //! GLM Related Macros and Header Files
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 //! Header File For Texture
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "Vk.h"
-
-//! Vulkan Related Libraries
-#pragma comment(lib, "vulkan-1.lib")
-
-#define WIN_WIDTH   800
-#define WIN_HEIGHT  600
-
-// Global Function Declarations
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+// Macros
+#define WIN_WIDTH           1000
+#define WIN_HEIGHT          800
+#define _ARRAYSIZE(x)       (sizeof(x) / sizeof((x)[0]))
 
 // Global Variable Declarations
-HWND ghwnd = NULL;
-BOOL gbFullScreen = FALSE;
-BOOL gbWindowMinimized = FALSE;
-BOOL gbActiveWindow = FALSE;
-FILE *gpFile = NULL;
-WINDOWPLACEMENT wpPrev;
-DWORD dwStyle;
 const char *gpSzAppName = "ARTR";
+Display *gpDisplay = NULL;
+XVisualInfo *gpXVisualInfo = NULL;
+Colormap colormap;
+Window window;
+
+int winWidth = WIN_WIDTH;
+int winHeight = WIN_HEIGHT;
+
+Bool bActiveWindow = False;
+Bool bEscapeKeyPressed = False;
+Bool bFullscreen = False;
+Bool bWindowMinimized = False;
+
+FILE* gpFile = NULL;
 
 //! Vulkan Related Global Variables
 
@@ -43,7 +52,7 @@ const char *gpSzAppName = "ARTR";
 uint32_t enabledInstanceExtensionCount = 0;
 
 //* VK_KHR_SURFACE_EXTENSION_NAME,
-//* VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+//* VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
 //* VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 const char *enabledInstanceExtensionNames_array[3];
 
@@ -81,10 +90,8 @@ VkPresentModeKHR vkPresentModeKHR = VK_PRESENT_MODE_FIFO_KHR;
 //? Swapchain
 VkSwapchainKHR vkSwapchainKHR = VK_NULL_HANDLE;
 VkExtent2D vkExtent2D_swapchain;
-int winWidth = WIN_WIDTH;
-int winHeight = WIN_HEIGHT;
 
-//? Swapchain Images and Image Views -> For Color Images
+//? Swapchain Images and Image Views
 uint32_t swapchainImageCount = UINT32_MAX;
 VkImage *swapchainImage_array = NULL;
 VkImageView *swapchainImageView_array = NULL;
@@ -117,11 +124,11 @@ VkClearColorValue vkClearColorValue;
 VkClearDepthStencilValue vkClearDepthStencilValue;
 
 //? Render
-BOOL bInitialized = FALSE;
+bool bInitialized = false;
 uint32_t currentImageIndex = UINT32_MAX;
 
 //? Validation
-BOOL bValidation = TRUE;
+bool bValidation = true;
 uint32_t enabledValidationLayerCount = 0;
 const char *enabledValidationLayerNames_array[1];   //* For VK_LAYER_KHRONOS_validation
 VkDebugReportCallbackEXT vkDebugReportCallbackEXT = VK_NULL_HANDLE;
@@ -181,257 +188,351 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
+//* Animation
+float fAngle = 0.0f;
+const float fAnimationSpeed = 0.7f;
+
 // Entry Point Function
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
+int main(void)
 {
     // Function Declarations
     VkResult initialize(void);
+    VkResult resize(int, int);
     VkResult display(void);
     void update(void);
     void uninitialize(void);
+    void toggleFullScreen(void);
+    Bool isWindowMinimized(void);
 
     // Variable Declarations
-    WNDCLASSEX wndclass;
-    HWND hwnd;
-    MSG msg;
-    TCHAR szAppName[255];
-    BOOL bDone = FALSE;
+    XVisualInfo xVisualInfo;
+    int iNumFBConfigs = 0;
+    XSetWindowAttributes windowAttributes;
+    int defaultScreen;
+    int defaultDepth;
+    int styleMask;
+    Atom windowManagerDeleteAtom;
+    int screenWidth, screenHeight;
+    XEvent event;
+    KeySym keySym;
+    char keys[26];
+    Bool bDone = False;
     VkResult vkResult = VK_SUCCESS;
 
     // Code
+
+    //* Log File Creation
     gpFile = fopen("Log.txt", "w");
     if (gpFile == NULL)
     {
-        MessageBox(NULL, TEXT("Failed To Create Log File ... Exiting !!!"), TEXT("File I/O Error"), MB_OK | MB_ICONERROR);
+        printf("\nFailed To Create Log File ... Exiting Now !!!\n");
         exit(EXIT_FAILURE);
     }
     else
-        fprintf(gpFile, "%s() => Program Started Successfully\n", __func__);
+        fprintf(gpFile, "Program Started Successfully => main()\n");
 
-    wsprintf(szAppName, TEXT("%s"), gpSzAppName);
+    //* Open the display
+    gpDisplay = XOpenDisplay(NULL);
+    if (gpDisplay == NULL)
+    {
+        fprintf(gpFile, "ERROR : XOpenDisplay() Failed !!!\n");
+        uninitialize();
+        exit(EXIT_FAILURE);
+    }
 
-    // Initialization of WNDCLASSEX Structure
-    wndclass.cbSize = sizeof(WNDCLASSEX);
-    wndclass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-    wndclass.cbWndExtra = 0;
-    wndclass.cbClsExtra = 0;
-    wndclass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-    wndclass.lpfnWndProc = WndProc;
-    wndclass.hInstance = hInstance;
-    wndclass.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(ADN_ICON));
-    wndclass.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(ADN_ICON));
-    wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wndclass.lpszClassName = szAppName;
-    wndclass.lpszMenuName = NULL;
+    //* Get Default Screen From Display
+    defaultScreen = XDefaultScreen(gpDisplay);
 
-    // Register the class
-    RegisterClassEx(&wndclass);
+    //* Initialize Local XVisualInfo
+    memset((void*)&xVisualInfo, 0, sizeof(XVisualInfo));
+    xVisualInfo.screen = defaultScreen;
 
-    // Get Screen Co-ordinates
-    int screenX = GetSystemMetrics(SM_CXSCREEN);
-    int screenY = GetSystemMetrics(SM_CYSCREEN);
+    gpXVisualInfo = XGetVisualInfo(gpDisplay, VisualScreenMask, &xVisualInfo, &iNumFBConfigs);
+    if (gpXVisualInfo == NULL)
+    {
+        fprintf(gpFile, "ERROR : XGetVisualInfo() Failed !!!\n");
+        uninitialize();
+        exit(EXIT_FAILURE);
+    }
+    fprintf(gpFile, "No. of FB Configs = %d\n", iNumFBConfigs);
 
-    // Create Window
-    hwnd = CreateWindowEx(
-        WS_EX_APPWINDOW,
-        szAppName,
-        TEXT("Atharv Natu : Vulkan Smiley Texture"),
-        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
-        (screenX / 2) - (WIN_WIDTH / 2),
-        (screenY / 2) - (WIN_HEIGHT / 2),
-        WIN_WIDTH,
-        WIN_HEIGHT,
-        NULL,
-        NULL,
-        hInstance,
-        NULL
+    //* Create Color Map
+    colormap = XCreateColormap(gpDisplay, 
+        XRootWindow(gpDisplay, xVisualInfo.screen), 
+        gpXVisualInfo->visual, 
+        AllocNone
     );
 
-    ghwnd = hwnd;
+    //* Initialize Window Attributes
+    memset((void*)&windowAttributes, 0, sizeof(XSetWindowAttributes));
+    windowAttributes.border_pixel = 0;
+    windowAttributes.background_pixel = XBlackPixel(gpDisplay, defaultScreen);
+    windowAttributes.background_pixmap = 0;
+    windowAttributes.colormap = colormap;
+    windowAttributes.event_mask = ExposureMask | KeyPressMask | StructureNotifyMask | FocusChangeMask | VisibilityChangeMask | PropertyChangeMask;
 
-    //* Initialize
+    //* Initialize Window Styles in styleMask
+    styleMask = CWBorderPixel | CWBackPixel | CWColormap | CWEventMask;
+
+    //* Create the window
+    window = XCreateWindow(
+        gpDisplay,
+        RootWindow(gpDisplay, xVisualInfo.screen),
+        0,
+        0,
+        WIN_WIDTH,
+        WIN_HEIGHT,
+        0,
+        gpXVisualInfo->depth,
+        InputOutput,
+        gpXVisualInfo->visual,
+        styleMask,
+        &windowAttributes
+    );
+    if (!window)
+    {
+        fprintf(gpFile, "ERROR : XCreateWindow() Failed ... Exiting !!!\n");
+        uninitialize();
+        exit(EXIT_FAILURE);
+    }
+
+    //* Set Window Caption
+    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan Pyramid with Texture");
+
+    //* Prepare Window to respond to Window Manager's Close Event
+    windowManagerDeleteAtom = XInternAtom(gpDisplay, "WM_DELETE_WINDOW", True);
+    XSetWMProtocols(gpDisplay, window, &windowManagerDeleteAtom, 1);
+
+    //* Show the window
+    XMapWindow(gpDisplay, window);
+
+    //* Centering of window
+    screenWidth = XWidthOfScreen(XScreenOfDisplay(gpDisplay, defaultScreen));
+    screenHeight = XHeightOfScreen(XScreenOfDisplay(gpDisplay, defaultScreen));
+    XMoveWindow(gpDisplay, window, ((screenWidth / 2) - (WIN_WIDTH / 2)), ((screenHeight / 2) - (WIN_HEIGHT / 2)));
+
+    //! Initialize
     vkResult = initialize();
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => initialize() Failed : %d !!!\n", __func__, vkResult);
-        DestroyWindow(hwnd);
-        hwnd = NULL;
+        fprintf(gpFile, "ERROR : initialize() Failed ... Exiting !!!\n");
+        uninitialize();
+        exit(EXIT_FAILURE);
     }
     else
-        fprintf(gpFile, "%s() => initialize() Succeeded\n", __func__);
+        fprintf(gpFile, "initialize() Succeeded\n");
 
-    // Show and Update Window
-    ShowWindow(hwnd, iCmdShow);
-    UpdateWindow(hwnd);
-
-    // Bring the window to foreground and set focus
-    SetForegroundWindow(hwnd);
-    SetFocus(hwnd);
-
-    //* Game Loop
-    while (bDone == FALSE)
+    //! Event Loop
+    while (bDone == False)
     {
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        while (XPending(gpDisplay))
         {
-            if (msg.message == WM_QUIT)
-                bDone = TRUE;
-            else
+            XNextEvent(gpDisplay, &event);
+
+            switch(event.type)
             {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
+                case MapNotify:
+                break;
+
+                case FocusIn:
+                    bActiveWindow = True;
+                break;
+
+                case FocusOut:
+                    bActiveWindow = False;
+                break;
+
+                case ConfigureNotify:
+                    winWidth = event.xconfigure.width;
+                    winHeight = event.xconfigure.height;
+                    resize(winWidth, winHeight);
+                break;
+
+                case KeyPress:
+                {
+                    keySym = XkbKeycodeToKeysym(gpDisplay, event.xkey.keycode, 0, 0);
+                    switch(keySym)
+                    {
+                        case XK_Escape:
+                            bEscapeKeyPressed = True;
+                        break;
+                    }
+
+                    XLookupString(&event.xkey, keys, sizeof(keys), NULL, NULL);
+                    switch(keys[0])
+                    {
+                        case 'F':
+                        case 'f':
+                            if (bFullscreen == False)
+                            {
+                                toggleFullScreen();
+                                bFullscreen = True;
+                            }
+                            else
+                            {
+                                toggleFullScreen();
+                                bFullscreen = False;
+                            }
+                        break;
+                    }
+                }
+                break;
+
+                case PropertyNotify:
+                    if (isWindowMinimized())
+                        bWindowMinimized = True;
+                    else
+                        bWindowMinimized = False;
+                break;
+
+                case DestroyNotify:
+                break;
+
+                case 33:
+                    bDone = True;
+                break;
+
+                default:
+                break;
             }
         }
-        else
+
+        if (bActiveWindow == True)
         {
-            if (gbActiveWindow == TRUE && gbWindowMinimized == FALSE)
+            if (bEscapeKeyPressed == True)
             {
-                //* Render the scene
+                bDone = True;
+            }
+
+            if (bWindowMinimized == False)
+            {
+                //! Render the scene
                 vkResult = display();
                 if (vkResult != VK_FALSE && vkResult != VK_SUCCESS && vkResult != VK_ERROR_OUT_OF_DATE_KHR && vkResult != VK_SUBOPTIMAL_KHR)
                 {
                     fprintf(gpFile, "%s() => Call To Display Failed !!!\n", __func__);
-                    bDone = TRUE;
+                    bDone = true;
                 }
 
-                //* Update the scene
+                //! Update the scene
                 update();
             }
         }
     }
 
+    //! Uninitialize
     uninitialize();
 
-    return (int)msg.wParam;
-
+    return 0;
 }
 
-// Callback Function
-LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
-{
-    // Function Declarations
-    void ToggleFullScreen(void);
-    VkResult resize(int, int);
-    void uninitialize(void);
-
-    // Code
-    switch(iMsg)
-    {
-        case WM_CREATE:
-            memset((void*)&wpPrev, 0, sizeof(WINDOWPLACEMENT));
-            wpPrev.length = sizeof(WINDOWPLACEMENT);
-        break;
-
-        case WM_SETFOCUS:
-            gbActiveWindow = TRUE;
-        break;
-
-        case WM_KILLFOCUS:
-            gbActiveWindow = FALSE;
-        break;
-
-        case WM_SIZE:
-            if (wParam == SIZE_MINIMIZED)
-                gbWindowMinimized = TRUE;
-            else
-            {
-                gbWindowMinimized = FALSE;
-                resize(LOWORD(lParam), HIWORD(lParam));
-            }
-        break;
-
-        case WM_KEYDOWN:
-
-            switch(wParam)
-            {
-                case 27:
-                    DestroyWindow(hwnd);
-                break;
-
-                default:
-                break;
-            }
-
-        break;
-
-        case WM_CHAR:
-
-            switch(wParam)
-            {
-                case 'F':
-                case 'f':
-                    ToggleFullScreen();
-                break;
-
-                default:
-                break;
-            }
-
-        break;
-
-        case WM_CLOSE:
-            DestroyWindow(hwnd);
-        break;
-
-        case WM_DESTROY:
-            PostQuitMessage(0);
-        break;
-
-        default:
-        break;
-    }
-
-    return DefWindowProc(hwnd, iMsg, wParam, lParam);
-}
-
-void ToggleFullScreen(void)
+void toggleFullScreen(void)
 {
     // Variable Declarations
-    MONITORINFO mi;
+    Atom wm_current_state_atom;
+    Atom wm_fullscreen_state_atom;
+    XEvent event;
 
     // Code
-    if (gbFullScreen == FALSE)
+    wm_current_state_atom = XInternAtom(gpDisplay, "_NET_WM_STATE", False);
+    wm_fullscreen_state_atom = XInternAtom(gpDisplay, "_NET_WM_STATE_FULLSCREEN", False);
+
+    memset(&event, 0, sizeof(XEvent));
+
+    event.type = ClientMessage;
+    event.xclient.window = window;
+    event.xclient.message_type = wm_current_state_atom;
+    event.xclient.format = 32;
+    event.xclient.data.l[0] = bFullscreen ? 0 : 1;
+    event.xclient.data.l[1] = wm_fullscreen_state_atom;
+
+    XSendEvent(
+        gpDisplay, 
+        RootWindow(gpDisplay, gpXVisualInfo->screen),
+        False,
+        SubstructureNotifyMask,
+        &event
+    );
+}
+
+Bool isWindowMinimized(void)
+{
+    // Function Declarations
+    void uninitialize();
+
+    // Variable Declarations
+    Bool windowMinimized = False;
+    int iResult = 0;
+    Atom returned_property_type = None;
+    int returned_property_format = -1;
+    unsigned long number_of_returned_items = 0;
+    unsigned long number_of_bytes_left = 0;
+    Atom* returned_property_data_array = NULL;
+    
+    // Code
+    Atom wm_state = XInternAtom(gpDisplay, "_NET_WM_STATE", True);
+    if (wm_state == None)
     {
-        dwStyle = GetWindowLong(ghwnd, GWL_STYLE);
+        fprintf(gpFile, "ERROR : XInternAtom() Failed For _NET_WM_STATE ... Exiting !!!\n");
+        uninitialize();
+        exit(EXIT_FAILURE);
+    }
 
-        if (dwStyle & WS_OVERLAPPEDWINDOW)
+    Atom wm_state_hidden = XInternAtom(gpDisplay, "_NET_WM_STATE_HIDDEN", True);
+    if (wm_state_hidden == None)
+    {
+        fprintf(gpFile, "ERROR : XInternAtom() Failed For _NET_WM_STATE_HIDDEN ... Exiting !!!\n");
+        uninitialize();
+        exit(EXIT_FAILURE);
+    }
+
+    iResult = XGetWindowProperty(
+        gpDisplay,
+        window,
+        wm_state,
+        0L,
+        1024,
+        False,
+        XA_ATOM,
+        &returned_property_type,
+        &returned_property_format,
+        &number_of_returned_items,
+        &number_of_bytes_left,
+        (unsigned char**)&returned_property_data_array
+    );
+
+    if (iResult != 0 || returned_property_data_array == NULL)
+    {
+        if (returned_property_data_array)
         {
-            mi.cbSize = sizeof(MONITORINFO);
-
-            if (GetWindowPlacement(ghwnd, &wpPrev) && GetMonitorInfo(MonitorFromWindow(ghwnd, MONITORINFOF_PRIMARY), &mi))
-            {
-                SetWindowLong(ghwnd, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
-                SetWindowPos(
-                    ghwnd, 
-                    HWND_TOP, 
-                    mi.rcMonitor.left, 
-                    mi.rcMonitor.top, 
-                    mi.rcMonitor.right - mi.rcMonitor.left,
-                    mi.rcMonitor.bottom - mi.rcMonitor.top,
-                    SWP_NOZORDER | SWP_FRAMECHANGED
-                );
-            }
-
-            ShowCursor(FALSE);
-            gbFullScreen = TRUE;
+            XFree(returned_property_data_array);
+            returned_property_data_array = NULL;
         }
+
+        return False;
     }
     else
     {
-        SetWindowLong(ghwnd, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
-        SetWindowPlacement(ghwnd, &wpPrev);
-        SetWindowPos(
-            ghwnd, 
-            HWND_TOP,
-            0,
-            0,
-            0,
-            0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_NOZORDER
-        );
-
-        ShowCursor(TRUE);
-        gbFullScreen = FALSE;
+        // Loop over the returned array for required Window Property
+        for (unsigned long i = 0; i < number_of_returned_items; i++)
+        {
+            // Check whether the returned array contains "Hidden" Property or not
+            if (returned_property_data_array[i] == wm_state_hidden)
+            {
+                windowMinimized = True;
+                break;
+            }
+        }
     }
+
+    if (returned_property_data_array)
+    {
+        XFree(returned_property_data_array);
+        returned_property_data_array = NULL;
+    }
+
+    return windowMinimized;
+
 }
 
 VkResult initialize(void)
@@ -558,6 +659,16 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
 
+    //! Create Texture
+    vkResult = createTexture("Stone.png");
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createTexture() Failed For Stone.png : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createTexture() Succeeded For Stone.png\n", __func__);
+
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
     if (vkResult != VK_SUCCESS)
@@ -568,16 +679,6 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createUniformBuffer() Succeeded\n", __func__);
-
-    //! Create Texture
-    vkResult = createTexture("Smiley.png");
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createTexture() Failed For Smiley.png : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createTexture() Succeeded For Smiley.png\n", __func__);
 
     //! Create Shaders
     vkResult = createShaders();
@@ -712,7 +813,7 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => buildCommandBuffers() Succeeded\n", __func__);
 
     //! Initialization Completed
-    bInitialized = TRUE;
+    bInitialized = true;
     fprintf(gpFile, "%s() => Initialization Completed Successfully\n", __func__);
     
     return vkResult;
@@ -738,15 +839,15 @@ VkResult resize(int width, int height)
         height = 1;
 
     //* Check the bInitialized Variable
-    if (bInitialized == FALSE)
+    if (bInitialized == false)
     {
         fprintf(gpFile, "%s() => Initialization Not Yet Completed or Failed !!!\n", __func__);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
 
-    //* As recreation of swapchain is needed, we are going to repeat many steps of initialize() again. Hence, set bInitialize = FALSE again
-    bInitialized = FALSE;
+    //* As recreation of swapchain is needed, we are going to repeat many steps of initialize() again. Hence, set bInitialize = false again
+    bInitialized = false;
     {
         //* Set Global winWidth and winHeight variables
         winWidth = width;
@@ -923,7 +1024,7 @@ VkResult resize(int width, int height)
         }
         //?--------------------------------------------------------------------------------------------------
     }
-    bInitialized = TRUE;
+    bInitialized = true;
 
     return vkResult;
 }
@@ -938,7 +1039,7 @@ VkResult display(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    if (bInitialized == FALSE)
+    if (bInitialized == false)
     {
         fprintf(gpFile, "%s() => Initialization Not Yet Completed !!!\n", __func__);
         return (VkResult)VK_FALSE;
@@ -1033,22 +1134,19 @@ VkResult display(void)
 void update(void)
 {
     // Code
+    fAngle += fAnimationSpeed;
+    if (fAngle >= 360.0f)
+        fAngle = 0.0f;
 }
 
 void uninitialize(void)
 {
     // Function Declarations
-    void ToggleFullScreen(void);
+    void toggleFullScreen(void);
 
     // Code
-    if (gbFullScreen)
-        ToggleFullScreen();
-
-    if (ghwnd)
-    {
-        DestroyWindow(ghwnd);
-        ghwnd = NULL;
-    }
+    if (bFullscreen)
+        toggleFullScreen();
 
     //* Step - 5 of Device Creation (Destroy Vulkan Device)
     //! vkDeviceWaitIdle(vkDevice) should be the 1st API to maintain synchronization
@@ -1122,7 +1220,7 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet Successfully\n", __func__);
     }
 
-   //* Step - 5 of PipelineLayout
+    //* Step - 5 of PipelineLayout
     if (vkPipelineLayout)
     {
         vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, NULL);
@@ -1316,6 +1414,28 @@ void uninitialize(void)
 
     //* No need to destroy selected physical device
 
+    if (window)
+    {
+        XDestroyWindow(gpDisplay, window);
+    }
+
+    if (colormap)
+    {
+        XFreeColormap(gpDisplay, colormap);
+    }
+
+    if (gpXVisualInfo)
+    {
+        free(gpXVisualInfo);
+        gpXVisualInfo = NULL;
+    }
+
+    if (gpDisplay)
+    {
+        XCloseDisplay(gpDisplay);
+        gpDisplay = NULL;
+    }
+
     //* Step - 5 of Presentation Surface
     if (vkSurfaceKHR)
     {
@@ -1338,10 +1458,10 @@ void uninitialize(void)
         vkInstance = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyInstance() Succeeded\n", __func__);
     }
-    
+
     if (gpFile)
     {
-        fprintf(gpFile, "%s() => Program Terminated Successfully\n", __func__);
+        fprintf(gpFile, "Program Terminated Successfully => uninitialize()\n");
         fclose(gpFile);
         gpFile = NULL;
     }
@@ -1370,12 +1490,13 @@ VkResult createVulkanInstance(void)
     else
         fprintf(gpFile, "%s() => fillInstanceExtensionNames() Succeeded\n", __func__);
 
+
     //! Fill Validation Layers
-    if (bValidation == TRUE)
+    if (bValidation == true)
     {
         vkResult = fillValidationLayerNames();
         if (vkResult != VK_SUCCESS)
-        {
+        {  
             fprintf(gpFile, "%s() => fillValidationLayerNames() Failed : %d !!!\n", __func__, vkResult);
             return VK_ERROR_INITIALIZATION_FAILED;
         }      
@@ -1403,7 +1524,7 @@ VkResult createVulkanInstance(void)
     vkInstanceCreateInfo.enabledExtensionCount = enabledInstanceExtensionCount;
     vkInstanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensionNames_array;
 
-    if (bValidation == TRUE)
+    if (bValidation == true)
     {
         vkInstanceCreateInfo.enabledLayerCount = enabledValidationLayerCount;
         vkInstanceCreateInfo.ppEnabledLayerNames = enabledValidationLayerNames_array;
@@ -1435,7 +1556,7 @@ VkResult createVulkanInstance(void)
         fprintf(gpFile, "%s() => vkCreateInstance() Succeeded\n", __func__);
 
     //! Handling Validation Callbacks
-    if (bValidation == TRUE)
+    if (bValidation == true)
     {
         vkResult = createValidationCallbackFunction();
         if (vkResult != VK_SUCCESS)
@@ -1527,7 +1648,7 @@ VkResult fillInstanceExtensionNames(void)
 
     //* Step - 5
     VkBool32 vulkanSurfaceExtensionFound = VK_FALSE;
-    VkBool32 win32SurfaceExtensionFound = VK_FALSE;
+    VkBool32 xlibSurfaceExtensionFound = VK_FALSE;
     VkBool32 debugReportExtensionFound = VK_FALSE;
 
     for (uint32_t i = 0; i < instanceExtensionCount; i++)
@@ -1538,16 +1659,16 @@ VkResult fillInstanceExtensionNames(void)
             enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_SURFACE_EXTENSION_NAME;
         }
            
-        if (strcmp(instanceExtensionNames_array[i], VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0)
+        if (strcmp(instanceExtensionNames_array[i], VK_KHR_XLIB_SURFACE_EXTENSION_NAME) == 0)
         {
-            win32SurfaceExtensionFound = VK_TRUE;
-            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
+            xlibSurfaceExtensionFound = VK_TRUE;
+            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_XLIB_SURFACE_EXTENSION_NAME;
         } 
 
         if (strcmp(instanceExtensionNames_array[i], VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
         {
             debugReportExtensionFound = VK_TRUE;
-            if (bValidation == TRUE)
+            if (bValidation == true)
                 enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
             else
             {
@@ -1578,18 +1699,18 @@ VkResult fillInstanceExtensionNames(void)
     else
         fprintf(gpFile, "%s() => VK_KHR_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
 
-    if (win32SurfaceExtensionFound == VK_FALSE)
+    if (xlibSurfaceExtensionFound == VK_FALSE)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        fprintf(gpFile, "%s() => VK_KHR_WIN32_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        fprintf(gpFile, "%s() => VK_KHR_XLIB_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => VK_KHR_WIN32_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
+        fprintf(gpFile, "%s() => VK_KHR_XLIB_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
 
     if (debugReportExtensionFound == VK_FALSE)
     {
-        if (bValidation == TRUE)
+        if (bValidation == true)
         {
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
             fprintf(gpFile, "%s() => VALIDATION ON : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Not Supported !!!\n", __func__);
@@ -1600,7 +1721,7 @@ VkResult fillInstanceExtensionNames(void)
     }
     else
     {
-        if (bValidation == TRUE)
+        if (bValidation == true)
             fprintf(gpFile, "%s() => VALIDATION ON : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Supported\n", __func__);
         else
             fprintf(gpFile, "%s() => VALIDATION OFF : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Supported\n", __func__);
@@ -1637,6 +1758,7 @@ VkResult fillValidationLayerNames(void)
         fprintf(gpFile, "%s() => malloc() Failed For vkLayerProperties_array !!!\n", __func__);
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
+
 
     vkResult = vkEnumerateInstanceLayerProperties(&validationLayerCount, vkLayerProperties_array);
     if (vkResult != VK_SUCCESS)  
@@ -1683,6 +1805,7 @@ VkResult fillValidationLayerNames(void)
         memcpy(validationLayerNames_array[i], vkLayerProperties_array[i].layerName, strlen(vkLayerProperties_array[i].layerName) + 1);
 
         fprintf(gpFile, "%s() => Vulkan Instance Layer Name : %s\n", __func__, validationLayerNames_array[i]);
+        
     }
 
     if (vkLayerProperties_array)
@@ -1794,25 +1917,25 @@ VkResult getSupportedSurface(void)
     // Code
 
     //* Step - 1
-    VkWin32SurfaceCreateInfoKHR vkWin32SurfaceCreateInfoKHR;
+    VkXlibSurfaceCreateInfoKHR vkXlibSurfaceCreateInfoKHR;
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 2
-    memset((void*)&vkWin32SurfaceCreateInfoKHR, 0, sizeof(VkWin32SurfaceCreateInfoKHR));
+    memset((void*)&vkXlibSurfaceCreateInfoKHR, 0, sizeof(VkXlibSurfaceCreateInfoKHR));
 
     //* Step - 3
-    vkWin32SurfaceCreateInfoKHR.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    vkWin32SurfaceCreateInfoKHR.pNext = NULL;
-    vkWin32SurfaceCreateInfoKHR.flags = 0;
-    vkWin32SurfaceCreateInfoKHR.hinstance = (HINSTANCE)GetWindowLongPtr(ghwnd, GWLP_HINSTANCE);
-    vkWin32SurfaceCreateInfoKHR.hwnd = ghwnd;
+    vkXlibSurfaceCreateInfoKHR.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+    vkXlibSurfaceCreateInfoKHR.pNext = NULL;
+    vkXlibSurfaceCreateInfoKHR.flags = 0;
+    vkXlibSurfaceCreateInfoKHR.dpy = gpDisplay;
+    vkXlibSurfaceCreateInfoKHR.window = window;
 
     //* Step - 4
-    vkResult = vkCreateWin32SurfaceKHR(vkInstance, &vkWin32SurfaceCreateInfoKHR, NULL, &vkSurfaceKHR);
+    vkResult = vkCreateXlibSurfaceKHR(vkInstance, &vkXlibSurfaceCreateInfoKHR, NULL, &vkSurfaceKHR);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateWin32SurfaceKHR() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateXlibSurfaceKHR() Failed : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateWin32SurfaceKHR() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateXlibSurfaceKHR() Succeeded\n", __func__);
 
     return vkResult;
 }
@@ -2755,36 +2878,56 @@ VkResult createVertexBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 3
-    float rectangle_position[] = 
+    float pyramid_position[] = 
     {
-        // Triangle 1
-        1.0f,   1.0f,   0.0f,   // Top Right
-        -1.0f,  1.0f,   0.0f,   // Top Left
-        -1.0f,  -1.0f,  0.0f,   // Bottom Left
+        // Front Face
+        0.0f,   1.0f,   0.0f,
+        -1.0f,  -1.0f,  1.0f,
+        1.0f,   -1.0f,  1.0f,
 
-        // Triangle 2
-        -1.0f,  -1.0f,  0.0f,   // Bottom Left
-        1.0f,   -1.0f,  0.0f,   // Bottom Right
-        1.0f,   1.0f,   0.0f,   // Top Right
+        // Right Face
+        0.0f,   1.0f,   0.0f,
+        1.0f,   -1.0f,  1.0f,
+        1.0f,   -1.0f,  -1.0f,
+
+        // Back Face
+        0.0f,   1.0f,   0.0f,
+        1.0f,  -1.0f,   -1.0f,
+        -1.0f, -1.0f,   -1.0f,
+
+        // Left Face
+        0.0f,  1.0f,    0.0f,
+        -1.0f, -1.0f,  -1.0f,
+        -1.0f, -1.0f,   1.0f
     };
 
-    float rectangle_texcoords[] = 
+    float pyramid_texcoords[] = 
     {
-        // Triangle 1
-        1.0f, 0.0f,             // Top Right
-        0.0f, 0.0f,             // Top Left
-        0.0f, 1.0f,             // Bottom Left
+        // Front Face
+        0.5, 1.0, // Front Top
+        0.0, 0.0, // Front Left
+        1.0, 0.0, // Front Right
 
-        // Triangle 2
-        0.0f, 1.0f,             // Bottom Left
-        1.0f, 1.0f,             // Bottom Right
-        1.0f, 0.0f              // Top Right
+        // Right Face
+        0.5, 1.0, // Right Top
+        1.0, 0.0, // Right Left
+        0.0, 0.0, // Right Right
+
+        // Back Face
+        0.5, 1.0, // Back Top
+        1.0, 0.0, // Back Left
+        0.0, 0.0, // Back Right
+
+        // Top Face
+        0.5, 1.0, // Left Top
+        0.0, 0.0, // Left Left
+        1.0, 0.0, // Left Right
     };
 
     // Code
     
-    //? VERTEX POSITION
-    //? -----------------------------------------------------------------------------------------------------------------------------------
+    //! Vertex Position
+    //! ---------------------------------------------------------------------------------------------------------------------------------
     //* Step - 4
     memset((void*)&vertexData_position, 0, sizeof(VertexData));
 
@@ -2794,7 +2937,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(rectangle_position);
+    vkBufferCreateInfo.size = sizeof(pyramid_position);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2860,14 +3003,14 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, rectangle_position, sizeof(rectangle_position));
+    memcpy(data, pyramid_position, sizeof(pyramid_position));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
-    //? -----------------------------------------------------------------------------------------------------------------------------------
+    //! ---------------------------------------------------------------------------------------------------------------------------------
 
-    //? VERTEX TEXCOORDS
-    //? -----------------------------------------------------------------------------------------------------------------------------------
+    //! Vertex Texture
+    //! ---------------------------------------------------------------------------------------------------------------------------------
     //* Step - 4
     memset((void*)&vertexData_texcoord, 0, sizeof(VertexData));
 
@@ -2876,15 +3019,15 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(rectangle_texcoords);
+    vkBufferCreateInfo.size = sizeof(pyramid_texcoords);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_texcoord.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Texture Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Texcoord Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Texture Buffer\n", __func__);
     
     //* Step - 7
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
@@ -2919,35 +3062,36 @@ VkResult createVertexBuffer(void)
     //* Step - 9
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_texcoord.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Texture Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Texcoord Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Texture Buffer\n", __func__);
 
     //* Step - 10
     //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
     vkResult = vkBindBufferMemory(vkDevice, vertexData_texcoord.vkBuffer, vertexData_texcoord.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Texture Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Texcoord Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Texture Buffer\n", __func__);
 
     //* Step - 11
     data = NULL;
     vkResult = vkMapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Texture Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Texcoord Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Texture Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, rectangle_texcoords, sizeof(rectangle_texcoords));
+    memcpy(data, pyramid_texcoords, sizeof(pyramid_texcoords));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory);
-    //? -----------------------------------------------------------------------------------------------------------------------------------
+    //! ---------------------------------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
+
 
 VkResult createTexture(const char* textureFileName)
 {
@@ -2970,7 +3114,7 @@ VkResult createTexture(const char* textureFileName)
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
-
+   
     imageSize = imageWidth * imageHeight * 4;
 
     fprintf(gpFile, "\n%s Properties\n", textureFileName);
@@ -4167,7 +4311,7 @@ VkResult updateUniformBuffer(void)
 
     //! Update Matrices
     mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 1.0f, 0.0f));
     mvp_UniformData.viewMatrix = glm::mat4(1.0f);
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
@@ -4365,17 +4509,15 @@ VkResult createDescriptorSetLayout(void)
     VkResult vkResult = VK_SUCCESS;
 
     //! Initialize VkDescriptorSetLayoutBinding
-    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding_array[2];
+    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding_array[2]; // 0 -> Uniform, 1 -> Texture Image
     memset((void*)vkDescriptorSetLayoutBinding_array, 0, sizeof(VkDescriptorSetLayoutBinding) * _ARRAYSIZE(vkDescriptorSetLayoutBinding_array));
 
-    //! Uniform Buffer
     vkDescriptorSetLayoutBinding_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     vkDescriptorSetLayoutBinding_array[0].binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
     vkDescriptorSetLayoutBinding_array[0].descriptorCount = 1;
     vkDescriptorSetLayoutBinding_array[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     vkDescriptorSetLayoutBinding_array[0].pImmutableSamplers = NULL;
 
-    //! Texture (Combined Image Sampler)
     vkDescriptorSetLayoutBinding_array[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     vkDescriptorSetLayoutBinding_array[1].binding = 1;   //! Mapped with layout(binding = 1) in fragment shader
     vkDescriptorSetLayoutBinding_array[1].descriptorCount = 1;
@@ -4388,7 +4530,7 @@ VkResult createDescriptorSetLayout(void)
     vkDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     vkDescriptorSetLayoutCreateInfo.pNext = NULL;
     vkDescriptorSetLayoutCreateInfo.flags = 0;
-    vkDescriptorSetLayoutCreateInfo.bindingCount = _ARRAYSIZE(vkDescriptorSetLayoutBinding_array);   //! An integer value where you want to bind descriptor set
+    vkDescriptorSetLayoutCreateInfo.bindingCount = _ARRAYSIZE(vkDescriptorSetLayoutBinding_array);
     vkDescriptorSetLayoutCreateInfo.pBindings = vkDescriptorSetLayoutBinding_array;
 
     //* Step - 4
@@ -4452,7 +4594,7 @@ VkResult createDescriptorPool(void)
     vkDescriptorPoolCreateInfo.flags = 0;
     vkDescriptorPoolCreateInfo.poolSizeCount = _ARRAYSIZE(vkDescriptorPoolSize_array);
     vkDescriptorPoolCreateInfo.pPoolSizes = vkDescriptorPoolSize_array;
-    vkDescriptorPoolCreateInfo.maxSets = 1;
+    vkDescriptorPoolCreateInfo.maxSets = 2;
 
     vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
     if (vkResult != VK_SUCCESS)
@@ -4495,12 +4637,13 @@ VkResult createDescriptorSet(void)
     vkDescriptorBufferInfo.offset = 0;
     vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
 
+    //! Descriptor Image Info
     VkDescriptorImageInfo vkDescriptorImageInfo;
     memset((void*)&vkDescriptorImageInfo, 0, sizeof(VkDescriptorImageInfo));
     vkDescriptorImageInfo.imageView = vkImageView_texture;
-    vkDescriptorImageInfo.sampler = vkSampler_texture;
     vkDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
+    vkDescriptorImageInfo.sampler = vkSampler_texture;
+    
     /* Update above descriptor set directly to the shader
     There are 2 ways :-
         1) Writing directly to the shader
@@ -4509,27 +4652,29 @@ VkResult createDescriptorSet(void)
     VkWriteDescriptorSet vkWriteDescriptorSet_array[2];
     memset((void*)vkWriteDescriptorSet_array, 0, sizeof(VkWriteDescriptorSet) * _ARRAYSIZE(vkWriteDescriptorSet_array));
 
+    //! Uniform Buffer Object
     vkWriteDescriptorSet_array[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     vkWriteDescriptorSet_array[0].pNext = NULL;
     vkWriteDescriptorSet_array[0].dstSet = vkDescriptorSet;
     vkWriteDescriptorSet_array[0].dstArrayElement = 0;
+    vkWriteDescriptorSet_array[0].dstBinding = 0;
     vkWriteDescriptorSet_array[0].descriptorCount = 1;
     vkWriteDescriptorSet_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     vkWriteDescriptorSet_array[0].pBufferInfo = &vkDescriptorBufferInfo;
     vkWriteDescriptorSet_array[0].pImageInfo = NULL;
     vkWriteDescriptorSet_array[0].pTexelBufferView = NULL;
-    vkWriteDescriptorSet_array[0].dstBinding = 0;
 
+    //! Texture Image and Sampler
     vkWriteDescriptorSet_array[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     vkWriteDescriptorSet_array[1].pNext = NULL;
     vkWriteDescriptorSet_array[1].dstSet = vkDescriptorSet;
     vkWriteDescriptorSet_array[1].dstArrayElement = 0;
     vkWriteDescriptorSet_array[1].descriptorCount = 1;
+    vkWriteDescriptorSet_array[1].dstBinding = 1;
     vkWriteDescriptorSet_array[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     vkWriteDescriptorSet_array[1].pBufferInfo = NULL;
     vkWriteDescriptorSet_array[1].pImageInfo = &vkDescriptorImageInfo;
     vkWriteDescriptorSet_array[1].pTexelBufferView = NULL;
-    vkWriteDescriptorSet_array[1].dstBinding = 1;
 
     vkUpdateDescriptorSets(vkDevice, _ARRAYSIZE(vkWriteDescriptorSet_array), vkWriteDescriptorSet_array, 0, NULL);
 
@@ -4631,8 +4776,8 @@ VkResult createPipeline(void)
     vkVertexInputBindingDescription_array[0].binding = 0;
     vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 3; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    
-    //! Texcoord
+
+    //! Texture
     vkVertexInputBindingDescription_array[1].binding = 1;
     vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 2; 
     vkVertexInputBindingDescription_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -4645,8 +4790,8 @@ VkResult createPipeline(void)
     vkVertexInputAttributeDescription_array[0].location = 0;
     vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     vkVertexInputAttributeDescription_array[0].offset = 0;
-    
-    //! Texcoord
+
+    //! Texture
     vkVertexInputAttributeDescription_array[1].binding = 1;
     vkVertexInputAttributeDescription_array[1].location = 1;
     vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32_SFLOAT;
@@ -4677,7 +4822,7 @@ VkResult createPipeline(void)
     vkPipelineRasterizationStateCreateInfo.pNext = NULL;
     vkPipelineRasterizationStateCreateInfo.flags = 0;
     vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
     vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
@@ -4827,6 +4972,7 @@ VkResult createPipeline(void)
 
     return vkResult;
 }
+
 
 VkResult createFramebuffers(void)
 {
@@ -5031,19 +5177,19 @@ VkResult buildCommandBuffers(void)
                 vkDeviceSize_offset_position
             );
 
-            //! Bind with Vertex Texcoord Buffer
-            VkDeviceSize vkDeviceSize_offset_texcoord[1];
-            memset((void*)vkDeviceSize_offset_texcoord, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_texcoord));
+            //! Bind with Vertex Texture Buffer
+            VkDeviceSize vkDeviceSize_offset_texture[1];
+            memset((void*)vkDeviceSize_offset_texture, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_texture));
             vkCmdBindVertexBuffers(
                 vkCommandBuffer_array[i], 
                 1, 
                 1, 
                 &vertexData_texcoord.vkBuffer, 
-                vkDeviceSize_offset_texcoord
+                vkDeviceSize_offset_texture
             );
 
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 6, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], 12, 1, 0, 0);
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
@@ -5063,7 +5209,6 @@ VkResult buildCommandBuffers(void)
     return vkResult;
 }
 
-
 VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     VkDebugReportFlagsEXT vkDebugReportFlagsEXT,
     VkDebugReportObjectTypeEXT vkDebugReportObjectTypeEXT,
@@ -5079,3 +5224,5 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     fprintf(gpFile, "ADN_VALIDATION : debugReportCallback() => %s(%d) = %s\n", pLayerPrefix, messageCode, pMessage);
     return VK_FALSE;
 }
+
+

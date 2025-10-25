@@ -250,7 +250,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Colored Pyramid and Cube"),
+        TEXT("Atharv Natu : Vulkan Pyramid and Cube with Texture"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -3271,7 +3271,7 @@ VkResult createVertexBuffer(void)
     vkUnmapMemory(vkDevice, vertexData_position_cube.vkDeviceMemory);
     //? -------------------------------------------------------------------------------------------------------------------------------------
 
-    //? Vertex Color
+    //? Vertex Texcoords
     //? -------------------------------------------------------------------------------------------------------------------------------------
     //* Step - 4
     memset((void*)&vertexData_texcoord_cube, 0, sizeof(VertexData));
