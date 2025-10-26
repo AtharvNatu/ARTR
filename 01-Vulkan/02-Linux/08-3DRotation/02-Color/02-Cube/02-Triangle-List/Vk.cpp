@@ -287,7 +287,7 @@ int main(void)
     }
 
     //* Set Window Caption
-    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan 3D Rotation : Colored Cube");
+    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan 3D Rotation : Colored Cube using Triangle List");
 
     //* Prepare Window to respond to Window Manager's Close Event
     windowManagerDeleteAtom = XInternAtom(gpDisplay, "WM_DELETE_WINDOW", True);
