@@ -228,7 +228,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Colored Cube"),
+        TEXT("Atharv Natu : Vulkan Colored Cube using Triangle Fan"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -2712,118 +2712,82 @@ VkResult createVertexBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 3
-    float cube_position[] = 
+    float cube_position[] =
     {
         // Front Face
         1.0f,  1.0f,  1.0f,   // Top Right
-       -1.0f,  1.0f,  1.0f,   // Top Left
+        -1.0f,  1.0f,  1.0f,   // Top Left
+        -1.0f, -1.0f,  1.0f,   // Bottom Left
         1.0f, -1.0f,  1.0f,   // Bottom Right
-
-        1.0f, -1.0f,  1.0f,   // Bottom Right
-       -1.0f,  1.0f,  1.0f,   // Top Left
-       -1.0f, -1.0f,  1.0f,   // Bottom Left
 
         // Right Face
-        1.0f,  1.0f, -1.0f,   // Top Right
-        1.0f,  1.0f,  1.0f,   // Top Left
-        1.0f, -1.0f, -1.0f,   // Bottom Right
-
-        1.0f, -1.0f, -1.0f,   // Bottom Right
-        1.0f,  1.0f,  1.0f,   // Top Left
-        1.0f, -1.0f,  1.0f,   // Bottom Left
+        1.0f,  1.0f, -1.0f,   // Top Back
+        1.0f,  1.0f,  1.0f,   // Top Front
+        1.0f, -1.0f,  1.0f,   // Bottom Front
+        1.0f, -1.0f, -1.0f,   // Bottom Back
 
         // Back Face
+        -1.0f,  1.0f, -1.0f,   // Top Left
         1.0f,  1.0f, -1.0f,   // Top Right
-       -1.0f,  1.0f, -1.0f,   // Top Left
         1.0f, -1.0f, -1.0f,   // Bottom Right
-
-        1.0f, -1.0f, -1.0f,   // Bottom Right
-       -1.0f,  1.0f, -1.0f,   // Top Left
-       -1.0f, -1.0f, -1.0f,   // Bottom Left
+        -1.0f, -1.0f, -1.0f,   // Bottom Left
 
         // Left Face
-       -1.0f,  1.0f,  1.0f,   // Top Right
-       -1.0f,  1.0f, -1.0f,   // Top Left
-       -1.0f, -1.0f,  1.0f,   // Bottom Right
-
-       -1.0f, -1.0f,  1.0f,   // Bottom Right
-       -1.0f,  1.0f, -1.0f,   // Top Left
-       -1.0f, -1.0f, -1.0f,   // Bottom Left
+        -1.0f,  1.0f,  1.0f,   // Top Front
+        -1.0f,  1.0f, -1.0f,   // Top Back
+        -1.0f, -1.0f, -1.0f,   // Bottom Back
+        -1.0f, -1.0f,  1.0f,   // Bottom Front
 
         // Top Face
-        1.0f,  1.0f, -1.0f,   // Top Right
-       -1.0f,  1.0f, -1.0f,   // Top Left
-        1.0f,  1.0f,  1.0f,   // Bottom Right
-
-        1.0f,  1.0f,  1.0f,   // Bottom Right
-       -1.0f,  1.0f, -1.0f,   // Top Left
-       -1.0f,  1.0f,  1.0f,   // Bottom Left
+        1.0f,  1.0f, -1.0f,   // Back Right
+        -1.0f,  1.0f, -1.0f,   // Back Left
+        -1.0f,  1.0f,  1.0f,   // Front Left
+        1.0f,  1.0f,  1.0f,   // Front Right
 
         // Bottom Face
-        1.0f, -1.0f,  1.0f,   // Top Right
-       -1.0f, -1.0f,  1.0f,   // Top Left
-        1.0f, -1.0f, -1.0f,   // Bottom Right
-
-        1.0f, -1.0f, -1.0f,   // Bottom Right
-       -1.0f, -1.0f,  1.0f,   // Top Left
-       -1.0f, -1.0f, -1.0f,   // Bottom Left
+        1.0f, -1.0f,  1.0f,   // Front Right
+        -1.0f, -1.0f,  1.0f,   // Front Left
+        -1.0f, -1.0f, -1.0f,   // Back Left
+        1.0f, -1.0f, -1.0f    // Back Right
     };
 
     float cube_color[] = 
     {
         // Front Face
-        0.0f,   0.0f,   1.0f,  
-        0.0f,   0.0f,   1.0f,  
-        0.0f,   0.0f,   1.0f,  
+        0.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 1.0f,
 
-        0.0f,   0.0f,   1.0f,  
-        0.0f,   0.0f,   1.0f,  
-        0.0f,   0.0f,   1.0f, 
-        
         // Right Face
-        1.0f,   1.0f,   0.0f,  
-        1.0f,   1.0f,   0.0f,  
-        1.0f,   1.0f,   0.0f,  
-
-        1.0f,   1.0f,   0.0f,  
-        1.0f,   1.0f,   0.0f,  
-        1.0f,   1.0f,   0.0f,
+        1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
 
         // Back Face
-        0.0f,   1.0f,   1.0f,  
-        0.0f,   1.0f,   1.0f,  
-        0.0f,   1.0f,   1.0f,  
-
-        0.0f,   1.0f,   1.0f,  
-        0.0f,   1.0f,   1.0f,  
-        0.0f,   1.0f,   1.0f,  
+        0.0f, 1.0f, 1.0f,
+        0.0f, 1.0f, 1.0f,
+        0.0f, 1.0f, 1.0f,
+        0.0f, 1.0f, 1.0f,
 
         // Left Face
-        1.0f,   0.0f,   1.0f,  
-        1.0f,   0.0f,   1.0f,  
-        1.0f,   0.0f,   1.0f,  
+        1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f,
 
-        1.0f,   0.0f,   1.0f,  
-        1.0f,   0.0f,   1.0f,  
-        1.0f,   0.0f,   1.0f,
-        
         // Top Face
-        1.0f,   0.0f,   0.0f,  
-        1.0f,   0.0f,   0.0f,  
-        1.0f,   0.0f,   0.0f,  
-
-        1.0f,   0.0f,   0.0f,  
-        1.0f,   0.0f,   0.0f,  
-        1.0f,   0.0f,   0.0f,  
+        1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
 
         // Bottom Face
-        0.0f,   1.0f,   0.0f,  
-        0.0f,   1.0f,   0.0f,  
-        0.0f,   1.0f,   0.0f,  
-
-        0.0f,   1.0f,   0.0f,  
-        0.0f,   1.0f,   0.0f,  
-        0.0f,   1.0f,   0.0f
+        0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f
     };
 
     // Code
@@ -3573,7 +3537,7 @@ VkResult createPipeline(void)
     vkPipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     vkPipelineInputAssemblyStateCreateInfo.pNext = NULL;
     vkPipelineInputAssemblyStateCreateInfo.flags = 0;
-    vkPipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    vkPipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
 
     //! Rasterization State
     VkPipelineRasterizationStateCreateInfo vkPipelineRasterizationStateCreateInfo;
@@ -3948,7 +3912,12 @@ VkResult buildCommandBuffers(void)
             );
 
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 36, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], 4, 1, 0, 0);   // Front
+            vkCmdDraw(vkCommandBuffer_array[i], 4, 1, 4, 0);   // Right
+            vkCmdDraw(vkCommandBuffer_array[i], 4, 1, 8, 0);   // Back
+            vkCmdDraw(vkCommandBuffer_array[i], 4, 1, 12, 0);  // Left
+            vkCmdDraw(vkCommandBuffer_array[i], 4, 1, 16, 0);  // Top
+            vkCmdDraw(vkCommandBuffer_array[i], 4, 1, 20, 0);  // Bottom
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
