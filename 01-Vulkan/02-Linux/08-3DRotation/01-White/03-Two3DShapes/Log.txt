@@ -585,10 +585,14 @@ uninitialize() => vkDestroyPipelineLayout() Succeeded
 uninitialize() => vkDestroyDescriptorSetLayout() Succeeded
 uninitialize() => vkDestroyShaderModule() Succeeded For Fragment Shader
 uninitialize() => vkDestroyShaderModule() Succeeded For Vertex Shader
+uninitialize() => vkFreeMemory() Succeeded For uniformData_cube.vkDeviceMemory
+uninitialize() => vkDestroyBuffer() Succedded For uniformData_cube.vkBuffer
 uninitialize() => vkFreeMemory() Succeeded For uniformData_pyramid.vkDeviceMemory
 uninitialize() => vkDestroyBuffer() Succedded For uniformData_pyramid.vkBuffer
 uninitialize() => vkFreeMemory() Succeeded For vertexData_position_cube.vkDeviceMemory
 uninitialize() => vkDestroyBuffer() Succeeded For vertexData_position_cube.vkBuffer
+uninitialize() => vkFreeMemory() Succeeded For vertexData_position_pyramid.vkDeviceMemory
+uninitialize() => vkDestroyBuffer() Succeeded For vertexData_position_pyramid.vkBuffer
 uninitialize() => vkFreeCommandBuffers() Succeeded For Index : 0
 uninitialize() => vkFreeCommandBuffers() Succeeded For Index : 1
 uninitialize() => vkFreeCommandBuffers() Succeeded For Index : 2
@@ -601,14 +605,6 @@ uninitialize() => vkDestroyImageView() Succeeded
 uninitialize() => free() Succeeded For swapchainImageView_array
 uninitialize() => free() Succeeded For swapchainImage_array
 uninitialize() => vkDestroySwapchainKHR() Succeeded
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkDestroyDevice-device-05137 ] Object 0: handle = 0x967dd1000000000e, type = VK_OBJECT_TYPE_BUFFER; | MessageID = 0x4872eaa0 | vkDestroyDevice(): OBJ ERROR : For VkDevice 0x562adb2c09b0[], VkBuffer 0x967dd1000000000e[] has not been destroyed.
-The Vulkan spec states: All child objects created on device must have been destroyed prior to destroying device (https://vulkan.lunarg.com/doc/view/1.4.304.0/linux/1.4-extensions/vkspec.html#VUID-vkDestroyDevice-device-05137)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkDestroyDevice-device-05137 ] Object 0: handle = 0x9fde6b0000000014, type = VK_OBJECT_TYPE_BUFFER; | MessageID = 0x4872eaa0 | vkDestroyDevice(): OBJ ERROR : For VkDevice 0x562adb2c09b0[], VkBuffer 0x9fde6b0000000014[] has not been destroyed.
-The Vulkan spec states: All child objects created on device must have been destroyed prior to destroying device (https://vulkan.lunarg.com/doc/view/1.4.304.0/linux/1.4-extensions/vkspec.html#VUID-vkDestroyDevice-device-05137)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkDestroyDevice-device-05137 ] Object 0: handle = 0xdd3a8a0000000015, type = VK_OBJECT_TYPE_DEVICE_MEMORY; | MessageID = 0x4872eaa0 | vkDestroyDevice(): OBJ ERROR : For VkDevice 0x562adb2c09b0[], VkDeviceMemory 0xdd3a8a0000000015[] has not been destroyed.
-The Vulkan spec states: All child objects created on device must have been destroyed prior to destroying device (https://vulkan.lunarg.com/doc/view/1.4.304.0/linux/1.4-extensions/vkspec.html#VUID-vkDestroyDevice-device-05137)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkDestroyDevice-device-05137 ] Object 0: handle = 0xe7e6d0000000000f, type = VK_OBJECT_TYPE_DEVICE_MEMORY; | MessageID = 0x4872eaa0 | vkDestroyDevice(): OBJ ERROR : For VkDevice 0x562adb2c09b0[], VkDeviceMemory 0xe7e6d0000000000f[] has not been destroyed.
-The Vulkan spec states: All child objects created on device must have been destroyed prior to destroying device (https://vulkan.lunarg.com/doc/view/1.4.304.0/linux/1.4-extensions/vkspec.html#VUID-vkDestroyDevice-device-05137)
 uninitialize() => vkDestroyDevice() Succeeded
 uninitialize() => vkDestroySurfaceKHR() Succeeded
 uninitialize() => vkDestroyInstance() Succeeded

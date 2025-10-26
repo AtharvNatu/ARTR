@@ -2751,7 +2751,7 @@ VkResult createVertexBuffer(void)
         -1.0f, -1.0f,   1.0f
     };
 
-    float pyramid_normalss[] = 
+    float pyramid_normals[] = 
     {
         // Front Face
         0.000000f, 0.447214f,  0.894427f,
@@ -2868,7 +2868,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(pyramid_normalss);
+    vkBufferCreateInfo.size = sizeof(pyramid_normals);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
     //* Step - 6
@@ -2932,7 +2932,7 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex normals Buffer\n", __func__);
 
     //* Step - 12
-    memcpy(data, pyramid_normalss, sizeof(pyramid_normalss));
+    memcpy(data, pyramid_normals, sizeof(pyramid_normals));
 
     //* Step - 13
     vkUnmapMemory(vkDevice, vertexData_normals.vkDeviceMemory);

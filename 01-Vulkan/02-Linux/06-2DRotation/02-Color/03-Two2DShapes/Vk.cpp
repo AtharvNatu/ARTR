@@ -2887,7 +2887,7 @@ VkResult createVertexBuffer(void)
     memcpy(data, triangle_color, sizeof(triangle_color));
 
     //* Step - 13
-    vkUnmapMemory(vkDevice, vertexData_position_triangle.vkDeviceMemory);
+    vkUnmapMemory(vkDevice, vertexData_color_triangle.vkDeviceMemory);
     //! ---------------------------------------------------------------------------------------------------------------------------------
     
     //! Rectangle Position
