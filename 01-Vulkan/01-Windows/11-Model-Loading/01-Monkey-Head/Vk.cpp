@@ -174,7 +174,7 @@ VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline_fillMode = VK_NULL_HANDLE;
 VkPipeline vkPipeline_lineMode = VK_NULL_HANDLE;
 
-VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures_array;
+VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures;
 
 float fAngle = 0.0f;
 const float fAnimationSpeed = 0.0003f;
@@ -1967,25 +1967,25 @@ VkResult getPhysicalDevice(void)
     vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice_selected, &vkPhysicalDeviceMemoryProperties);
 
     //* Step - 9
-    memset((void*)&vkPhysicalDeviceFeatures_array, 0, sizeof(VkPhysicalDeviceFeatures));
-    vkGetPhysicalDeviceFeatures(vkPhysicalDevice_selected, &vkPhysicalDeviceFeatures_array);
+    memset((void*)&vkPhysicalDeviceFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
+    vkGetPhysicalDeviceFeatures(vkPhysicalDevice_selected, &vkPhysicalDeviceFeatures);
 
     //* Step - 10
-    if (vkPhysicalDeviceFeatures_array.tessellationShader == VK_TRUE)
+    if (vkPhysicalDeviceFeatures.tessellationShader == VK_TRUE)
         fprintf(gpFile, "%s() => Selected Physical Device Supports Tessellation Shader\n", __func__);
     else
         fprintf(gpFile, "%s() => Selected Physical Device Does Not Support Tessellation Shader !!!\n", __func__);
 
-    if (vkPhysicalDeviceFeatures_array.geometryShader == VK_TRUE)
+    if (vkPhysicalDeviceFeatures.geometryShader == VK_TRUE)
         fprintf(gpFile, "%s() => Selected Physical Device Supports Geometry Shader\n", __func__);
     else
         fprintf(gpFile, "%s() => Selected Physical Device Does Not Support Geometry Shader !!!\n", __func__);
 
     //! For Polygon Mode
-    if (vkPhysicalDeviceFeatures_array.fillModeNonSolid == VK_TRUE)
+    if (vkPhysicalDeviceFeatures.fillModeNonSolid == VK_TRUE)
     {
         fprintf(gpFile, "%s() => Selected Physical Device Supports Non-Solid Fill Mode\n", __func__);
-        vkPhysicalDeviceFeatures_array.fillModeNonSolid = VK_TRUE;
+        vkPhysicalDeviceFeatures.fillModeNonSolid = VK_TRUE;
     }
 
     return vkResult;
@@ -2227,7 +2227,7 @@ VkResult createVulkanDevice(void)
     vkDeviceCreateInfo.ppEnabledExtensionNames = enabledDeviceExtensionNames_array;
     vkDeviceCreateInfo.queueCreateInfoCount = 1;
     vkDeviceCreateInfo.pQueueCreateInfos = &vkDeviceQueueCreateInfo;
-    vkDeviceCreateInfo.pEnabledFeatures = &vkPhysicalDeviceFeatures_array;  //! To enable features
+    vkDeviceCreateInfo.pEnabledFeatures = &vkPhysicalDeviceFeatures;  //! To enable features
     //* Deprecated in Vulkan Spec
     vkDeviceCreateInfo.enabledLayerCount = 0;
     vkDeviceCreateInfo.ppEnabledLayerNames = NULL;
@@ -3160,6 +3160,7 @@ VkResult createShaders(void)
     //! ---------------------------------------------------------------------------------------------------------------------------
     szFileName = "Shader.frag.spv";
 
+    fp = NULL;
     fp = fopen(szFileName, "rb");
     if (fp == NULL)
     {

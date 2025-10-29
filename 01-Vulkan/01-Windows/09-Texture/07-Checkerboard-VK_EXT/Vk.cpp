@@ -4346,6 +4346,7 @@ VkResult createShaders(void)
     //! ---------------------------------------------------------------------------------------------------------------------------
     szFileName = "Shader.frag.spv";
 
+    fp = NULL;
     fp = fopen(szFileName, "rb");
     if (fp == NULL)
     {

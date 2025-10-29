@@ -2162,17 +2162,17 @@ VkResult getPhysicalDevice(void)
     vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice_selected, &vkPhysicalDeviceMemoryProperties);
 
     //* Step - 9
-    VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures_array;
-    memset((void*)&vkPhysicalDeviceFeatures_array, 0, sizeof(VkPhysicalDeviceFeatures));
-    vkGetPhysicalDeviceFeatures(vkPhysicalDevice_selected, &vkPhysicalDeviceFeatures_array);
+    VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures;
+    memset((void*)&vkPhysicalDeviceFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
+    vkGetPhysicalDeviceFeatures(vkPhysicalDevice_selected, &vkPhysicalDeviceFeatures);
 
     //* Step - 10
-    if (vkPhysicalDeviceFeatures_array.tessellationShader == VK_TRUE)
+    if (vkPhysicalDeviceFeatures.tessellationShader == VK_TRUE)
         fprintf(gpFile, "%s() => Selected Physical Device Supports Tessellation Shader\n", __func__);
     else
         fprintf(gpFile, "%s() => Selected Physical Device Does Not Support Tessellation Shader !!!\n", __func__);
 
-    if (vkPhysicalDeviceFeatures_array.geometryShader == VK_TRUE)
+    if (vkPhysicalDeviceFeatures.geometryShader == VK_TRUE)
         fprintf(gpFile, "%s() => Selected Physical Device Supports Geometry Shader\n", __func__);
     else
         fprintf(gpFile, "%s() => Selected Physical Device Does Not Support Geometry Shader !!!\n", __func__);
@@ -3565,6 +3565,7 @@ VkResult createShaders(void)
     //! ---------------------------------------------------------------------------------------------------------------------------
     szFileName = "PerVertexShader.frag.spv";
 
+    fp = NULL;
     fp = fopen(szFileName, "rb");
     if (fp == NULL)
     {
@@ -3718,6 +3719,7 @@ VkResult createShaders(void)
     //! ---------------------------------------------------------------------------------------------------------------------------
     szFileName = "PerFragmentShader.frag.spv";
 
+    fp = NULL;
     fp = fopen(szFileName, "rb");
     if (fp == NULL)
     {
