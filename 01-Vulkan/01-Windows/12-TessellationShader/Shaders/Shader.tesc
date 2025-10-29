@@ -16,6 +16,6 @@ void main(void)
     // Code
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
-    gl_TessLevelOuter[0] = float(ubo.numberOfStrips.x);
-    gl_TessLevelOuter[1] = float(ubo.numberOfLineSegments.x);
+    gl_TessLevelOuter[0] = ubo.numberOfStrips.x;
+    gl_TessLevelOuter[1] = ubo.numberOfLineSegments.x;
 }

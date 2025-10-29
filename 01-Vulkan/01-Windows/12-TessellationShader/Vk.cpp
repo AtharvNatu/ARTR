@@ -2910,8 +2910,8 @@ VkResult createUniformBuffer(void)
 VkResult updateUniformBuffer(void)
 {
     // Variable Declarations
-    glm::mat4 translationMatrix = glm::mat4(1.0f);
-    glm::mat4 modelViewMatrix = glm::mat4(1.0f);
+    
+    
     glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
     VkResult vkResult = VK_SUCCESS;
 
@@ -2919,8 +2919,9 @@ VkResult updateUniformBuffer(void)
     Host_UniformData host_UniformData;
     memset((void*)&host_UniformData, 0, sizeof(Host_UniformData));
     
-    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -4.0f));
-    modelViewMatrix = translationMatrix;
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -4.0f));
+    glm::mat4 viewMatrix = glm::mat4(1.0f);
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
     perspectiveProjectionMatrix = glm::perspective(
@@ -2931,7 +2932,7 @@ VkResult updateUniformBuffer(void)
     );
     //! 2D Matrix with Column Major (Like OpenGL)
     perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
-    modelViewProjectionMatrix = perspectiveProjectionMatrix * modelViewMatrix;
+    modelViewProjectionMatrix = perspectiveProjectionMatrix * viewMatrix * modelMatrix;
     
     //* Update MVP Matrix
     host_UniformData.mvpMatrix = modelViewProjectionMatrix;

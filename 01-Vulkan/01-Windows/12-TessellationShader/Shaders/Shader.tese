@@ -19,10 +19,11 @@ void main(void)
     vec3 p1 = gl_in[1].gl_Position.xyz;
     vec3 p2 = gl_in[2].gl_Position.xyz;
     vec3 p3 = gl_in[3].gl_Position.xyz;
-
-    float u = gl_TessCoord.x;
     
-    vec3 p = p0 * (1 - u) * (1 - u) * (1 - u) + p1 * 3 * u * (1 - u) * (1 - u) + p2 * 3 * u * u * (1 - u) + p3 * u * u * u;
+    vec3 p = p0 * (1 - gl_TessCoord.x) * (1 - gl_TessCoord.x) * (1 - gl_TessCoord.x) + 
+            p1 * 3 * gl_TessCoord.x * (1 - gl_TessCoord.x) * (1 - gl_TessCoord.x) + 
+            p2 * 3 * gl_TessCoord.x * gl_TessCoord.x * (1 - gl_TessCoord.x) + 
+            p3 * gl_TessCoord.x * gl_TessCoord.x * gl_TessCoord.x;
     
     gl_Position = ubo.mvpMatrix * vec4(p, 1.0);
 }
