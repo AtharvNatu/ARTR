@@ -12,6 +12,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+//! CUDA Header Files
+#include <cuda_runtime.h>
+
 #include "Vk.h"
 
 //! Vulkan Related Libraries
@@ -56,11 +59,10 @@ VkPhysicalDeviceMemoryProperties vkPhysicalDeviceMemoryProperties;
 
 uint32_t physicalDeviceCount = 0;
 VkPhysicalDevice *vkPhysicalDevice_array = NULL;
-VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures;
 
 //? Device Extensions Related Variables
 uint32_t enabledDeviceExtensionCount = 0;
-const char *enabledDeviceExtensionNames_array[1]; //* -> VK_KHR_SWAPCHAIN_EXTENSTION_NAME
+const char *enabledDeviceExtensionNames_array[2]; //* -> VK_KHR_SWAPCHAIN_EXTENSTION_NAME, VK_KHR_external_memory_win32
 
 //? Vulkan Device Creation Related Variables
 VkDevice vkDevice = VK_NULL_HANDLE;
@@ -133,17 +135,13 @@ typedef struct
 
 //? Position Related Variables
 VertexData vertexData_position;
+void* mappedPtr = NULL;
 
 //? Uniform Related Variables
 typedef struct
 {
     glm::mat4 mvpMatrix;
-    glm::vec4 numberOfLineSegments;
-    glm::vec4 numberOfStrips;
-    glm::vec4 lineColor;
-} Host_UniformData;
-
-unsigned int uiNumberOfLineSegments = 1;
+} MVP_UniformData;
 
 typedef struct
 {
@@ -155,8 +153,6 @@ UniformData uniformData;
 
 //? Shader Related Variables
 VkShaderModule vkShaderModule_vertex_shader = VK_NULL_HANDLE;
-VkShaderModule vkShaderModule_tessellation_control_shader = VK_NULL_HANDLE;
-VkShaderModule vkShaderModule_tessellation_evaluation_shader = VK_NULL_HANDLE;
 VkShaderModule vkShaderModule_fragment_shader = VK_NULL_HANDLE;
 
 //? DescriptorSetLayout Related Variables
@@ -175,6 +171,25 @@ VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
 VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
+
+//* Sine Wave Related Variables
+const uint32_t mesh_width = 2048;
+const uint32_t mesh_height = 2048;
+
+#define MESH_SIZE    mesh_width * mesh_height * 4
+
+float position[mesh_width][mesh_height][4];
+
+//* CUDA Related Variables
+VertexData vertexData_gpu;
+cudaError_t cudaResult;
+cudaExternalMemory_t cudaExternalMemory = NULL;
+void *cudaDevicePtr = NULL;
+PFN_vkGetMemoryWin32HandleKHR vkGetMemoryWin32HandleKHR_fnptr = NULL;
+
+float fAnimationSpeed = 0.0f;
+BOOL onGPU = FALSE;
+
 
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
@@ -230,7 +245,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Tessellation Shader"),
+        TEXT("Atharv Natu : Vulkan-CUDA Interop Sine Wave"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -340,18 +355,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
             {
                 case 27:
                     DestroyWindow(hwnd);
-                break;
-
-                case VK_UP:
-                    uiNumberOfLineSegments++;
-                    if (uiNumberOfLineSegments >= 30)
-                        uiNumberOfLineSegments = 30;
-                break;
-                
-                case VK_DOWN:
-                    uiNumberOfLineSegments--;
-                    if (uiNumberOfLineSegments <= 1)
-                        uiNumberOfLineSegments = 1;
                 break;
 
                 default:
@@ -552,6 +555,18 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createCommandBuffers() Succeeded\n", __func__);
+
+    // Initialization of Position
+    for (unsigned int i = 0; i < mesh_width; i++)
+    {
+        for (unsigned int j = 0; j < mesh_height; j++)
+        {
+            for (unsigned int k = 0; k < 4; k++)
+            {
+                position[i][j][k] = 0.0f;
+            }
+        }
+    }
 
     //! Create Vertex Buffer
     vkResult = createVertexBuffer();
@@ -929,6 +944,7 @@ VkResult display(void)
     // Function Declarations
     VkResult resize(int, int);
     VkResult updateUniformBuffer(void);
+    void sineWave(unsigned int, unsigned int, float);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -1021,9 +1037,47 @@ VkResult display(void)
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
 
+    fAnimationSpeed = fAnimationSpeed + 0.02f;
+
+    sineWave(mesh_width, mesh_height, fAnimationSpeed);
+
+    memcpy(mappedPtr, position, MESH_SIZE * sizeof(float));
+
     vkDeviceWaitIdle(vkDevice);
 
     return vkResult;
+}
+
+void sineWave(unsigned int width, unsigned int height, float time)
+{
+    // Code
+    for (unsigned int i = 0; i < width; i++)
+    {
+        for (unsigned int j = 0; j < height; j++)
+        {
+            for (unsigned int k = 0; k < 4; k++)
+            {
+                float u = (float)i / (float)width;
+                float v = (float)j / (float)height;
+
+                u = u * 2.0f - 1.0f;
+                v = v * 2.0f - 1.0f;
+
+                float frequency = 4.0f;
+
+                float w = sinf(u * frequency + time) * cosf(v * frequency + time) * 0.5f;
+                
+                if (k == 0)
+                    position[i][j][k] = u;
+                if (k == 1)
+                    position[i][j][k] = w;
+                if (k == 2)
+                    position[i][j][k] = v;
+                if (k == 3)
+                    position[i][j][k] = 1.0f;
+            }
+        }
+    }
 }
 
 void update(void)
@@ -1142,20 +1196,6 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Fragment Shader\n", __func__);
     }
 
-    if (vkShaderModule_tessellation_evaluation_shader)
-    {
-        vkDestroyShaderModule(vkDevice, vkShaderModule_tessellation_evaluation_shader, NULL);
-        vkShaderModule_tessellation_evaluation_shader = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Tessellation Evaluation Shader\n", __func__);
-    }
-
-    if (vkShaderModule_tessellation_control_shader)
-    {
-        vkDestroyShaderModule(vkDevice, vkShaderModule_tessellation_control_shader, NULL);
-        vkShaderModule_tessellation_control_shader = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyShaderModule() Succeeded For Tessellation Control Shader\n", __func__);
-    }
-
     if (vkShaderModule_vertex_shader)
     {
         vkDestroyShaderModule(vkDevice, vkShaderModule_vertex_shader, NULL);
@@ -1181,8 +1221,11 @@ void uninitialize(void)
     //* Step - 14 of Vertex Buffer
     if (vertexData_position.vkDeviceMemory)
     {
+        vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
+        fprintf(gpFile, "%s() => vkUnmapMemory() Succeeded For vertexData_position.vkDeviceMemory\n", __func__);
         vkFreeMemory(vkDevice, vertexData_position.vkDeviceMemory, NULL);
         vertexData_position.vkDeviceMemory = VK_NULL_HANDLE;
+        mappedPtr = NULL;
         fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position.vkDeviceMemory\n", __func__);
     }
 
@@ -1921,6 +1964,7 @@ VkResult getPhysicalDevice(void)
     vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice_selected, &vkPhysicalDeviceMemoryProperties);
 
     //* Step - 9
+    VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures;
     memset((void*)&vkPhysicalDeviceFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
     vkGetPhysicalDeviceFeatures(vkPhysicalDevice_selected, &vkPhysicalDeviceFeatures);
 
@@ -2174,16 +2218,7 @@ VkResult createVulkanDevice(void)
     vkDeviceCreateInfo.ppEnabledExtensionNames = enabledDeviceExtensionNames_array;
     vkDeviceCreateInfo.queueCreateInfoCount = 1;
     vkDeviceCreateInfo.pQueueCreateInfos = &vkDeviceQueueCreateInfo;
-    
-    if (vkPhysicalDeviceFeatures.tessellationShader == VK_TRUE)
-        vkDeviceCreateInfo.pEnabledFeatures = &vkPhysicalDeviceFeatures;
-    else
-    {
-        vkDeviceCreateInfo.pEnabledFeatures = NULL;
-        fprintf(gpFile, "ERROR : Selected Device Does Not Support Tessellation Shader : %d !!!\n", vkResult);
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-
+    vkDeviceCreateInfo.pEnabledFeatures = NULL;
     //* Deprecated in Vulkan Spec
     vkDeviceCreateInfo.enabledLayerCount = 0;
     vkDeviceCreateInfo.ppEnabledLayerNames = NULL;
@@ -2729,17 +2764,10 @@ VkResult createVertexBuffer(void)
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
-    //* Step - 3
-    const float line_position[] = 
-    {
-        -1.0f,  -1.0f,
-        -0.5f,   1.0f,
-         0.5f,  -1.0f,
-         1.0f,   1.0f
-    };
-
     // Code
     
+    //! Vertex Position
+    //! -------------------------------------------------------------------------------------------------------------------------------------
     //* Step - 4
     memset((void*)&vertexData_position, 0, sizeof(VertexData));
 
@@ -2749,15 +2777,15 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(line_position);
+    vkBufferCreateInfo.size = MESH_SIZE * sizeof(float);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Vertex Position Buffer  : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Vertex Position Buffer\n", __func__);
     
     //* Step - 7
     VkMemoryRequirements vkMemoryRequirements;
@@ -2794,32 +2822,26 @@ VkResult createVertexBuffer(void)
     //* Step - 9
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 10
     //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
     vkResult = vkBindBufferMemory(vkDevice, vertexData_position.vkBuffer, vertexData_position.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Buffer\n", __func__);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 11
-    void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &mappedPtr);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Buffer\n", __func__);
-
-    //* Step - 12
-    memcpy(data, line_position, sizeof(line_position));
-
-    //* Step - 13
-    vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
-
+        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
+    //! -------------------------------------------------------------------------------------------------------------------------------------
+    
     return vkResult;
 }
 
@@ -2837,7 +2859,7 @@ VkResult createUniformBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(Host_UniformData);
+    vkBufferCreateInfo.size = sizeof(MVP_UniformData);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
     memset((void*)&uniformData, 0, sizeof(UniformData));
@@ -2911,15 +2933,18 @@ VkResult updateUniformBuffer(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
-    glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
 
     // Code
-    Host_UniformData host_UniformData;
-    memset((void*)&host_UniformData, 0, sizeof(Host_UniformData));
-    
-    glm::mat4 modelMatrix = glm::mat4(1.0f);
-    modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -4.0f));
-    glm::mat4 viewMatrix = glm::mat4(1.0f);
+    MVP_UniformData mvp_UniformData;
+    memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
+
+    //! Update Matrices
+    glm::mat4 translationMatrix = glm::mat4(1.0f);
+    glm::mat4 modelViewMatrix = glm::mat4(1.0f);
+    glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
+
+    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    modelViewMatrix = translationMatrix;
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
     perspectiveProjectionMatrix = glm::perspective(
@@ -2930,38 +2955,13 @@ VkResult updateUniformBuffer(void)
     );
     //! 2D Matrix with Column Major (Like OpenGL)
     perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
-    modelViewProjectionMatrix = perspectiveProjectionMatrix * viewMatrix * modelMatrix;
-    
-    //* Update MVP Matrix
-    host_UniformData.mvpMatrix = modelViewProjectionMatrix;
+    modelViewProjectionMatrix = perspectiveProjectionMatrix * modelViewMatrix;
 
-    //* Update Line Segments
-    host_UniformData.numberOfLineSegments.x = uiNumberOfLineSegments;
-    
-    //* Update Number of Strips
-    host_UniformData.numberOfStrips.x = (float)1.0;
-
-    //* Update Line Color
-    host_UniformData.lineColor = glm::vec4(1.0, 1.0, 0.0, 1.0); // Yellow Color
-
-    switch(uiNumberOfLineSegments)
-    {
-        case 1:
-            host_UniformData.lineColor = glm::vec4(1.0, 0.0, 0.0, 1.0);
-        break;
-
-        case 30:
-            host_UniformData.lineColor = glm::vec4(0.0, 1.0, 0.0, 1.0);
-        break;
-    }
-
-    TCHAR str[255];
-    wsprintf(str, TEXT("Atharv Natu : Vulkan Tessellation Shader | Number Of Segments = %d"), uiNumberOfLineSegments);
-    SetWindowText(ghwnd, str);
+    mvp_UniformData.mvpMatrix = modelViewProjectionMatrix;
 
     //! Map Uniform Buffer
     void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(Host_UniformData), 0, &data);
+    vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
     if (vkResult != VK_SUCCESS)
     {
         fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
@@ -2969,7 +2969,7 @@ VkResult updateUniformBuffer(void)
     }
 
     //! Copy the data to the mapped buffer (present on device memory)
-    memcpy(data, &host_UniformData, sizeof(Host_UniformData));
+    memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
 
     //! Unmap memory
     vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
@@ -3060,156 +3060,6 @@ VkResult createShaders(void)
     fprintf(gpFile, "%s() => Vertex Shader Module Successfully Created\n", __func__);
     //! ---------------------------------------------------------------------------------------------------------------------------
 
-    //! Tessellation Control Shader
-    //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Shader.tesc.spv";
-
-    fp = NULL;
-    fp = fopen(szFileName, "rb");
-    if (fp == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File :  %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Succeeded In Opening SPIR-V Shader File : %s\n", __func__, szFileName);
-
-    fseek(fp, 0L, SEEK_END);
-    size = ftell(fp);
-    if (size == 0)
-    {
-        fprintf(gpFile, "%s() => Empty SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    fseek(fp, 0L, SEEK_SET);
-
-    shaderData = (char*)malloc(size * sizeof(char));
-    if (shaderData == NULL)
-    {
-        fprintf(gpFile, "%s() => malloc() Failed For shaderData !!!\n", __func__);
-        return VK_ERROR_OUT_OF_HOST_MEMORY;
-    }
-
-    retVal = fread(shaderData, size, 1, fp);
-    if (retVal != 1)
-    {
-        fprintf(gpFile, "%s() => Failed To Read From SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Successfully Read Shader From SPIR-V Shader File : %s\n", __func__, szFileName);
-    
-    if (fp)
-    {
-        fclose(fp);
-        fp = NULL;
-        fprintf(gpFile, "%s() => Closed SPIR-V File : %s\n", __func__, szFileName);
-    }
-
-    //* Step - 7
-    memset((void*)&vkShaderModuleCreateInfo, 0, sizeof(VkShaderModuleCreateInfo));
-    vkShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    vkShaderModuleCreateInfo.pNext = NULL;
-    vkShaderModuleCreateInfo.flags = 0; //! Reserved, must be 0
-    vkShaderModuleCreateInfo.pCode = (uint32_t*)shaderData;
-    vkShaderModuleCreateInfo.codeSize = size;
-
-    //* Step - 8
-    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_tessellation_control_shader);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Tessellation Control Shader : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Tessellation Control Shader\n", __func__);
-
-    //* Step - 9
-    if (shaderData)
-    {
-        free(shaderData);
-        shaderData = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
-    }
-
-    fprintf(gpFile, "%s() => Tessellation Control Shader Module Successfully Created\n", __func__);
-    //! ---------------------------------------------------------------------------------------------------------------------------
-    
-    //! Tessellation Evaluation Shader
-    //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Shader.tese.spv";
-
-    fp = NULL;
-    fp = fopen(szFileName, "rb");
-    if (fp == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File :  %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Succeeded In Opening SPIR-V Shader File : %s\n", __func__, szFileName);
-
-    fseek(fp, 0L, SEEK_END);
-    size = ftell(fp);
-    if (size == 0)
-    {
-        fprintf(gpFile, "%s() => Empty SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    fseek(fp, 0L, SEEK_SET);
-
-    shaderData = (char*)malloc(size * sizeof(char));
-    if (shaderData == NULL)
-    {
-        fprintf(gpFile, "%s() => malloc() Failed For shaderData !!!\n", __func__);
-        return VK_ERROR_OUT_OF_HOST_MEMORY;
-    }
-
-    retVal = fread(shaderData, size, 1, fp);
-    if (retVal != 1)
-    {
-        fprintf(gpFile, "%s() => Failed To Read From SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Successfully Read Shader From SPIR-V Shader File : %s\n", __func__, szFileName);
-    
-    if (fp)
-    {
-        fclose(fp);
-        fp = NULL;
-        fprintf(gpFile, "%s() => Closed SPIR-V File : %s\n", __func__, szFileName);
-    }
-
-    //* Step - 7
-    memset((void*)&vkShaderModuleCreateInfo, 0, sizeof(VkShaderModuleCreateInfo));
-    vkShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    vkShaderModuleCreateInfo.pNext = NULL;
-    vkShaderModuleCreateInfo.flags = 0; //! Reserved, must be 0
-    vkShaderModuleCreateInfo.pCode = (uint32_t*)shaderData;
-    vkShaderModuleCreateInfo.codeSize = size;
-
-    //* Step - 8
-    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_tessellation_evaluation_shader);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Tessellation Evaluation Shader : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Tessellation Evaluation Shader\n", __func__);
-
-    //* Step - 9
-    if (shaderData)
-    {
-        free(shaderData);
-        shaderData = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
-    }
-
-    fprintf(gpFile, "%s() => Tessellation Evaluation Shader Module Successfully Created\n", __func__);
-    //! ---------------------------------------------------------------------------------------------------------------------------
-    
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     szFileName = "Shader.frag.spv";
@@ -3299,7 +3149,7 @@ VkResult createDescriptorSetLayout(void)
     vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
     vkDescriptorSetLayoutBinding.descriptorCount = 1;
-    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
 
     //* Step - 3
@@ -3409,7 +3259,7 @@ VkResult createDescriptorSet(void)
     memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
     vkDescriptorBufferInfo.buffer = uniformData.vkBuffer;
     vkDescriptorBufferInfo.offset = 0;
-    vkDescriptorBufferInfo.range = sizeof(Host_UniformData);
+    vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
 
     /* Update above descriptor set directly to the shader
     There are 2 ways :-
@@ -3524,15 +3374,20 @@ VkResult createPipeline(void)
     //! Vertex Input State
     VkVertexInputBindingDescription vkVertexInputBindingDescription_array[1];
     memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
+    
+    //! Position
     vkVertexInputBindingDescription_array[0].binding = 0;
-    vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 2; // As the geometry is line, and does not have z
+    vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 4; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
 
     VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[1];
     memset((void*)vkVertexInputAttributeDescription_array, 0, sizeof(VkVertexInputAttributeDescription) * _ARRAYSIZE(vkVertexInputAttributeDescription_array));
+    
+    //! Position
     vkVertexInputAttributeDescription_array[0].binding = 0;
     vkVertexInputAttributeDescription_array[0].location = 0;
-    vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32_SFLOAT;
+    vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     vkVertexInputAttributeDescription_array[0].offset = 0;
 
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
@@ -3551,7 +3406,8 @@ VkResult createPipeline(void)
     vkPipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     vkPipelineInputAssemblyStateCreateInfo.pNext = NULL;
     vkPipelineInputAssemblyStateCreateInfo.flags = 0;
-    vkPipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+    vkPipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    vkPipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
 
     //! Rasterization State
     VkPipelineRasterizationStateCreateInfo vkPipelineRasterizationStateCreateInfo;
@@ -3560,7 +3416,7 @@ VkResult createPipeline(void)
     vkPipelineRasterizationStateCreateInfo.pNext = NULL;
     vkPipelineRasterizationStateCreateInfo.flags = 0;
     vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
     vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
@@ -3634,7 +3490,7 @@ VkResult createPipeline(void)
     vkPipelineMultisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     //! Shader Stage State
-    VkPipelineShaderStageCreateInfo vkPipelineShaderStageCreateInfo_array[4];
+    VkPipelineShaderStageCreateInfo vkPipelineShaderStageCreateInfo_array[2];
     memset((void*)vkPipelineShaderStageCreateInfo_array, 0, sizeof(VkPipelineShaderStageCreateInfo) * _ARRAYSIZE(vkPipelineShaderStageCreateInfo_array));
     
     //* Vertex Shader
@@ -3646,40 +3502,16 @@ VkResult createPipeline(void)
     vkPipelineShaderStageCreateInfo_array[0].pName = "main";
     vkPipelineShaderStageCreateInfo_array[0].pSpecializationInfo = NULL;
 
-    //* Tessellation Control Shader
+    //* Fragment Shader
     vkPipelineShaderStageCreateInfo_array[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vkPipelineShaderStageCreateInfo_array[1].pNext = NULL;
     vkPipelineShaderStageCreateInfo_array[1].flags = 0;
-    vkPipelineShaderStageCreateInfo_array[1].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-    vkPipelineShaderStageCreateInfo_array[1].module = vkShaderModule_tessellation_control_shader;
+    vkPipelineShaderStageCreateInfo_array[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    vkPipelineShaderStageCreateInfo_array[1].module = vkShaderModule_fragment_shader;
     vkPipelineShaderStageCreateInfo_array[1].pName = "main";
     vkPipelineShaderStageCreateInfo_array[1].pSpecializationInfo = NULL;
 
-    //* Tessellation Evaluation Shader
-    vkPipelineShaderStageCreateInfo_array[2].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vkPipelineShaderStageCreateInfo_array[2].pNext = NULL;
-    vkPipelineShaderStageCreateInfo_array[2].flags = 0;
-    vkPipelineShaderStageCreateInfo_array[2].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-    vkPipelineShaderStageCreateInfo_array[2].module = vkShaderModule_tessellation_evaluation_shader;
-    vkPipelineShaderStageCreateInfo_array[2].pName = "main";
-    vkPipelineShaderStageCreateInfo_array[2].pSpecializationInfo = NULL;
-
-    //* Fragment Shader
-    vkPipelineShaderStageCreateInfo_array[3].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vkPipelineShaderStageCreateInfo_array[3].pNext = NULL;
-    vkPipelineShaderStageCreateInfo_array[3].flags = 0;
-    vkPipelineShaderStageCreateInfo_array[3].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    vkPipelineShaderStageCreateInfo_array[3].module = vkShaderModule_fragment_shader;
-    vkPipelineShaderStageCreateInfo_array[3].pName = "main";
-    vkPipelineShaderStageCreateInfo_array[3].pSpecializationInfo = NULL;
-
     //! Tessellation State !//
-    VkPipelineTessellationStateCreateInfo vkPipelineTessellationStateCreateInfo;
-    memset((void*)&vkPipelineTessellationStateCreateInfo, 0, sizeof(VkPipelineTessellationStateCreateInfo));
-    vkPipelineTessellationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-    vkPipelineTessellationStateCreateInfo.pNext = NULL;
-    vkPipelineTessellationStateCreateInfo.flags = 0;
-    vkPipelineTessellationStateCreateInfo.patchControlPoints = 4;
 
     //! As pipelines are created from pipeline caches, we will create VkPipelineCache Object
     VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo;
@@ -3711,7 +3543,7 @@ VkResult createPipeline(void)
     vkGraphicsPipelineCreateInfo.pMultisampleState = &vkPipelineMultisampleStateCreateInfo;
     vkGraphicsPipelineCreateInfo.stageCount = _ARRAYSIZE(vkPipelineShaderStageCreateInfo_array);
     vkGraphicsPipelineCreateInfo.pStages = vkPipelineShaderStageCreateInfo_array;
-    vkGraphicsPipelineCreateInfo.pTessellationState = &vkPipelineTessellationStateCreateInfo;
+    vkGraphicsPipelineCreateInfo.pTessellationState = NULL;
     vkGraphicsPipelineCreateInfo.layout = vkPipelineLayout;
     vkGraphicsPipelineCreateInfo.renderPass = vkRenderPass;
     vkGraphicsPipelineCreateInfo.subpass = 0;
@@ -3927,19 +3759,19 @@ VkResult buildCommandBuffers(void)
                 NULL
             );
 
-            //! Bind with Vertex Buffer
-            VkDeviceSize vkDeviceSize_offset_array[1];
-            memset((void*)vkDeviceSize_offset_array, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_array));
+            //! Bind with Vertex Position Buffer
+            VkDeviceSize vkDeviceSize_offset_position[1];
+            memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
             vkCmdBindVertexBuffers(
                 vkCommandBuffer_array[i], 
                 0, 
                 1, 
                 &vertexData_position.vkBuffer, 
-                vkDeviceSize_offset_array
+                vkDeviceSize_offset_position
             );
 
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 4, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], mesh_width * mesh_height, 1, 0, 0);
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
