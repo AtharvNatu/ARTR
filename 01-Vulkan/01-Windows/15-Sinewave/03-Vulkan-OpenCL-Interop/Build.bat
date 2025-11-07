@@ -76,7 +76,7 @@ link.exe ^
         Vk.res ^
         /LIBPATH:%VULKAN_LIB_PATH% ^
         /LIBPATH:%CUDA_LIB_PATH% ^
-        user32.lib gdi32.lib ^
+        user32.lib gdi32.lib cudart.lib ^
         /SUBSYSTEM:WINDOWS
 
 if errorlevel 1 (
