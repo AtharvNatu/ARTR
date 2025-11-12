@@ -403,7 +403,7 @@ float cubeNormals[] =
 	 0.0f, -1.0f,  0.0f, // bottom-left of bottom
 };
 
-float cube_PCNT[] =
+const float cube_PCNT[] =
 {
 	// front
 	// position				// color			 // normals				// texcoords
