@@ -4127,21 +4127,19 @@ VkResult updateUniformBuffer(void)
 
     //! Update Matrices
     glm::mat4 translationMatrix = glm::mat4(1.0f);
-    glm::mat4 scaleMatrix = glm::mat4(1.0f);
     glm::mat4 rotationMatrix_x = glm::mat4(1.0f);
     glm::mat4 rotationMatrix_y = glm::mat4(1.0f);
     glm::mat4 rotationMatrix_z = glm::mat4(1.0f);
     glm::mat4 rotationMatrix = glm::mat4(1.0f);
 
     translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -6.0f));
-    scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.75f, 0.75f, 0.75f));
     rotationMatrix_x = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(1.0f, 0.0f, 0.0f));
     rotationMatrix_y = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 1.0f, 0.0f));
     rotationMatrix_z = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 0.0f, 1.0f));
     rotationMatrix = rotationMatrix_x * rotationMatrix_y * rotationMatrix_z;
 
     host_uniformData.modelMatrix = glm::mat4(1.0f);
-    host_uniformData.modelMatrix = translationMatrix * scaleMatrix * rotationMatrix;
+    host_uniformData.modelMatrix = translationMatrix * rotationMatrix;
     host_uniformData.viewMatrix = glm::mat4(1.0f);
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
