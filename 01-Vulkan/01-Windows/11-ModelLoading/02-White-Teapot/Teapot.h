@@ -1,12 +1,12 @@
 #pragma once
 
 // Utah Teapot
-// 7850 Verticies
+// 7850 Vertices
 // 8334 Texture Coordinates
 // 8360 Normals
 // 15704 Triangles
 
-short face_indicies[15704][9] = 
+short face_indices[15704][9] = 
 {
 	// Base
 	{ 1,1535,1536 ,0,1,2 ,0,1,2 },{ 1,0,1535 ,0,3,1 ,0,3,1 },{ 0,3,1535 ,3,4,1 ,3,4,1 },
