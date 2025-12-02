@@ -37,6 +37,7 @@ void main(void)
 
     vec4 eyeCoordinates = ubo.viewMatrix * ubo.modelMatrix * vPosition;
     mat3 normalMatrix = mat3(ubo.viewMatrix * ubo.modelMatrix);
+    
     out_transformedNormals = normalMatrix * vNormals;
     out_lightDirection = vec3(ubo.lightPosition - eyeCoordinates);
     out_viewerVector = -eyeCoordinates.xyz;

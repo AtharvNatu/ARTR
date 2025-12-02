@@ -8,7 +8,7 @@ layout(location = 0) out vec3 transformedNormals;
 layout(location = 1) out vec3 lightDirection;
 layout(location = 2) out vec3 viewerVector;
 
-layout(binding = 0) uniform ubo 
+layout(binding = 0) uniform uniformData 
 {
     // Matrices Related Uniforms
     mat4 modelMatrix;
@@ -30,19 +30,19 @@ layout(binding = 0) uniform ubo
     // Key Press Related Uniform
     uint keyPressed;
 
-} uniformData;
+} ubo;
 
 void main(void)
 {
     // Code
-    gl_Position = uniformData.projectionMatrix * uniformData.viewMatrix * uniformData.modelMatrix * vPosition;
+    gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vPosition;
 
-    if (uniformData.keyPressed == 1)
+    if (ubo.keyPressed == 1)
     {
-        vec4 eyeCoordinates = uniformData.viewMatrix * uniformData.modelMatrix * vPosition;
-        mat3 normalMatrix = mat3(uniformData.viewMatrix * uniformData.modelMatrix);
+        vec4 eyeCoordinates = ubo.viewMatrix * ubo.modelMatrix * vPosition;
+        mat3 normalMatrix = mat3(ubo.viewMatrix * ubo.modelMatrix);
         transformedNormals = normalMatrix * vNormal;
-        lightDirection = vec3(uniformData.lightPosition - eyeCoordinates);
+        lightDirection = vec3(ubo.lightPosition - eyeCoordinates);
         viewerVector = -eyeCoordinates.xyz;
     }
 }

@@ -155,14 +155,14 @@ typedef struct
     glm::mat4 projectionMatrix;
 
     // Light Related Uniforms
-    float lightAmbient[4];
-    float lightDiffuse[4];
-    float lightSpecular[4];
-    float lightPosition[4];
+    glm::vec4 lightAmbient;
+    glm::vec4 lightDiffuse;
+    glm::vec4 lightSpecular;
+    glm::vec4 lightPosition;
 
-    float materialAmbient[4];
-    float materialDiffuse[4];
-    float materialSpecular[4];
+    glm::vec4 materialAmbient;
+    glm::vec4 materialDiffuse;
+    glm::vec4 materialSpecular;
     float materialShininess;
 
     // Key Press Related Uniform
@@ -3237,41 +3237,14 @@ VkResult updateUniformBuffer(void)
     host_uniformData.projectionMatrix = perspectiveProjectionMatrix;
 
     //! Update Light Related Uniforms
-    host_uniformData.lightAmbient[0] = 0.1f;
-    host_uniformData.lightAmbient[1] = 0.1f;
-    host_uniformData.lightAmbient[2] = 0.1f;
-    host_uniformData.lightAmbient[3] = 1.0f;
+    host_uniformData.lightAmbient = glm::vec4(0.1f, 0.1f, 0.1f, 1.0f);
+    host_uniformData.lightDiffuse = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    host_uniformData.lightSpecular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    host_uniformData.lightSpecular = glm::vec4(100.0f, 100.0f, 100.0f, 1.0f);
 
-    host_uniformData.lightDiffuse[0] = 1.0f;
-    host_uniformData.lightDiffuse[1] = 1.0f;
-    host_uniformData.lightDiffuse[2] = 1.0f;
-    host_uniformData.lightDiffuse[3] = 1.0f;
-
-    host_uniformData.lightSpecular[0] = 1.0f;
-    host_uniformData.lightSpecular[1] = 1.0f;
-    host_uniformData.lightSpecular[2] = 1.0f;
-    host_uniformData.lightSpecular[3] = 1.0f;
-
-    host_uniformData.lightPosition[0] = 100.0f;
-    host_uniformData.lightPosition[1] = 100.0f;
-    host_uniformData.lightPosition[2] = 100.0f;
-    host_uniformData.lightPosition[3] = 1.0f;
-
-    host_uniformData.materialAmbient[0] = 0.0f;
-    host_uniformData.materialAmbient[1] = 0.0f;
-    host_uniformData.materialAmbient[2] = 0.0f;
-    host_uniformData.materialAmbient[3] = 1.0f;
-
-    host_uniformData.materialDiffuse[0] = 0.5f;
-    host_uniformData.materialDiffuse[1] = 0.2f;
-    host_uniformData.materialDiffuse[2] = 0.7f;
-    host_uniformData.materialDiffuse[3] = 1.0f;
-
-    host_uniformData.materialSpecular[0] = 0.7f;
-    host_uniformData.materialSpecular[1] = 0.7f;
-    host_uniformData.materialSpecular[2] = 0.7f;
-    host_uniformData.materialSpecular[3] = 1.0f;
-
+    host_uniformData.materialAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    host_uniformData.materialDiffuse = glm::vec4(0.5f, 0.2f, 0.7f, 1.0f);
+    host_uniformData.materialSpecular = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f);
     host_uniformData.materialShininess = 128.0f;
 
     //! Update Key Pressed Related Uniform

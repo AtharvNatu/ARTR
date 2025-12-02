@@ -34,16 +34,16 @@ layout(binding = 1) uniform sampler2D utextureSampler;
 void main(void)
 {
     // Code
-    vec4 ambient = ubo.lightAmbient * ubo.materialAmbient;
     vec3 normalizedTransformedNormals = normalize(out_transformedNormals);
     vec3 normalizedLightDirection = normalize(out_lightDirection);
+    vec3 normalizedViewerVector = normalize(out_viewerVector);
+
+    vec4 ambient = ubo.lightAmbient * ubo.materialAmbient;
     vec4 diffuse = ubo.lightDiffuse * ubo.materialDiffuse * max(dot(normalizedLightDirection, normalizedTransformedNormals), 0.0);
     vec3 reflectionVector = reflect(-normalizedLightDirection, normalizedTransformedNormals);
-    vec3 normalizedViewerVector = normalize(out_viewerVector);
     vec4 specular = ubo.lightSpecular * ubo.materialSpecular * pow(max(dot(reflectionVector, normalizedViewerVector), 0.0), ubo.materialShininess);
 
     vec3 phong_ads_light = vec3(ambient) + vec3(diffuse) + vec3(specular);
 
-    FragColor = vec4(phong_ads_light, 1.0);
-    // FragColor = vec4(phong_ads_light * vec3(texture(utextureSampler, out_texcoords)), 1.0);
+    FragColor = vec4(phong_ads_light * vec3(texture(utextureSampler, out_texcoords)), 1.0);
 }

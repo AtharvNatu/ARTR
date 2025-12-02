@@ -3298,7 +3298,7 @@ VkResult updateUniformBuffer(void)
     glm::mat4 translationMatrix = glm::mat4(1.0f);
     glm::mat4 rotationMatrix = glm::mat4(1.0f);
 
-    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
+    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f));
     rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(angleTeapot), glm::vec3(0.0f, 1.0f, 0.0f));
 
     mvp_UniformData.modelMatrix = glm::mat4(1.0f);

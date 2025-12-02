@@ -30,6 +30,7 @@ layout(binding = 0) uniform uniformData
     vec4 materialDiffuse;
     vec4 materialSpecular;
     float materialShininess;
+
 } ubo;
 
 void main(void)
@@ -39,10 +40,10 @@ void main(void)
 
     vec4 eyeCoordinates = ubo.viewMatrix * ubo.modelMatrix * vPosition;
     mat3 normalMatrix = mat3(ubo.viewMatrix * ubo.modelMatrix);
-    out_transformedNormals = normalize(normalMatrix * vNormals);
-    out_lightDirection = vec3(ubo.lightPosition) - eyeCoordinates.xyz;
+    
+    out_transformedNormals = normalMatrix * vNormals;
+    out_lightDirection = vec3(ubo.lightPosition - eyeCoordinates);
     out_viewerVector = -eyeCoordinates.xyz;
-
     out_texcoords = vTexcoords;
     out_color = vColor;
 }
