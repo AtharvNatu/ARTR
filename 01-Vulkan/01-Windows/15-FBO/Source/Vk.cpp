@@ -1107,7 +1107,7 @@ VkResult resize(int width, int height)
     VkResult createPipeline(void);
     VkResult createFramebuffers(void);
     VkResult buildCommandBuffers(void);
-    VkResult createDescriptorPool(void);
+    VkResult createDescriptorSet(void);
 
     //! FBO Related
     VkResult resize_fbo(int, int);
@@ -1306,6 +1306,14 @@ VkResult resize(int width, int height)
             return vkResult;
         }
 
+        //! Recreate Descriptor Set
+        vkResult = createDescriptorSet();
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createDescriptorSet() Failed\n", __func__);
+            return vkResult;
+        }
+
         //* Build Command Buffers
         vkResult = buildCommandBuffers();
         if (vkResult != VK_SUCCESS)
@@ -1313,14 +1321,7 @@ VkResult resize(int width, int height)
             fprintf(gpFile, "%s() => buildCommandBuffers() Failed\n", __func__);
             return vkResult;
         }
-        
-        //! Recreate Descriptor Set
-        vkResult = createDescriptorPool();
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => createDescriptorSet() Failed\n", __func__);
-            return vkResult;
-        }
+
         
         //?--------------------------------------------------------------------------------------------------
     }
