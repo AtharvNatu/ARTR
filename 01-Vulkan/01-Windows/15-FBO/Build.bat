@@ -14,7 +14,7 @@ set IMAGES_PATH=Assets\Images
 set BIN_DIR=Bin
 
 @REM SHADER RELATED
-set SPV = 1
+set SPV=1
 
 set VERT_SHDR_1="Cube.vert"
 set FRAG_SHDR_1="Cube.frag"
@@ -68,7 +68,7 @@ if errorlevel 1 (
 
 @echo:
 if %SPV%==1 (
-   echo ----------------------------------------------------------------------------------------------------------------
+    echo ----------------------------------------------------------------------------------------------------------------
     echo Compiling Shader Files To SPIR-V Binaries ...
     echo ----------------------------------------------------------------------------------------------------------------
     cd Shaders

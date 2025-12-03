@@ -1,4 +1,5 @@
 WinMain() => Program Started Successfully
+resize_fbo() => Initialization Not Yet Completed or Failed !!!
 resize() => Initialization Not Yet Completed or Failed !!!
 fillInstanceExtensionNames() => Call 1 : vkEnumerateInstanceExtensionProperties() Succeeded
 fillInstanceExtensionNames() => Call 2 : vkEnumerateInstanceExtensionProperties() Succeeded
@@ -365,11 +366,23 @@ createImagesAndImageViews() => vkAllocateMemory() Succeeded For Depth
 createImagesAndImageViews() => vkBindImageMemory() Succeeded For Depth
 createImagesAndImageViews() => vkCreateImageView() Succeeded For Depth
 initialize() => createImagesAndImageViews() Succeeded
+createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded FBO Texture
+createImagesAndImageViews_fbo() => vkCreateSampler() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Depth
+createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Depth
+createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Depth
+createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded For FBO Depth
+initialize() => createImagesAndImageViews_fbo() Succeeded
 createCommandPool() => vkCreateCommandPool() Succeeded
 initialize() => createCommandPool() Succeeded
 createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
 createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
 initialize() => createCommandBuffers() Succeeded
+createCommandBuffer_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_fbo
+initialize() => createCommandBuffer_fbo() Succeeded
 createVertexBuffer() => vkCreateBuffer() Succeeded For Vertex Position Buffer
 createVertexBuffer() => vkAllocateMemory() Succeeded For Vertex Position Buffer
 createVertexBuffer() => vkBindBufferMemory() Succeeded For Vertex Position Buffer
@@ -379,11 +392,73 @@ createVertexBuffer() => vkAllocateMemory() Succeeded For Vertex Texture Buffer
 createVertexBuffer() => vkBindBufferMemory() Succeeded For Vertex Texture Buffer
 createVertexBuffer() => vkMapMemory() Succeeded For Vertex Texture Buffer
 initialize() => createVertexBuffer() Succeeded
+createVertexBuffer_fbo() => vkCreateBuffer() Succeeded For Vertex Position Buffer
+createVertexBuffer_fbo() => vkAllocateMemory() Succeeded For Vertex Position Buffer
+createVertexBuffer_fbo() => vkBindBufferMemory() Succeeded For Vertex Position Buffer
+createVertexBuffer_fbo() => vkMapMemory() Succeeded For Vertex Position Buffer
+createVertexBuffer_fbo() => vkCreateBuffer() Succeeded For Vertex Normals Buffer
+createVertexBuffer_fbo() => vkAllocateMemory() Succeeded For Vertex Normals Buffer
+createVertexBuffer_fbo() => vkBindBufferMemory() Succeeded For Vertex Normals Buffer
+createVertexBuffer_fbo() => vkMapMemory() Succeeded For Vertex Normals Buffer
+createVertexBuffer_fbo() => vkCreateBuffer() Succeeded For Vertex Texcoords Buffer
+createVertexBuffer_fbo() => vkAllocateMemory() Succeeded For Vertex Texcoords Buffer
+createVertexBuffer_fbo() => vkBindBufferMemory() Succeeded For Vertex Texcoords Buffer
+createVertexBuffer_fbo() => vkMapMemory() Succeeded For Vertex Texcoords Buffer
+initialize() => createVertexBuffer_fbo() Succeeded
+createIndexBuffer_fbo() => vkCreateBuffer() Succeeded For Index Buffer
+createIndexBuffer_fbo() => vkAllocateMemory() Succeeded For Index Buffer
+createIndexBuffer_fbo() => vkBindBufferMemory() Succeeded For Index Buffer
+createIndexBuffer_fbo() => vkMapMemory() Succeeded For Index Buffer
+initialize() => createIndexBuffer_fbo() Succeeded
+
+Assets\Images\Marble.png Properties
+-------------------------------------------
+Image Width = 512
+Image Height = 512
+Image Size = 1048576
+-------------------------------------------
+
+createTexture_fbo() => vkCreateBuffer() Succeeded For Staging Buffer : Assets\Images\Marble.png
+createTexture_fbo() => vkAllocateMemory() Succeeded For Staging Buffer : Assets\Images\Marble.png
+createTexture_fbo() => vkBindBufferMemory() Succeeded For Staging Buffer : Assets\Images\Marble.png
+createTexture_fbo() => vkMapMemory() Succeeded For Staging Buffer : Assets\Images\Marble.png
+createTexture_fbo() => stbi_image_free() Called For Texture : Assets\Images\Marble.png
+createTexture_fbo() => vkCreateImage() Succeeded For Texture : Assets\Images\Marble.png
+createTexture_fbo() => vkAllocateMemory() Succeeded For Texture : Assets\Images\Marble.png
+createTexture_fbo() => vkBindImageMemory() Succeeded For Texture : Assets\Images\Marble.png
+createTexture_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkBeginCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkEndCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkQueueSubmit() Succeeded For vkSubmitInfo_transition_image_layout
+createTexture_fbo() => vkQueueWaitIdle() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkFreeCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_buffer_to_image_copy
+createTexture_fbo() => vkBeginCommandBuffer() Succeeded For vkCommandBuffer_buffer_to_image_copy
+createTexture_fbo() => vkEndCommandBuffer() Succeeded For vkCommandBuffer_buffer_to_image_copy
+createTexture_fbo() => vkQueueSubmit() Succeeded For vkSubmitInfo_buffer_to_copy
+createTexture_fbo() => vkQueueWaitIdle() Succeeded For vkCommandBuffer_buffer_to_image_copy
+createTexture_fbo() => vkFreeCommandBuffers() Succeeded For vkCommandBuffer_buffer_to_image_copy
+createTexture_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkBeginCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkEndCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkQueueSubmit() Succeeded For vkSubmitInfo_transition_image_layout
+createTexture_fbo() => vkQueueWaitIdle() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkFreeCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
+createTexture_fbo() => vkDestroyBuffer() Succeeded For vkBuffer_stagingBuffer
+createTexture_fbo() => vkFreeMemory() Succeeded For vkDeviceMemory_stagingBuffer
+createTexture_fbo() => vkCreateImageView() Succeeded For Texture : Assets\Images\Marble.png
+createTexture_fbo() => vkCreateSampler() Succeeded For Texture : Assets\Images\Marble.png
+initialize() => createTexture() Succeeded For Marble.png
 createUniformBuffer() => vkCreateBuffer() Succeeded For Uniform Data
 createUniformBuffer() => vkAllocateMemory() Succeeded For Uniform Data
 createUniformBuffer() => vkBindBufferMemory() Succeeded For Uniform Data
 createUniformBuffer() => updateUniformBuffer() Succeeded
 initialize() => createUniformBuffer() Succeeded
+createUniformBuffer_fbo() => vkCreateBuffer() Succeeded For Uniform Data (FBO)
+createUniformBuffer_fbo() => vkAllocateMemory() Succeeded For Uniform Data (FBO)
+createUniformBuffer_fbo() => vkBindBufferMemory() Succeeded For Uniform Data (FBO)
+createUniformBuffer_fbo() => updateUniformBuffer_fbo() Succeeded
+initialize() => createUniformBuffer_fbo() Succeeded
 createShaders() => Succeeded In Opening SPIR-V Shader File : Bin\Cube.vert.spv
 createShaders() => Successfully Read Shader From SPIR-V Shader File : Bin\Cube.vert.spv
 createShaders() => Closed SPIR-V File : Bin\Cube.vert.spv
@@ -397,40 +472,249 @@ createShaders() => vkCreateShaderModule() Succeeded For Fragment Shader
 createShaders() => free() Succeeded For shaderData
 createShaders() => Fragment Shader Module Successfully Created
 initialize() => createShaders() Succeeded
+createShaders_fbo() => Succeeded In Opening SPIR-V Shader File : Bin\Teapot.vert.spv
+createShaders_fbo() => Successfully Read Shader From SPIR-V Shader File : Bin\Teapot.vert.spv
+createShaders_fbo() => Closed SPIR-V File : Bin\Teapot.vert.spv
+createShaders_fbo() => vkCreateShaderModule() Succeeded For Vertex Shader
+createShaders_fbo() => free() Succeeded For shaderData
+createShaders_fbo() => Vertex Shader Module Successfully Created
+createShaders_fbo() => Succeeded In Opening SPIR-V Shader File : Bin\Teapot.frag.spv
+createShaders_fbo() => Successfully Read Shader From SPIR-V Shader File : Bin\Teapot.frag.spv
+createShaders_fbo() => Closed SPIR-V File : Bin\Teapot.frag.spv
+createShaders_fbo() => vkCreateShaderModule() Succeeded For Fragment Shader
+createShaders_fbo() => free() Succeeded For shaderData
+createShaders_fbo() => Fragment Shader Module Successfully Created
+initialize() => createShaders() Succeeded
 createDescriptorSetLayout() => vkCreateDescriptorSetLayout() Succeeded
 initialize() => createDescriptorSetLayout() Succeeded
+createDescriptorSetLayout_fbo() => vkCreateDescriptorSetLayout() Succeeded (FBO)
+initialize() => createDescriptorSetLayout_fbo() Succeeded
 createPipelineLayout() => vkCreatePipelineLayout() Succeeded
 initialize() => createPipelineLayout() Succeeded
+createPipelineLayout_fbo() => vkCreatePipelineLayout() Succeeded
+initialize() => createPipelineLayout_fbo() Succeeded
 createDescriptorPool() => vkCreateDescriptorPool() Succeeded
 initialize() => createDescriptorPool() Succeeded
+createDescriptorPool_fbo() => vkCreateDescriptorPool() Succeeded
+initialize() => createDescriptorPool_fbo() Succeeded
 createDescriptorSet() => vkAllocateDescriptorSets() Succeeded
 initialize() => createDescriptorSet() Succeeded
+createDescriptorSet_fbo() => vkAllocateDescriptorSets() Succeeded
+initialize() => createDescriptorSet_fbo() Succeeded
 createRenderPass() => vkCreateRenderPass() Succeeded
 initialize() => createRenderPass() Succeeded
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-VkAttachmentDescription-synchronization2-06909 ] | MessageID = 0x14f4c932 | vkCreateRenderPass(): pCreateInfo->pAttachments[0].finalLayout is VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL but the synchronization2 feature is not enabled.
+The Vulkan spec states: If the synchronization2 feature is not enabled, finalLayout must not be VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR or VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-VkAttachmentDescription-synchronization2-06909)
+createRenderPass_fbo() => vkCreateRenderPass() Succeeded
+initialize() => createRenderPass_fbo() Succeeded
 createPipeline() => vkCreatePipelineCache() Succeeded
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-VkGraphicsPipelineCreateInfo-layout-07988 ] Object 0: handle = 0xd175b40000000013, type = VK_OBJECT_TYPE_SHADER_MODULE; Object 1: handle = 0xdd3a8a0000000015, type = VK_OBJECT_TYPE_PIPELINE_LAYOUT; | MessageID = 0x215f02cd | vkCreateGraphicsPipelines(): pCreateInfos[0].pStages[1] SPIR-V (VK_SHADER_STAGE_FRAGMENT_BIT) uses descriptor [Set 0, Binding 1, variable "utextureSampler"] (type VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) but was not declared in the pipeline layout.
-The Vulkan spec states: If a resource variable is declared in a shader, the corresponding descriptor set in layout must match the shader stage (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-VkGraphicsPipelineCreateInfo-layout-07988)
 createPipeline() => vkCreateGraphicsPipelines() Succeeded
 createPipeline() => vkDestroyPipelineCache() Succeeded
 initialize() => createPipeline() Succeeded
+createPipeline_fbo() => vkCreatePipelineCache() Succeeded
+createPipeline_fbo() => vkCreateGraphicsPipelines() Succeeded
+createPipeline_fbo() => vkDestroyPipelineCache() Succeeded
+initialize() => createPipeline_fbo() Succeeded
 initialize() => createFramebuffers() Succeeded
+initialize() => createFramebuffer_fbo() Succeeded
 initialize() => createSemaphores() Succeeded
+initialize() => createSemaphore_fbo() Succeeded
 createFences() => vkCreateFence() Succeeded For Index : 0
 createFences() => vkCreateFence() Succeeded For Index : 1
 initialize() => createFences() Succeeded
 buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
 buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08114 ] Object 0: handle = 0x84c0580000000017, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x2ba3a98e | vkCmdDraw(): VkDescriptorSet 0x84c0580000000017[] [Set 0, Binding 1, variable "utextureSampler"] is invalid.
-The Vulkan spec states: Descriptors in each bound descriptor set, specified via vkCmdBindDescriptorSets, must be valid as described by descriptor validity if they are statically used by the VkPipeline bound to the pipeline bind point used by this command and the bound VkPipeline was not created with VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08114)
 buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
 buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
 buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08114 ] Object 0: handle = 0x84c0580000000017, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x2ba3a98e | vkCmdDraw(): VkDescriptorSet 0x84c0580000000017[] [Set 0, Binding 1, variable "utextureSampler"] is invalid.
-The Vulkan spec states: Descriptors in each bound descriptor set, specified via vkCmdBindDescriptorSets, must be valid as described by descriptor validity if they are statically used by the VkPipeline bound to the pipeline bind point used by this command and the bound VkPipeline was not created with VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08114)
 buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
 initialize() => buildCommandBuffers() Succeeded
+buildCommandBuffer_fbo() => vkResetCommandBuffer() Succeeded
+buildCommandBuffer_fbo() => vkBeginCommandBuffer() Succeeded
+buildCommandBuffer_fbo() => vkEndCommandBuffer() Succeeded
+initialize() => buildCommandBuffer_fbo() Succeeded
 initialize() => Initialization Completed Successfully
 WinMain() => initialize() Succeeded
+createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded FBO Texture
+createImagesAndImageViews_fbo() => vkCreateSampler() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Depth
+createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Depth
+createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Depth
+createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded For FBO Depth
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-VkAttachmentDescription-synchronization2-06909 ] | MessageID = 0x14f4c932 | vkCreateRenderPass(): pCreateInfo->pAttachments[0].finalLayout is VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL but the synchronization2 feature is not enabled.
+The Vulkan spec states: If the synchronization2 feature is not enabled, finalLayout must not be VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR or VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-VkAttachmentDescription-synchronization2-06909)
+createRenderPass_fbo() => vkCreateRenderPass() Succeeded
+createPipelineLayout_fbo() => vkCreatePipelineLayout() Succeeded
+createPipeline_fbo() => vkCreatePipelineCache() Succeeded
+createPipeline_fbo() => vkCreateGraphicsPipelines() Succeeded
+createPipeline_fbo() => vkDestroyPipelineCache() Succeeded
+createCommandBuffer_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_fbo
+buildCommandBuffer_fbo() => vkResetCommandBuffer() Succeeded
+buildCommandBuffer_fbo() => vkBeginCommandBuffer() Succeeded
+buildCommandBuffer_fbo() => vkEndCommandBuffer() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
+createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
+createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
+createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 2048 x 1152
+getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+
+------------------------------------------------------------------------------------------------
+Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
+------------------------------------------------------------------------------------------------
+
+getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
+createSwapchain() => getPhysicalDevicePresentMode() Succeeded
+createSwapchain() => vkCreateSwapchainKHR() Succeeded
+createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
+createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
+createImagesAndImageViews() => getSupportedDepthFormat() Succeded
+createImagesAndImageViews() => vkCreateImage() Succeeded
+createImagesAndImageViews() => vkAllocateMemory() Succeeded For Depth
+createImagesAndImageViews() => vkBindImageMemory() Succeeded For Depth
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Depth
+createRenderPass() => vkCreateRenderPass() Succeeded
+createPipelineLayout() => vkCreatePipelineLayout() Succeeded
+createPipeline() => vkCreatePipelineCache() Succeeded
+createPipeline() => vkCreateGraphicsPipelines() Succeeded
+createPipeline() => vkDestroyPipelineCache() Succeeded
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdBindDescriptorSets-pDescriptorSets-parameter ] Object 0: handle = 0x2965c048870, type = VK_OBJECT_TYPE_INSTANCE; | MessageID = 0xc7e70075 | vkCmdBindDescriptorSets(): pDescriptorSets[0] Invalid VkDescriptorSet Object 0xa808d50000000033.
+The Vulkan spec states: pDescriptorSets must be a valid pointer to an array of descriptorSetCount valid or VK_NULL_HANDLE VkDescriptorSet handles (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdBindDescriptorSets-pDescriptorSets-parameter)
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdBindDescriptorSets-pDescriptorSets-06563 ] Object 0: handle = 0x29660bbe130, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x747d089 | vkCmdBindDescriptorSets(): pDescriptorSets[0] (VkDescriptorSet 0xa808d50000000033[]) does not exist, and the pipeline layout was not created VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT.
+The Vulkan spec states: If the graphicsPipelineLibrary feature is not enabled, each element of pDescriptorSets must be a valid VkDescriptorSet (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdBindDescriptorSets-pDescriptorSets-06563)
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ UNASSIGNED-Threading-Info ] Object 0: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x5d6b67e2 | vkCmdBindDescriptorSets(): Couldn't find VkDescriptorSet Object 0xa808d50000000033. This should not happen and may indicate a bug in the application.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ UNASSIGNED-Threading-Info ] Object 0: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x5d6b67e2 | vkCmdBindDescriptorSets(): Couldn't find VkDescriptorSet Object 0xa808d50000000033. This should not happen and may indicate a bug in the application.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x29660bbe130, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0x4868e6000000005a, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): VkPipeline 0x4868e6000000005a[] uses set #0 but that set is not bound. (Need to use a command like vkCmdBindDescriptorSets to bind the set).
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdBindDescriptorSets-pDescriptorSets-parameter ] Object 0: handle = 0x2965c048870, type = VK_OBJECT_TYPE_INSTANCE; | MessageID = 0xc7e70075 | vkCmdBindDescriptorSets(): pDescriptorSets[0] Invalid VkDescriptorSet Object 0xa808d50000000033.
+The Vulkan spec states: pDescriptorSets must be a valid pointer to an array of descriptorSetCount valid or VK_NULL_HANDLE VkDescriptorSet handles (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdBindDescriptorSets-pDescriptorSets-parameter)
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdBindDescriptorSets-pDescriptorSets-06563 ] Object 0: handle = 0x29660af7d20, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x747d089 | vkCmdBindDescriptorSets(): pDescriptorSets[0] (VkDescriptorSet 0xa808d50000000033[]) does not exist, and the pipeline layout was not created VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT.
+The Vulkan spec states: If the graphicsPipelineLibrary feature is not enabled, each element of pDescriptorSets must be a valid VkDescriptorSet (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdBindDescriptorSets-pDescriptorSets-06563)
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ UNASSIGNED-Threading-Info ] Object 0: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x5d6b67e2 | vkCmdBindDescriptorSets(): Couldn't find VkDescriptorSet Object 0xa808d50000000033. This should not happen and may indicate a bug in the application.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ UNASSIGNED-Threading-Info ] Object 0: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x5d6b67e2 | vkCmdBindDescriptorSets(): Couldn't find VkDescriptorSet Object 0xa808d50000000033. This should not happen and may indicate a bug in the application.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x29660af7d20, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0x4868e6000000005a, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): VkPipeline 0x4868e6000000005a[] uses set #0 but that set is not bound. (Need to use a command like vkCmdBindDescriptorSets to bind the set).
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
+createDescriptorPool() => vkCreateDescriptorPool() Succeeded
+createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded FBO Texture
+createImagesAndImageViews_fbo() => vkCreateSampler() Succeeded For FBO Texture
+createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Depth
+createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Depth
+createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Depth
+createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded For FBO Depth
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-VkAttachmentDescription-synchronization2-06909 ] | MessageID = 0x14f4c932 | vkCreateRenderPass(): pCreateInfo->pAttachments[0].finalLayout is VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL but the synchronization2 feature is not enabled.
+The Vulkan spec states: If the synchronization2 feature is not enabled, finalLayout must not be VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR or VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-VkAttachmentDescription-synchronization2-06909)
+createRenderPass_fbo() => vkCreateRenderPass() Succeeded
+createPipelineLayout_fbo() => vkCreatePipelineLayout() Succeeded
+createPipeline_fbo() => vkCreatePipelineCache() Succeeded
+createPipeline_fbo() => vkCreateGraphicsPipelines() Succeeded
+createPipeline_fbo() => vkDestroyPipelineCache() Succeeded
+createCommandBuffer_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_fbo
+buildCommandBuffer_fbo() => vkResetCommandBuffer() Succeeded
+buildCommandBuffer_fbo() => vkBeginCommandBuffer() Succeeded
+buildCommandBuffer_fbo() => vkEndCommandBuffer() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
+getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
+createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
+createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
+createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 784 x 561
+getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
+
+------------------------------------------------------------------------------------------------
+Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
+------------------------------------------------------------------------------------------------
+
+getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
+createSwapchain() => getPhysicalDevicePresentMode() Succeeded
+createSwapchain() => vkCreateSwapchainKHR() Succeeded
+createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
+createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
+createImagesAndImageViews() => getSupportedDepthFormat() Succeded
+createImagesAndImageViews() => vkCreateImage() Succeeded
+createImagesAndImageViews() => vkAllocateMemory() Succeeded For Depth
+createImagesAndImageViews() => vkBindImageMemory() Succeeded For Depth
+createImagesAndImageViews() => vkCreateImageView() Succeeded For Depth
+createRenderPass() => vkCreateRenderPass() Succeeded
+createPipelineLayout() => vkCreatePipelineLayout() Succeeded
+createPipeline() => vkCreatePipelineCache() Succeeded
+createPipeline() => vkCreateGraphicsPipelines() Succeeded
+createPipeline() => vkDestroyPipelineCache() Succeeded
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
+createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdBindDescriptorSets-pDescriptorSets-parameter ] Object 0: handle = 0x2965c048870, type = VK_OBJECT_TYPE_INSTANCE; | MessageID = 0xc7e70075 | vkCmdBindDescriptorSets(): pDescriptorSets[0] Invalid VkDescriptorSet Object 0xa808d50000000033.
+The Vulkan spec states: pDescriptorSets must be a valid pointer to an array of descriptorSetCount valid or VK_NULL_HANDLE VkDescriptorSet handles (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdBindDescriptorSets-pDescriptorSets-parameter)
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdBindDescriptorSets-pDescriptorSets-06563 ] Object 0: handle = 0x29660aff540, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x747d089 | vkCmdBindDescriptorSets(): pDescriptorSets[0] (VkDescriptorSet 0xa808d50000000033[]) does not exist, and the pipeline layout was not created VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT.
+The Vulkan spec states: If the graphicsPipelineLibrary feature is not enabled, each element of pDescriptorSets must be a valid VkDescriptorSet (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdBindDescriptorSets-pDescriptorSets-06563)
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ UNASSIGNED-Threading-Info ] Object 0: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x5d6b67e2 | vkCmdBindDescriptorSets(): Couldn't find VkDescriptorSet Object 0xa808d50000000033. This should not happen and may indicate a bug in the application.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ UNASSIGNED-Threading-Info ] Object 0: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x5d6b67e2 | vkCmdBindDescriptorSets(): Couldn't find VkDescriptorSet Object 0xa808d50000000033. This should not happen and may indicate a bug in the application.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x29660aff540, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0x33f7660000000075, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): VkPipeline 0x33f7660000000075[] uses set #0 but that set is not bound. (Need to use a command like vkCmdBindDescriptorSets to bind the set).
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
+buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
+buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdBindDescriptorSets-pDescriptorSets-parameter ] Object 0: handle = 0x2965c048870, type = VK_OBJECT_TYPE_INSTANCE; | MessageID = 0xc7e70075 | vkCmdBindDescriptorSets(): pDescriptorSets[0] Invalid VkDescriptorSet Object 0xa808d50000000033.
+The Vulkan spec states: pDescriptorSets must be a valid pointer to an array of descriptorSetCount valid or VK_NULL_HANDLE VkDescriptorSet handles (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdBindDescriptorSets-pDescriptorSets-parameter)
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdBindDescriptorSets-pDescriptorSets-06563 ] Object 0: handle = 0x29660bbe130, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x747d089 | vkCmdBindDescriptorSets(): pDescriptorSets[0] (VkDescriptorSet 0xa808d50000000033[]) does not exist, and the pipeline layout was not created VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT.
+The Vulkan spec states: If the graphicsPipelineLibrary feature is not enabled, each element of pDescriptorSets must be a valid VkDescriptorSet (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdBindDescriptorSets-pDescriptorSets-06563)
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ UNASSIGNED-Threading-Info ] Object 0: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x5d6b67e2 | vkCmdBindDescriptorSets(): Couldn't find VkDescriptorSet Object 0xa808d50000000033. This should not happen and may indicate a bug in the application.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ UNASSIGNED-Threading-Info ] Object 0: handle = 0xa808d50000000033, type = VK_OBJECT_TYPE_DESCRIPTOR_SET; | MessageID = 0x5d6b67e2 | vkCmdBindDescriptorSets(): Couldn't find VkDescriptorSet Object 0xa808d50000000033. This should not happen and may indicate a bug in the application.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-08600 ] Object 0: handle = 0x29660bbe130, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0x33f7660000000075, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x4768cf39 | vkCmdDraw(): VkPipeline 0x33f7660000000075[] uses set #0 but that set is not bound. (Need to use a command like vkCmdBindDescriptorSets to bind the set).
+The Vulkan spec states: For each set n that is statically used by a bound shader, a descriptor set must have been bound to n at the same pipeline bind point, with a VkPipelineLayout that is compatible for set n, with the VkPipelineLayout used to create the current VkPipeline or the VkDescriptorSetLayout array used to create the current VkShaderEXT , as described in Pipeline Layout Compatibility (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-08600)
+buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
+createDescriptorPool() => vkCreateDescriptorPool() Succeeded
+uninitialize_fbo() => vkDestroySemaphore() Succeeded For vkSemaphore_fbo
+uninitialize_fbo() => vkDestroyPipeline() Succeeded For vkPipeline_fbo
+uninitialize_fbo() => vkDestroyRenderPass() Succeeded For vkRenderPass_fbo
+uninitialize_fbo() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool_fbo and vkDescriptorSet_fbo Successfully
+uninitialize_fbo() => vkDestroyPipelineLayout() Succeeded For vkPipelineLayout_fbo
+uninitialize_fbo() => vkDestroyDescriptorSetLayout() Succeeded For vkDescriptorSetLayout_fbo
+uninitialize_fbo() => vkDestroyShaderModule() Succeeded For FBO Fragment Shader
+uninitialize_fbo() => vkDestroyShaderModule() Succeeded For FBO Vertex Shader
+uninitialize_fbo() => vkFreeMemory() Succeeded For uniformData_fbo.vkDeviceMemory
+uninitialize_fbo() => vkDestroyBuffer() Succedded For uniformData_fbo.vkBuffer
+uninitialize_fbo() => vkDestroySampler() Succeeded For vkSampler_texture_fbo
+uninitialize_fbo() => vkDestroyImageView() Succeeded For vkImage_texture_fbo
+uninitialize_fbo() => vkFreeMemory() Succeeded For vkDeviceMemory_texture_fbo
+uninitialize_fbo() => vkDestroyImage() Succeeded For vkImage_texture_fbo
+uninitialize_fbo() => vkFreeMemory() Succeeded For vertexData_index_fbo.vkDeviceMemory
+uninitialize_fbo() => vkDestroyBuffer() Succeeded For vertexData_index_fbo.vkBuffer
+uninitialize_fbo() => vkFreeMemory() Succeeded For vertexData_texcoords_fbo.vkDeviceMemory
+uninitialize_fbo() => vkDestroyBuffer() Succeeded For vertexData_texcoords_fbo.vkBuffer
+uninitialize_fbo() => vkFreeMemory() Succeeded For vertexData_normals_fbo.vkDeviceMemory
+uninitialize_fbo() => vkDestroyBuffer() Succeeded For vertexData_normals_fbo.vkBuffer
+uninitialize_fbo() => vkFreeMemory() Succeeded For vertexData_position_fbo.vkDeviceMemory
+uninitialize_fbo() => vkDestroyBuffer() Succeeded For vertexData_position_fbo.vkBuffer
+uninitialize_fbo() => free() Succeeded For vkCommandBuffer_fbo
+uninitialize_fbo() => vkDestroyImageView() Succeeded For vkImageView_depth_fbo
+uninitialize_fbo() => vkDestroyImage() Succeeded For vkImage_depth_fbo
+uninitialize_fbo() => vkFreeMemory() Succeeded For vkDeviceMemory_depth_fbo
+uninitialize_fbo() => vkDestroySampler() Succeeded For vkSampler_fbo
+uninitialize_fbo() => vkDestroyImageView() Succeeded For vkImageView_fbo
+uninitialize_fbo() => vkFreeMemory() Succeeded For vkDeviceMemory_fbo
+uninitialize_fbo() => vkDestroyImage() Succeeded For vkImage_fbo
 uninitialize() => vkDeviceWaitIdle() Succeeded
 uninitialize() => vkDestroyFence() Succeeded For Index : 0
 uninitialize() => vkDestroyFence() Succeeded For Index : 1
@@ -464,6 +748,10 @@ uninitialize() => vkDestroyImageView() Succeeded
 uninitialize() => free() Succeeded For swapchainImageView_array
 uninitialize() => free() Succeeded For swapchainImage_array
 uninitialize() => vkDestroySwapchainKHR() Succeeded
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkDestroyDevice-device-05137 ] Object 0: handle = 0xea7170000000031, type = VK_OBJECT_TYPE_DESCRIPTOR_POOL; | MessageID = 0x4872eaa0 | vkDestroyDevice(): OBJ ERROR : For VkDevice 0x2965c14b0f0[], VkDescriptorPool 0xea7170000000031[] has not been destroyed.
+The Vulkan spec states: All child objects created on device must have been destroyed prior to destroying device (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkDestroyDevice-device-05137)
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkDestroyDevice-device-05137 ] Object 0: handle = 0x4256c1000000005d, type = VK_OBJECT_TYPE_DESCRIPTOR_POOL; | MessageID = 0x4872eaa0 | vkDestroyDevice(): OBJ ERROR : For VkDevice 0x2965c14b0f0[], VkDescriptorPool 0x4256c1000000005d[] has not been destroyed.
+The Vulkan spec states: All child objects created on device must have been destroyed prior to destroying device (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkDestroyDevice-device-05137)
 uninitialize() => vkDestroyDevice() Succeeded
 uninitialize() => vkDestroySurfaceKHR() Succeeded
 uninitialize() => vkDestroyInstance() Succeeded

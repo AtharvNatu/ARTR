@@ -496,10 +496,10 @@ VkResult initialize(void)
     VkResult createCommandPool(void);
     VkResult createCommandBuffer_fbo(void);
     void addTriangle(float[3][3], float[3][3], float[3][2]);
-    VkResult createVertexBuffer(void);
-    VkResult createIndexBuffer(void);
+    VkResult createVertexBuffer_fbo(void);
+    VkResult createIndexBuffer_fbo(void);
     VkResult createTexture(const char*);
-    VkResult createUniformBuffer(void);
+    VkResult createUniformBuffer_fbo(void);
     VkResult createShaders(void);
     VkResult createDescriptorSetLayout(void);
     VkResult createPipelineLayout_fbo(void);
@@ -662,26 +662,26 @@ VkResult initialize(void)
     }
     
     //! Create Vertex Buffer
-    vkResult = createVertexBuffer();
+    vkResult = createVertexBuffer_fbo();
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createVertexBuffer() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createVertexBuffer_fbo() Failed : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => createVertexBuffer_fbo() Succeeded\n", __func__);
 
     //! Create Index Buffer
-    vkResult = createIndexBuffer();
+    vkResult = createIndexBuffer_fbo();
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createIndexBuffer() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createIndexBuffer_fbo() Failed : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createIndexBuffer() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => createIndexBuffer_fbo() Succeeded\n", __func__);
 
     //! Create Texture
     vkResult = createTexture("Marble.png");
@@ -694,15 +694,15 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createTexture() Succeeded For Marble.png\n", __func__);
 
     //! Create Uniform Buffer
-    vkResult = createUniformBuffer();
+    vkResult = createUniformBuffer_fbo();
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createUniformBuffer() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createUniformBuffer_fbo() Failed : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createUniformBuffer() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => createUniformBuffer_fbo() Succeeded\n", __func__);
 
     //! Create Shaders
     vkResult = createShaders();
@@ -1021,7 +1021,7 @@ VkResult display(void)
 {
     // Function Declarations
     VkResult resize_fbo(int, int);
-    VkResult updateUniformBuffer(void);
+    VkResult updateUniformBuffer_fbo(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -1086,6 +1086,8 @@ VkResult display(void)
         return vkResult;
     }
 
+    
+
     //! Present Rendered Image
     VkPresentInfoKHR vkPresentInfoKHR;
     memset((void*)&vkPresentInfoKHR, 0, sizeof(VkPresentInfoKHR));
@@ -1110,9 +1112,9 @@ VkResult display(void)
         }
     }
 
-    vkResult = updateUniformBuffer();
+    vkResult = updateUniformBuffer_fbo();
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => updateUniformBuffer_fbo() Failed : %d\n", __func__, vkResult);
 
     vkDeviceWaitIdle(vkDevice);
 
@@ -2774,7 +2776,7 @@ VkResult createCommandBuffer_fbo(void)
     return vkResult;
 }
 
-VkResult createVertexBuffer(void)
+VkResult createVertexBuffer_fbo(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -3027,7 +3029,7 @@ VkResult createVertexBuffer(void)
     return vkResult;
 }
 
-VkResult createIndexBuffer(void)
+VkResult createIndexBuffer_fbo(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -4242,10 +4244,10 @@ VkResult createTexture(const char* textureFileName)
     return vkResult;
 }
 
-VkResult createUniformBuffer(void)
+VkResult createUniformBuffer_fbo(void)
 {
     // Function Declarations
-    VkResult updateUniformBuffer(void);
+    VkResult updateUniformBuffer_fbo(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -4264,11 +4266,11 @@ VkResult createUniformBuffer(void)
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData_fbo.vkBuffer);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Uniform Data (FBO) : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Uniform Data\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Uniform Data (FBO)\n", __func__);
     
     VkMemoryRequirements vkMemoryRequirements;
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
@@ -4298,42 +4300,42 @@ VkResult createUniformBuffer(void)
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData_fbo.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Uniform Data (FBO) : %d !!!\n", __func__, vkResult);
         return vkResult;
     }     
     else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Uniform Data\n", __func__);
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Uniform Data (FBO)\n", __func__);
 
     vkResult = vkBindBufferMemory(vkDevice, uniformData_fbo.vkBuffer, uniformData_fbo.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Uniform Data (FBO) : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Uniform Data\n", __func__);
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Uniform Data (FBO)\n", __func__);
 
-    vkResult = updateUniformBuffer();
+    vkResult = updateUniformBuffer_fbo();
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => updateUniformBuffer_fbo() Failed : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => updateUniformBuffer() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => updateUniformBuffer_fbo() Succeeded\n", __func__);
 
 
     return vkResult;
 }
 
-VkResult updateUniformBuffer(void)
+VkResult updateUniformBuffer_fbo(void)
 {
-    // Variable Declarations
+   // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    Host_UniformData_FBO Host_UniformData_FBO;
-    memset((void*)&Host_UniformData_FBO, 0, sizeof(Host_UniformData_FBO));
+    Host_UniformData_FBO host_UniformData_fbo;
+    memset((void*)&host_UniformData_fbo, 0, sizeof(Host_UniformData_FBO));
 
     //! Update Matrices
     glm::mat4 translationMatrix = glm::mat4(1.0f);
@@ -4342,42 +4344,42 @@ VkResult updateUniformBuffer(void)
     translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
     rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(angleTeapot), glm::vec3(0.0f, 1.0f, 0.0f));
 
-    Host_UniformData_FBO.modelMatrix = glm::mat4(1.0f);
-    Host_UniformData_FBO.modelMatrix = translationMatrix * rotationMatrix;
-    Host_UniformData_FBO.viewMatrix = glm::mat4(1.0f);
+    host_UniformData_fbo.modelMatrix = glm::mat4(1.0f);
+    host_UniformData_fbo.modelMatrix = translationMatrix * rotationMatrix;
+    host_UniformData_fbo.viewMatrix = glm::mat4(1.0f);
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
     perspectiveProjectionMatrix = glm::perspective(
         glm::radians(45.0f),
-        (float)winWidth / (float)winHeight,
+        (float)fboWidth / (float)fboHeight,
         0.1f,
         100.0f
     );
     //! 2D Matrix with Column Major (Like OpenGL)
     perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
-    Host_UniformData_FBO.projectionMatrix = perspectiveProjectionMatrix;
+    host_UniformData_fbo.projectionMatrix = perspectiveProjectionMatrix;
 
-    Host_UniformData_FBO.lightAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    Host_UniformData_FBO.lightDiffuse = glm::vec4(1.0f, 0.647f, 0.0f, 1.0f);
-    Host_UniformData_FBO.lightSpecular = glm::vec4(1.0f, 0.647f, 0.0f, 1.0f);
-    Host_UniformData_FBO.lightPosition = glm::vec4(2.0f, 2.0f, 2.0f, 1.0f);
+    host_UniformData_fbo.lightAmbient = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
+    host_UniformData_fbo.lightDiffuse = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    host_UniformData_fbo.lightSpecular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    host_UniformData_fbo.lightPosition = glm::vec4(100.0f, 100.0f, 100.0f, 1.0f);
 
-    Host_UniformData_FBO.materialAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    Host_UniformData_FBO.materialDiffuse = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    Host_UniformData_FBO.materialAmbient = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    Host_UniformData_FBO.materialShininess = 50.0f;
+    host_UniformData_fbo.materialAmbient = glm::vec4(0.9f, 0.5f, 0.3f, 1.0f);
+    host_UniformData_fbo.materialDiffuse = glm::vec4(0.9f, 0.5f, 0.3f, 1.0f);
+    host_UniformData_fbo.materialSpecular = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+    host_UniformData_fbo.materialShininess = 128.0f;
 
     //! Map Uniform Buffer
     void* data = NULL;
     vkResult = vkMapMemory(vkDevice, uniformData_fbo.vkDeviceMemory, 0, sizeof(Host_UniformData_FBO), 0, &data);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer (FBO) : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
 
     //! Copy the data to the mapped buffer (present on device memory)
-    memcpy(data, &Host_UniformData_FBO, sizeof(Host_UniformData_FBO));
+    memcpy(data, &host_UniformData_fbo, sizeof(Host_UniformData_FBO));
 
     //! Unmap memory
     vkUnmapMemory(vkDevice, uniformData_fbo.vkDeviceMemory);
@@ -4546,7 +4548,7 @@ VkResult createShaders(void)
     return vkResult;
 }
 
-VkResult createDescriptorSetLayout(void)
+VkResult createDescriptorSetLayout_fbo(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -4579,9 +4581,9 @@ VkResult createDescriptorSetLayout(void)
     //* Step - 4
     vkResult = vkCreateDescriptorSetLayout(vkDevice, &vkDescriptorSetLayoutCreateInfo, NULL, &vkDescriptorSetLayout_fbo);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Failed (FBO) : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Succeeded (FBO)\n", __func__);
 
     return vkResult;
 }
@@ -4612,7 +4614,7 @@ VkResult createPipelineLayout_fbo(void)
     return vkResult;
 }
 
-VkResult createDescriptorPool(void)
+VkResult createDescriptorPool_fbo(void)
 {
     // Variable Declarations
     VkResult vkResult;
@@ -4648,7 +4650,7 @@ VkResult createDescriptorPool(void)
     return vkResult;
 }
 
-VkResult createDescriptorSet(void)
+VkResult createDescriptorSet_fbo(void)
 {
     // Variable Declarations
     VkResult vkResult;
@@ -4903,8 +4905,8 @@ VkResult createPipeline_fbo(void)
     memset((void*)&vkViewport_fbo, 0, sizeof(VkViewport));
     vkViewport_fbo.x = 0;
     vkViewport_fbo.y = 0;
-    vkViewport_fbo.width = (float)vkExtent2D_swapchain.width;
-    vkViewport_fbo.height = (float)vkExtent2D_swapchain.height;
+    vkViewport_fbo.width = (float)fboWidth;
+    vkViewport_fbo.height = (float)fboHeight;
     vkViewport_fbo.minDepth = 0.0f;
     vkViewport_fbo.maxDepth = 1.0f;
 
@@ -4914,8 +4916,8 @@ VkResult createPipeline_fbo(void)
     memset((void*)&vkRect2D_scissor_fbo, 0, sizeof(VkRect2D));
     vkRect2D_scissor_fbo.offset.x = 0;
     vkRect2D_scissor_fbo.offset.y = 0;
-    vkRect2D_scissor_fbo.extent.width = vkExtent2D_swapchain.width;
-    vkRect2D_scissor_fbo.extent.height = vkExtent2D_swapchain.height;
+    vkRect2D_scissor_fbo.extent.width = fboWidth;
+    vkRect2D_scissor_fbo.extent.height = fboHeight;
    
     vkPipelineViewportStateCreateInfo.pScissors = &vkRect2D_scissor_fbo;
 
@@ -5041,11 +5043,11 @@ VkResult createFramebuffer_fbo(void)
     vkFramebufferCreateInfo.attachmentCount = _ARRAYSIZE(vkImageView_attachments_array);
     vkFramebufferCreateInfo.pAttachments = vkImageView_attachments_array;
     vkFramebufferCreateInfo.renderPass = vkRenderPass_fbo;
-    vkFramebufferCreateInfo.width = vkExtent2D_swapchain.width;
-    vkFramebufferCreateInfo.height = vkExtent2D_swapchain.height;
+    vkFramebufferCreateInfo.width = fboWidth;
+    vkFramebufferCreateInfo.height = fboHeight;
     vkFramebufferCreateInfo.layers = 1;
 
-    vkImageView_attachments_array[0] = swapchainImageView_array[0];
+    vkImageView_attachments_array[0] = vkImageView_fbo;
     vkImageView_attachments_array[1] = vkImageView_depth_fbo;
 
     vkResult = vkCreateFramebuffer(vkDevice, &vkFramebufferCreateInfo, NULL, &vkFramebuffer_fbo);
@@ -5059,7 +5061,7 @@ VkResult createFramebuffer_fbo(void)
     return vkResult;
 }
 
-VkResult createSemaphores(void)
+VkResult createSemaphore_fbo(void)
 {
     // Code
     VkResult vkResult = VK_SUCCESS;
@@ -5088,141 +5090,137 @@ VkResult buildCommandBuffer_fbo(void)
     // Code
     VkResult vkResult = VK_SUCCESS;
 
-    //! Loop per swapchain image
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    //* Step - 1 => Reset Command Buffer
+    vkResult = vkResetCommandBuffer(vkCommandBuffer_fbo, 0);   //! 0 specifies not to release the resources
+    if (vkResult != VK_SUCCESS)
     {
-        //* Step - 1 => Reset Command Buffer
-        vkResult = vkResetCommandBuffer(vkCommandBuffer_fbo, 0);   //! 0 specifies not to release the resources
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => vkResetCommandBuffer() Failed For Index : %d, Reason : %d\n", __func__, i, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        else
-            fprintf(gpFile, "%s() => vkResetCommandBuffer() Succeeded For Index : %d\n", __func__, i);
-
-        //* Step - 2
-        VkCommandBufferBeginInfo vkCommandBufferBeginInfo;
-        memset((void*)&vkCommandBufferBeginInfo, 0, sizeof(VkCommandBufferBeginInfo));
-        vkCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        vkCommandBufferBeginInfo.pNext = NULL;
-        vkCommandBufferBeginInfo.flags = 0;     //! 0 specifies that we will use only the primary command buffer, and not going to use this command buffer simultaneously between multiple threads
-
-        //* Step - 3
-        vkResult = vkBeginCommandBuffer(vkCommandBuffer_fbo, &vkCommandBufferBeginInfo);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => vkBeginCommandBuffer() Failed For Index : %d, Reason : %d\n", __func__, i, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        else
-            fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded For Index : %d\n", __func__, i);
-
-        //* Step - 4 => Set Clear Value
-        VkClearValue vkClearValue_array[2];
-        memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
-        vkClearValue_array[0].color = vkClearColorValue_fbo;
-        vkClearValue_array[1].depthStencil = vkClearDepthStencilValue_fbo;
-
-        //* Step - 5
-        VkRenderPassBeginInfo vkRenderPassBeginInfo;
-        memset((void*)&vkRenderPassBeginInfo, 0, sizeof(VkRenderPassBeginInfo));
-        vkRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        vkRenderPassBeginInfo.pNext = NULL;
-        vkRenderPassBeginInfo.renderPass = vkRenderPass_fbo;
-        vkRenderPassBeginInfo.renderArea.offset.x = 0;
-        vkRenderPassBeginInfo.renderArea.offset.y = 0;
-        vkRenderPassBeginInfo.renderArea.extent.width = vkExtent2D_swapchain.width;
-        vkRenderPassBeginInfo.renderArea.extent.height = vkExtent2D_swapchain.height;
-        vkRenderPassBeginInfo.clearValueCount = _ARRAYSIZE(vkClearValue_array);
-        vkRenderPassBeginInfo.pClearValues = vkClearValue_array;
-        vkRenderPassBeginInfo.framebuffer = vkFramebuffer_fbo;
-        
-        //* Step - 6
-        vkCmdBeginRenderPass(vkCommandBuffer_fbo, &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-        {
-            //! Bind with Pipeline
-            vkCmdBindPipeline(vkCommandBuffer_fbo, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline_fbo);
-
-            //! Bind the Descriptor Set to the Pipeline
-            vkCmdBindDescriptorSets(
-                vkCommandBuffer_fbo,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                vkPipelineLayout_fbo,
-                0,
-                1,
-                &vkDescriptorSet_fbo,
-                0,
-                NULL
-            );
-
-            //! Bind with Vertex Position Buffer
-            VkDeviceSize vkDeviceSize_offset_position[1];
-            memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-            vkCmdBindVertexBuffers(
-                vkCommandBuffer_fbo, 
-                0, 
-                1, 
-                &vertexData_position_fbo.vkBuffer, 
-                vkDeviceSize_offset_position
-            );
-
-            //! Bind with Vertex Normals Buffer
-            VkDeviceSize vkDeviceSize_offset_normals[1];
-            memset((void*)vkDeviceSize_offset_normals, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_normals));
-            vkCmdBindVertexBuffers(
-                vkCommandBuffer_fbo, 
-                1, 
-                1, 
-                &vertexData_normals_fbo.vkBuffer, 
-                vkDeviceSize_offset_normals
-            );
-
-            //! Bind with Vertex Texcoords Buffer
-            VkDeviceSize vkDeviceSize_offset_texcoords[1];
-            memset((void*)vkDeviceSize_offset_texcoords, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_texcoords));
-            vkCmdBindVertexBuffers(
-                vkCommandBuffer_fbo, 
-                2, 
-                1, 
-                &vertexData_texcoords_fbo.vkBuffer, 
-                vkDeviceSize_offset_texcoords
-            );
-
-            //! Bind with Index Buffer
-            vkCmdBindIndexBuffer(
-                vkCommandBuffer_fbo, 
-                vertexData_index_fbo.vkBuffer,
-                0,
-                VK_INDEX_TYPE_UINT32
-            );
-
-            //! Vulkan Drawing Function
-            vkCmdDrawIndexed(
-                vkCommandBuffer_fbo,
-                numElements,
-                1,              //* Count of geometry instances
-                0,              //* Starting offset of index buffer
-                0,              //* Starting offset of vertex buffer
-                1               //* Nth instance
-            );
-        }
-        //* Step - 7
-        vkCmdEndRenderPass(vkCommandBuffer_fbo);
-
-        //* Step - 8
-        vkResult = vkEndCommandBuffer(vkCommandBuffer_fbo);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => vkEndCommandBuffer() Failed For Index : %d, Reason : %d\n", __func__, i, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        else
-            fprintf(gpFile, "%s() => vkEndCommandBuffer() Succeeded For Index : %d\n", __func__, i);
+        fprintf(gpFile, "%s() => vkResetCommandBuffer() Failed Reason : %d\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
     }
+    else
+        fprintf(gpFile, "%s() => vkResetCommandBuffer() Succeeded\n", __func__);
+
+    //* Step - 2
+    VkCommandBufferBeginInfo vkCommandBufferBeginInfo;
+    memset((void*)&vkCommandBufferBeginInfo, 0, sizeof(VkCommandBufferBeginInfo));
+    vkCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    vkCommandBufferBeginInfo.pNext = NULL;
+    vkCommandBufferBeginInfo.flags = 0;     //! 0 specifies that we will use only the primary command buffer, and not going to use this command buffer simultaneously between multiple threads
+
+    //* Step - 3
+    vkResult = vkBeginCommandBuffer(vkCommandBuffer_fbo, &vkCommandBufferBeginInfo);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkBeginCommandBuffer() Failed : %d\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded\n", __func__);
+
+    //* Step - 4 => Set Clear Value
+    VkClearValue vkClearValue_array[2];
+    memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
+    vkClearValue_array[0].color = vkClearColorValue_fbo;
+    vkClearValue_array[1].depthStencil = vkClearDepthStencilValue_fbo;
+
+    //* Step - 5
+    VkRenderPassBeginInfo vkRenderPassBeginInfo;
+    memset((void*)&vkRenderPassBeginInfo, 0, sizeof(VkRenderPassBeginInfo));
+    vkRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    vkRenderPassBeginInfo.pNext = NULL;
+    vkRenderPassBeginInfo.renderPass = vkRenderPass_fbo;
+    vkRenderPassBeginInfo.renderArea.offset.x = 0;
+    vkRenderPassBeginInfo.renderArea.offset.y = 0;
+    vkRenderPassBeginInfo.renderArea.extent.width = fboWidth;
+    vkRenderPassBeginInfo.renderArea.extent.height = fboHeight;
+    vkRenderPassBeginInfo.clearValueCount = _ARRAYSIZE(vkClearValue_array);
+    vkRenderPassBeginInfo.pClearValues = vkClearValue_array;
+    vkRenderPassBeginInfo.framebuffer = vkFramebuffer_fbo;
+    
+    //* Step - 6
+    vkCmdBeginRenderPass(vkCommandBuffer_fbo, &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    {
+        //! Bind with Pipeline
+        vkCmdBindPipeline(vkCommandBuffer_fbo, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline_fbo);
+
+        //! Bind the Descriptor Set to the Pipeline
+        vkCmdBindDescriptorSets(
+            vkCommandBuffer_fbo,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            vkPipelineLayout_fbo,
+            0,
+            1,
+            &vkDescriptorSet_fbo,
+            0,
+            NULL
+        );
+
+        //! Bind with Vertex Position Buffer
+        VkDeviceSize vkDeviceSize_offset_position[1];
+        memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+        vkCmdBindVertexBuffers(
+            vkCommandBuffer_fbo, 
+            0, 
+            1, 
+            &vertexData_position_fbo.vkBuffer, 
+            vkDeviceSize_offset_position
+        );
+
+        //! Bind with Vertex Normals Buffer
+        VkDeviceSize vkDeviceSize_offset_normals[1];
+        memset((void*)vkDeviceSize_offset_normals, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_normals));
+        vkCmdBindVertexBuffers(
+            vkCommandBuffer_fbo, 
+            1, 
+            1, 
+            &vertexData_normals_fbo.vkBuffer, 
+            vkDeviceSize_offset_normals
+        );
+
+        //! Bind with Vertex Texcoords Buffer
+        VkDeviceSize vkDeviceSize_offset_texcoords[1];
+        memset((void*)vkDeviceSize_offset_texcoords, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_texcoords));
+        vkCmdBindVertexBuffers(
+            vkCommandBuffer_fbo, 
+            2, 
+            1, 
+            &vertexData_texcoords_fbo.vkBuffer, 
+            vkDeviceSize_offset_texcoords
+        );
+
+        //! Bind with Index Buffer
+        vkCmdBindIndexBuffer(
+            vkCommandBuffer_fbo, 
+            vertexData_index_fbo.vkBuffer,
+            0,
+            VK_INDEX_TYPE_UINT32
+        );
+
+        //! Vulkan Drawing Function
+        vkCmdDrawIndexed(
+            vkCommandBuffer_fbo,
+            numElements,
+            1,              //* Count of geometry instances
+            0,              //* Starting offset of index buffer
+            0,              //* Starting offset of vertex buffer
+            1               //* Nth instance
+        );
+    }
+    //* Step - 7
+    vkCmdEndRenderPass(vkCommandBuffer_fbo);
+
+    //* Step - 8
+    vkResult = vkEndCommandBuffer(vkCommandBuffer_fbo);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkEndCommandBuffer() Failed : %d\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkEndCommandBuffer() Succeeded\n", __func__);
 
     return vkResult;
 }

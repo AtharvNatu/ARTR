@@ -28,6 +28,7 @@ layout(binding = 0) uniform uniformData
     vec4 materialDiffuse;
     vec4 materialSpecular;
     float materialShininess;
+    
 } ubo;
 
 void main(void)
