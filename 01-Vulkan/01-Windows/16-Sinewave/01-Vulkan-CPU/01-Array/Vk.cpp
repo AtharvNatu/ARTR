@@ -94,9 +94,6 @@ VkImageView vkImageView_depth = VK_NULL_HANDLE;
 //? Command Pool
 VkCommandPool vkCommandPool = VK_NULL_HANDLE;
 
-//? Command Buffer
-VkCommandBuffer *vkCommandBuffer_array = NULL;
-
 //? Render Pass
 VkRenderPass vkRenderPass = VK_NULL_HANDLE;
 
@@ -130,15 +127,12 @@ typedef struct
     VkDeviceMemory vkDeviceMemory;
 } VertexData;
 
-//? Position Related Variables
-VertexData vertexData_position;
-void* mappedPtr = NULL;
-
 //? Uniform Related Variables
 typedef struct
 {
     glm::mat4 mvpMatrix;
-} MVP_UniformData;
+    glm::vec4 color;
+} Host_UniformData;
 
 typedef struct
 {
@@ -170,13 +164,33 @@ VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
 //* Sine Wave Related Variables
-const uint32_t mesh_width = 512;
-const uint32_t mesh_height = 512;
+float position_64_graphics[64][64][4];
+VertexData vertexData_position_64x64_graphics;
+VkCommandBuffer* vkCommandBuffer_64x64_graphics_array = NULL;
 
-#define MESH_SIZE    mesh_width * mesh_height * 4
+float position_128_graphics[128][128][4];
+VertexData vertexData_position_128x128_graphics;
+VkCommandBuffer* vkCommandBuffer_128x128_graphics_array = NULL;
 
-float position[mesh_width][mesh_height][4];
+float position_256_graphics[256][256][4];
+VertexData vertexData_position_256x256_graphics;
+VkCommandBuffer* vkCommandBuffer_256x256_graphics_array = NULL;
 
+float position_512_graphics[512][512][4];
+VertexData vertexData_position_512x512_graphics;
+VkCommandBuffer* vkCommandBuffer_512x512_graphics_array = NULL;
+
+float position_1024_graphics[1024][1024][4];
+VertexData vertexData_position_1024x1024_graphics;
+VkCommandBuffer* vkCommandBuffer_1024x1024_graphics_array = NULL;
+
+BOOL bMesh64Chosen = TRUE;
+BOOL bMesh128Chosen = FALSE;
+BOOL bMesh256Chosen = FALSE;
+BOOL bMesh512Chosen = FALSE;
+BOOL bMesh1024Chosen = FALSE;
+
+char selectedColor = 'O';
 float fAnimationSpeed = 0.0f;
 
 // Entry Point Function
@@ -233,7 +247,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Sine Wave"),
+        TEXT("Atharv Natu : Vulkan Sine Wave Using Array Method"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -345,6 +359,46 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                     DestroyWindow(hwnd);
                 break;
 
+                case 49:
+                    bMesh64Chosen = TRUE;
+                    bMesh128Chosen = FALSE;
+                    bMesh256Chosen = FALSE;
+                    bMesh512Chosen = FALSE;
+                    bMesh1024Chosen = FALSE;
+                break;
+
+                case 50:
+                    bMesh64Chosen = FALSE;
+                    bMesh128Chosen = TRUE;
+                    bMesh256Chosen = FALSE;
+                    bMesh512Chosen = FALSE;
+                    bMesh1024Chosen = FALSE;
+                break;
+
+                case 51:
+                    bMesh64Chosen = FALSE;
+                    bMesh128Chosen = FALSE;
+                    bMesh256Chosen = TRUE;
+                    bMesh512Chosen = FALSE;
+                    bMesh1024Chosen = FALSE;
+                break;
+
+                case 52:
+                    bMesh64Chosen = FALSE;
+                    bMesh128Chosen = FALSE;
+                    bMesh256Chosen = FALSE;
+                    bMesh512Chosen = TRUE;
+                    bMesh1024Chosen = FALSE;
+                break;
+
+                case 53:
+                    bMesh64Chosen = FALSE;
+                    bMesh128Chosen = FALSE;
+                    bMesh256Chosen = FALSE;
+                    bMesh512Chosen = FALSE;
+                    bMesh1024Chosen = TRUE;
+                break;
+
                 default:
                 break;
             }
@@ -358,6 +412,51 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                 case 'F':
                 case 'f':
                     ToggleFullScreen();
+                break;
+
+                case 'O':
+                case 'o':
+                    selectedColor = 'O';
+                break;
+
+                case 'R':
+                case 'r':
+                    selectedColor = 'R';
+                break;
+
+                case 'G':
+                case 'g':
+                    selectedColor = 'G';
+                break;
+
+                case 'B':
+                case 'b':
+                    selectedColor = 'B';
+                break;
+
+                case 'C':
+                case 'c':
+                    selectedColor = 'C';
+                break;
+
+                case 'M':
+                case 'm':
+                    selectedColor = 'M';
+                break;
+
+                case 'Y':
+                case 'y':
+                    selectedColor = 'Y';
+                break;
+
+                case 'K':
+                case 'k':
+                    selectedColor = 'K';
+                break;
+
+                case 'W':
+                case 'w':
+                    selectedColor = 'W';
                 break;
 
                 default:
@@ -444,8 +543,9 @@ VkResult initialize(void)
     VkResult createSwapchain(VkBool32);
     VkResult createImagesAndImageViews(void);
     VkResult createCommandPool(void);
-    VkResult createCommandBuffers(void);
-    VkResult createVertexBuffer(void);
+    VkResult createCommandBuffers(VkCommandBuffer**);
+    void initializeSinewaveArrays(uint32_t, uint32_t);
+    VkResult createVertexBuffer(uint32_t, uint32_t, VertexData*);
     VkResult createUniformBuffer(void);
     VkResult createShaders(void);
     VkResult createDescriptorSetLayout(void);
@@ -534,38 +634,118 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createCommandPool() Succeeded\n", __func__);
 
     //! Create Command Buffers
-    vkResult = createCommandBuffers();
+    vkResult = createCommandBuffers(&vkCommandBuffer_64x64_graphics_array);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createCommandBuffers() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_64x64_graphics_array : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded\n", __func__);
-
-    // Initialization of Position
-    for (unsigned int i = 0; i < mesh_width; i++)
-    {
-        for (unsigned int j = 0; j < mesh_height; j++)
-        {
-            for (unsigned int k = 0; k < 4; k++)
-            {
-                position[i][j][k] = 0.0f;
-            }
-        }
-    }
-
-    //! Create Vertex Buffer
-    vkResult = createVertexBuffer();
+        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_64x64_graphics_array\n", __func__);
+    
+    vkResult = createCommandBuffers(&vkCommandBuffer_128x128_graphics_array);
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createVertexBuffer() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_128x128_graphics_array : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_128x128_graphics_array\n", __func__);
+    
+    vkResult = createCommandBuffers(&vkCommandBuffer_256x256_graphics_array);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_256x256_graphics_array : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_256x256_graphics_array\n", __func__);
+    
+    vkResult = createCommandBuffers(&vkCommandBuffer_512x512_graphics_array);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_512x512_graphics_array : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_512x512_graphics_array\n", __func__);
+    
+    vkResult = createCommandBuffers(&vkCommandBuffer_1024x1024_graphics_array);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_1024x1024_graphics_array : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_1024x1024_graphics_array\n", __func__);
+
+    //! Initialize Sinewave Arrays - 64, 128, 256, 512, 1024
+    initializeSinewaveArrays(64, 64);
+    initializeSinewaveArrays(128, 128);
+    initializeSinewaveArrays(256, 256);
+    initializeSinewaveArrays(512, 512);
+    initializeSinewaveArrays(1024, 1024);
+
+    //! Create Vertex Buffers
+    memset((void*)&vertexData_position_64x64_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(64, 64, &vertexData_position_64x64_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_64x64_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_64x64_graphics\n", __func__);
+
+    memset((void*)&vertexData_position_128x128_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(128, 128, &vertexData_position_128x128_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_128x128_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_128x128_graphics\n", __func__);
+    
+    memset((void*)&vertexData_position_256x256_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(256, 256, &vertexData_position_256x256_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_256x256_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_256x256_graphics\n", __func__);
+    
+    memset((void*)&vertexData_position_512x512_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(512, 512, &vertexData_position_512x512_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_512x512_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_512x512_graphics\n", __func__);
+    
+    memset((void*)&vertexData_position_1024x1024_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(1024, 1024, &vertexData_position_1024x1024_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_1024x1024_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_1024x1024_graphics\n", __func__);
 
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
@@ -722,7 +902,7 @@ VkResult resize(int width, int height)
     // Function Declarations
     VkResult createSwapchain(VkBool32);
     VkResult createImagesAndImageViews(void);
-    VkResult createCommandBuffers(void);
+    VkResult createCommandBuffers(VkCommandBuffer**);
     VkResult createPipelineLayout(void);
     VkResult createRenderPass(void);
     VkResult createPipeline(void);
@@ -776,11 +956,42 @@ VkResult resize(int width, int height)
 
         //* Destroy Command Buffer
         for (uint32_t i = 0; i < swapchainImageCount; i++)
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_array[i]);
-        if (vkCommandBuffer_array)
         {
-            free(vkCommandBuffer_array);
-            vkCommandBuffer_array = NULL;
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_1024x1024_graphics_array[i]);
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_512x512_graphics_array[i]);
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_256x256_graphics_array[i]);
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_128x128_graphics_array[i]);
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_64x64_graphics_array[i]);
+        }
+            
+        if (vkCommandBuffer_1024x1024_graphics_array)
+        {
+            free(vkCommandBuffer_1024x1024_graphics_array);
+            vkCommandBuffer_1024x1024_graphics_array = NULL;
+        }
+            
+        if (vkCommandBuffer_512x512_graphics_array)
+        {
+            free(vkCommandBuffer_512x512_graphics_array);
+            vkCommandBuffer_512x512_graphics_array = NULL;
+        }
+            
+        if (vkCommandBuffer_256x256_graphics_array)
+        {
+            free(vkCommandBuffer_256x256_graphics_array);
+            vkCommandBuffer_256x256_graphics_array = NULL;
+        }
+            
+        if (vkCommandBuffer_128x128_graphics_array)
+        {
+            free(vkCommandBuffer_128x128_graphics_array);
+            vkCommandBuffer_128x128_graphics_array = NULL;
+        }
+            
+        if (vkCommandBuffer_64x64_graphics_array)
+        {
+            free(vkCommandBuffer_64x64_graphics_array);
+            vkCommandBuffer_64x64_graphics_array = NULL;
         }
 
         //* Destroy PipelineLayout
@@ -898,10 +1109,43 @@ VkResult resize(int width, int height)
         }
 
         //* Create Command Buffers
-        vkResult = createCommandBuffers();
+        vkResult = createCommandBuffers(&vkCommandBuffer_64x64_graphics_array);
         if (vkResult != VK_SUCCESS)
         {
-            fprintf(gpFile, "%s() => createCommandBuffers() Failed : %d !!!\n", __func__, vkResult);
+            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_64x64_graphics_array : %d !!!\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        
+        vkResult = createCommandBuffers(&vkCommandBuffer_128x128_graphics_array);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_128x128_graphics_array : %d !!!\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        
+        vkResult = createCommandBuffers(&vkCommandBuffer_256x256_graphics_array);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_256x256_graphics_array : %d !!!\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        
+        vkResult = createCommandBuffers(&vkCommandBuffer_512x512_graphics_array);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_512x512_graphics_array : %d !!!\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        
+        vkResult = createCommandBuffers(&vkCommandBuffer_1024x1024_graphics_array);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_1024x1024_graphics_array : %d !!!\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
             return vkResult;
         }
 
@@ -932,9 +1176,11 @@ VkResult display(void)
     // Function Declarations
     VkResult resize(int, int);
     VkResult updateUniformBuffer(void);
+    VkResult buildCommandBuffers(void);
     void sineWave(unsigned int, unsigned int, float);
 
     // Variable Declarations
+    VkCommandBuffer* vkCommandBuffer_array = NULL;
     VkResult vkResult = VK_SUCCESS;
 
     // Code
@@ -942,6 +1188,24 @@ VkResult display(void)
     {
         fprintf(gpFile, "%s() => Initialization Not Yet Completed !!!\n", __func__);
         return (VkResult)VK_FALSE;
+    }
+
+    if (bMesh64Chosen)
+        vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
+    else if (bMesh128Chosen)
+        vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
+    else if (bMesh256Chosen)
+        vkCommandBuffer_array = vkCommandBuffer_256x256_graphics_array;
+    else if (bMesh512Chosen)
+        vkCommandBuffer_array = vkCommandBuffer_512x512_graphics_array;
+    else if (bMesh1024Chosen)
+        vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
+
+    vkResult = buildCommandBuffers();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => buildCommandBuffers() Failed : %d\n", __func__, vkResult);
+        return vkResult;
     }
 
     //! Acquire next image index
@@ -1025,52 +1289,16 @@ VkResult display(void)
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
 
-    fAnimationSpeed = fAnimationSpeed + 0.02f;
-
-    sineWave(mesh_width, mesh_height, fAnimationSpeed);
-
-    memcpy(mappedPtr, position, MESH_SIZE * sizeof(float));
 
     vkDeviceWaitIdle(vkDevice);
 
     return vkResult;
 }
 
-void sineWave(unsigned int width, unsigned int height, float time)
-{
-    // Code
-    for (unsigned int i = 0; i < width; i++)
-    {
-        for (unsigned int j = 0; j < height; j++)
-        {
-            for (unsigned int k = 0; k < 4; k++)
-            {
-                float u = (float)i / (float)width;
-                float v = (float)j / (float)height;
-
-                u = u * 2.0f - 1.0f;
-                v = v * 2.0f - 1.0f;
-
-                float frequency = 4.0f;
-
-                float w = sinf(u * frequency + time) * cosf(v * frequency + time) * 0.5f;
-                
-                if (k == 0)
-                    position[i][j][k] = u;
-                if (k == 1)
-                    position[i][j][k] = w;
-                if (k == 2)
-                    position[i][j][k] = v;
-                if (k == 3)
-                    position[i][j][k] = 1.0f;
-            }
-        }
-    }
-}
-
 void update(void)
 {
     // Code
+    fAnimationSpeed = fAnimationSpeed + 0.02f;
 }
 
 void uninitialize(void)
@@ -1207,35 +1435,120 @@ void uninitialize(void)
     }
 
     //* Step - 14 of Vertex Buffer
-    if (vertexData_position.vkDeviceMemory)
+    if (vertexData_position_1024x1024_graphics.vkDeviceMemory)
     {
-        vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
-        fprintf(gpFile, "%s() => vkUnmapMemory() Succeeded For vertexData_position.vkDeviceMemory\n", __func__);
-        vkFreeMemory(vkDevice, vertexData_position.vkDeviceMemory, NULL);
-        vertexData_position.vkDeviceMemory = VK_NULL_HANDLE;
-        mappedPtr = NULL;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, vertexData_position_1024x1024_graphics.vkDeviceMemory, NULL);
+        vertexData_position_1024x1024_graphics.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_1024x1024_graphics.vkDeviceMemory\n", __func__);
     }
 
-    if (vertexData_position.vkBuffer)
+    if (vertexData_position_1024x1024_graphics.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, vertexData_position.vkBuffer, NULL);
-        vertexData_position.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, vertexData_position_1024x1024_graphics.vkBuffer, NULL);
+        vertexData_position_1024x1024_graphics.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_1024x1024_graphics.vkBuffer\n", __func__);
+    }
+
+    if (vertexData_position_512x512_graphics.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_position_512x512_graphics.vkDeviceMemory, NULL);
+        vertexData_position_512x512_graphics.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_512x512_graphics.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_position_512x512_graphics.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_position_512x512_graphics.vkBuffer, NULL);
+        vertexData_position_512x512_graphics.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_512x512_graphics.vkBuffer\n", __func__);
+    }
+
+    if (vertexData_position_256x256_graphics.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_position_256x256_graphics.vkDeviceMemory, NULL);
+        vertexData_position_256x256_graphics.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_256x256_graphics.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_position_256x256_graphics.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_position_256x256_graphics.vkBuffer, NULL);
+        vertexData_position_256x256_graphics.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_256x256_graphics.vkBuffer\n", __func__);
+    }
+
+    if (vertexData_position_128x128_graphics.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_position_128x128_graphics.vkDeviceMemory, NULL);
+        vertexData_position_128x128_graphics.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_128x128_graphics.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_position_128x128_graphics.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_position_128x128_graphics.vkBuffer, NULL);
+        vertexData_position_128x128_graphics.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_128x128_graphics.vkBuffer\n", __func__);
+    }
+
+    if (vertexData_position_64x64_graphics.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_position_64x64_graphics.vkDeviceMemory, NULL);
+        vertexData_position_64x64_graphics.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_64x64_graphics.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_position_64x64_graphics.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_position_64x64_graphics.vkBuffer, NULL);
+        vertexData_position_64x64_graphics.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_64x64_graphics.vkBuffer\n", __func__);
     }
 
     //* Step - 5 of Command Buffer
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_array[i]);
+        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_1024x1024_graphics_array[i]);
+        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_512x512_graphics_array[i]);
+        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_256x256_graphics_array[i]);
+        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_128x128_graphics_array[i]);
+        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_64x64_graphics_array[i]);
         fprintf(gpFile, "%s() => vkFreeCommandBuffers() Succeeded For Index : %d\n", __func__, i);
     }
 
-    if (vkCommandBuffer_array)
+    if (vkCommandBuffer_1024x1024_graphics_array)
     {
-        free(vkCommandBuffer_array);
-        vkCommandBuffer_array = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_array\n", __func__);
+        free(vkCommandBuffer_1024x1024_graphics_array);
+        vkCommandBuffer_1024x1024_graphics_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_1024x1024_graphics_array\n", __func__);
+    }
+
+    if (vkCommandBuffer_512x512_graphics_array)
+    {
+        free(vkCommandBuffer_512x512_graphics_array);
+        vkCommandBuffer_512x512_graphics_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_512x512_graphics_array\n", __func__);
+    }
+
+    if (vkCommandBuffer_256x256_graphics_array)
+    {
+        free(vkCommandBuffer_256x256_graphics_array);
+        vkCommandBuffer_256x256_graphics_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_256x256_graphics_array\n", __func__);
+    }
+
+    if (vkCommandBuffer_128x128_graphics_array)
+    {
+        free(vkCommandBuffer_128x128_graphics_array);
+        vkCommandBuffer_128x128_graphics_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_128x128_graphics_array\n", __func__);
+    }
+
+    if (vkCommandBuffer_64x64_graphics_array)
+    {
+        free(vkCommandBuffer_64x64_graphics_array);
+        vkCommandBuffer_64x64_graphics_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_64x64_graphics_array\n", __func__);
     }
 
     //* Step - 4 of Command Pool (Destroy Command Pool)
@@ -2712,10 +3025,13 @@ VkResult createCommandPool(void)
     return vkResult;
 }
 
-VkResult createCommandBuffers(void)
+VkResult createCommandBuffers(VkCommandBuffer** pPvkCommandBuffer_array)
 {
     // Variable Declarations
+    VkCommandBuffer *vkCommandBuffer_array = NULL;
     VkResult vkResult = VK_SUCCESS;
+
+    // Code
 
     //* Step - 1
     VkCommandBufferAllocateInfo vkCommandBufferAllocateInfo;
@@ -2744,19 +3060,23 @@ VkResult createCommandBuffers(void)
             fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Succeeded For Index : %d\n", __func__, i);
     }
 
+    *pPvkCommandBuffer_array = vkCommandBuffer_array;
+
     return vkResult;
 }
 
-VkResult createVertexBuffer(void)
+VkResult createVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData* pVertexData)
 {
     // Variable Declarations
+    VertexData vertexData_position;
     VkResult vkResult = VK_SUCCESS;
 
     // Code
     
     //! Vertex Position
     //! -------------------------------------------------------------------------------------------------------------------------------------
-    //* Step - 4
+    VkDeviceSize bufferSize = meshWidth * meshHeight * 4 * sizeof(float);
+
     memset((void*)&vertexData_position, 0, sizeof(VertexData));
 
     //* Step - 5
@@ -2765,7 +3085,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = MESH_SIZE * sizeof(float);
+    vkBufferCreateInfo.size = bufferSize;
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
@@ -2823,14 +3143,105 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
     //* Step - 11
-    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &mappedPtr);
+    void* data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
+
+    if (meshWidth == 64 && meshHeight == 64)
+        memcpy(data, position_64_graphics, bufferSize);
+    else if (meshWidth == 128 && meshHeight == 128)
+        memcpy(data, position_128_graphics, bufferSize);
+    else if (meshWidth == 256 && meshHeight == 256)
+        memcpy(data, position_256_graphics, bufferSize);
+    else if (meshWidth == 512 && meshHeight == 512)
+        memcpy(data, position_512_graphics, bufferSize);
+    else if (meshWidth == 1024 && meshHeight == 1024)
+        memcpy(data, position_1024_graphics, bufferSize);
+
+    vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
     //! -------------------------------------------------------------------------------------------------------------------------------------
     
+    *pVertexData = vertexData_position;
+
     return vkResult;
+}
+
+void initializeSinewaveArrays(uint32_t meshWidth, uint32_t meshHeight)
+{
+    // Code
+    if (meshWidth == 64 && meshHeight == 64)
+    {
+        for (unsigned int i = 0; i < meshWidth; i++)
+        {
+            for (unsigned int j = 0; j < meshHeight; j++)
+            {
+                for (unsigned int k = 0; k < 4; k++)
+                {
+                    position_64_graphics[i][j][k] = 0;
+                }
+            }
+        }
+    }
+    
+    else if (meshWidth == 128 && meshHeight == 128)
+    {
+        for (unsigned int i = 0; i < meshWidth; i++)
+        {
+            for (unsigned int j = 0; j < meshHeight; j++)
+            {
+                for (unsigned int k = 0; k < 4; k++)
+                {
+                    position_128_graphics[i][j][k] = 0;
+                }
+            }
+        }
+    }
+    
+    else if (meshWidth == 256 && meshHeight == 256)
+    {
+        for (unsigned int i = 0; i < meshWidth; i++)
+        {
+            for (unsigned int j = 0; j < meshHeight; j++)
+            {
+                for (unsigned int k = 0; k < 4; k++)
+                {
+                    position_256_graphics[i][j][k] = 0;
+                }
+            }
+        }
+    }
+
+    else if (meshWidth == 512 && meshHeight == 512)
+    {
+        for (unsigned int i = 0; i < meshWidth; i++)
+        {
+            for (unsigned int j = 0; j < meshHeight; j++)
+            {
+                for (unsigned int k = 0; k < 4; k++)
+                {
+                    position_512_graphics[i][j][k] = 0;
+                }
+            }
+        }
+    }
+
+    else if (meshWidth == 1024 && meshHeight == 1024)
+    {
+        for (unsigned int i = 0; i < meshWidth; i++)
+        {
+            for (unsigned int j = 0; j < meshHeight; j++)
+            {
+                for (unsigned int k = 0; k < 4; k++)
+                {
+                    position_1024_graphics[i][j][k] = 0;
+                }
+            }
+        }
+    }
+    
 }
 
 VkResult createUniformBuffer(void)
@@ -2847,7 +3258,7 @@ VkResult createUniformBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(MVP_UniformData);
+    vkBufferCreateInfo.size = sizeof(Host_UniformData);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
     memset((void*)&uniformData, 0, sizeof(UniformData));
@@ -2923,8 +3334,8 @@ VkResult updateUniformBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    MVP_UniformData mvp_UniformData;
-    memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
+    Host_UniformData host_uniformData;
+    memset((void*)&host_uniformData, 0, sizeof(Host_UniformData));
 
     //! Update Matrices
     glm::mat4 translationMatrix = glm::mat4(1.0f);
@@ -2945,11 +3356,36 @@ VkResult updateUniformBuffer(void)
     perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
     modelViewProjectionMatrix = perspectiveProjectionMatrix * modelViewMatrix;
 
-    mvp_UniformData.mvpMatrix = modelViewProjectionMatrix;
+    host_uniformData.mvpMatrix = modelViewProjectionMatrix;
+
+    //* Color Update
+    switch (selectedColor)
+    {
+        // Background - White, Foreground - Black
+        case 'K': 
+        {
+            host_uniformData.color = glm::vec4(0.0, 0.0, 0.0, 1.0); 
+        }
+        break;
+
+        // For all other colors - Black background
+        case 'W': host_uniformData.color = glm::vec4(1.0, 1.0, 1.0, 1.0); break;    // White
+        case 'R': host_uniformData.color = glm::vec4(1.0, 0.0, 0.0, 1.0); break;    // Red
+        case 'G': host_uniformData.color = glm::vec4(0.0, 1.0, 0.0, 1.0); break;    // Green
+        case 'B': host_uniformData.color = glm::vec4(0.0, 0.0, 1.0, 1.0); break;    // Blue
+        case 'O': host_uniformData.color = glm::vec4(1.0, 0.5, 0.0, 1.0); break;    // Orange
+        case 'C': host_uniformData.color = glm::vec4(0.0, 1.0, 1.0, 1.0); break;    // Cyan
+        case 'M': host_uniformData.color = glm::vec4(1.0, 0.0, 1.0, 1.0); break;    // Magenta
+        case 'Y': host_uniformData.color = glm::vec4(1.0, 1.0, 0.0, 1.0); break;    // Yellow
+
+        default:
+            host_uniformData.color = glm::vec4(1.0, 0.5, 0.0, 1.0);   // Orange
+        break;
+    }
 
     //! Map Uniform Buffer
     void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
+    vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(Host_UniformData), 0, &data);
     if (vkResult != VK_SUCCESS)
     {
         fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
@@ -2957,7 +3393,7 @@ VkResult updateUniformBuffer(void)
     }
 
     //! Copy the data to the mapped buffer (present on device memory)
-    memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
+    memcpy(data, &host_uniformData, sizeof(Host_UniformData));
 
     //! Unmap memory
     vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
@@ -3135,9 +3571,9 @@ VkResult createDescriptorSetLayout(void)
     VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding;
     memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(VkDescriptorSetLayoutBinding));
     vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
+    vkDescriptorSetLayoutBinding.binding = 0;
     vkDescriptorSetLayoutBinding.descriptorCount = 1;
-    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
 
     //* Step - 3
@@ -3247,7 +3683,7 @@ VkResult createDescriptorSet(void)
     memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
     vkDescriptorBufferInfo.buffer = uniformData.vkBuffer;
     vkDescriptorBufferInfo.offset = 0;
-    vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
+    vkDescriptorBufferInfo.range = sizeof(Host_UniformData);
 
     /* Update above descriptor set directly to the shader
     There are 2 ways :-
@@ -3674,8 +4110,70 @@ VkResult createFences(void)
 
 VkResult buildCommandBuffers(void)
 {
-    // Code
+    // Function Declarations
+    VkResult prepareSineWaveForCPU(uint32_t, uint32_t, float);
+
+    // Variable Declarations
+    VkCommandBuffer *vkCommandBuffer_array = NULL;
     VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    if (bMesh64Chosen)
+    {
+        vkResult = prepareSineWaveForCPU(64, 64, fAnimationSpeed);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 64x64 : %d\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
+    }
+    else if (bMesh128Chosen)
+    {
+        vkResult = prepareSineWaveForCPU(128, 128, fAnimationSpeed);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 128x128 : %d\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
+    }
+    else if (bMesh256Chosen)
+    {
+        vkResult = prepareSineWaveForCPU(256, 256, fAnimationSpeed);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 256x256 : %d\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        vkCommandBuffer_array = vkCommandBuffer_256x256_graphics_array;
+    }   
+    else if (bMesh512Chosen)
+    {
+        vkResult = prepareSineWaveForCPU(512, 512, fAnimationSpeed);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 512x512 : %d\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        vkCommandBuffer_array = vkCommandBuffer_512x512_graphics_array;
+    }
+    else if (bMesh1024Chosen)
+    {
+        vkResult = prepareSineWaveForCPU(1024, 1024, fAnimationSpeed);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 1024x1024 : %d\n", __func__, vkResult);
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+        vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
+    }
+        
 
     //! Loop per swapchain image
     for (uint32_t i = 0; i < swapchainImageCount; i++)
@@ -3688,8 +4186,6 @@ VkResult buildCommandBuffers(void)
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
             return vkResult;
         }
-        else
-            fprintf(gpFile, "%s() => vkResetCommandBuffer() Succeeded For Index : %d\n", __func__, i);
 
         //* Step - 2
         VkCommandBufferBeginInfo vkCommandBufferBeginInfo;
@@ -3706,13 +4202,18 @@ VkResult buildCommandBuffers(void)
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
             return vkResult;
         }
-        else
-            fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded For Index : %d\n", __func__, i);
 
         //* Step - 4 => Set Clear Value
         VkClearValue vkClearValue_array[2];
         memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
-        vkClearValue_array[0].color = vkClearColorValue;
+        if (selectedColor == 'K')
+        {
+            VkClearColorValue vkClearColorValue_white = { 1.0f, 1.0f, 1.0f, 1.0f };
+            vkClearValue_array[0].color = vkClearColorValue_white;
+        }
+        else
+            vkClearValue_array[0].color = vkClearColorValue;
+
         vkClearValue_array[1].depthStencil = vkClearDepthStencilValue;
 
         //* Step - 5
@@ -3747,19 +4248,87 @@ VkResult buildCommandBuffers(void)
                 NULL
             );
 
-            //! Bind with Vertex Position Buffer
-            VkDeviceSize vkDeviceSize_offset_position[1];
-            memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-            vkCmdBindVertexBuffers(
-                vkCommandBuffer_array[i], 
-                0, 
-                1, 
-                &vertexData_position.vkBuffer, 
-                vkDeviceSize_offset_position
-            );
+            if (bMesh64Chosen)
+            {
+                //! Bind with Vertex Position Buffer
+                VkDeviceSize vkDeviceSize_offset_position[1];
+                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                vkCmdBindVertexBuffers(
+                    vkCommandBuffer_array[i], 
+                    0, 
+                    1, 
+                    &vertexData_position_64x64_graphics.vkBuffer, 
+                    vkDeviceSize_offset_position
+                );
 
-            //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], mesh_width * mesh_height, 1, 0, 0);
+                //! Vulkan Drawing Function
+                vkCmdDraw(vkCommandBuffer_array[i], 64 * 64, 1, 0, 0);
+            }
+            else if (bMesh128Chosen)
+            {
+                //! Bind with Vertex Position Buffer
+                VkDeviceSize vkDeviceSize_offset_position[1];
+                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                vkCmdBindVertexBuffers(
+                    vkCommandBuffer_array[i], 
+                    0, 
+                    1, 
+                    &vertexData_position_128x128_graphics.vkBuffer, 
+                    vkDeviceSize_offset_position
+                );
+
+                //! Vulkan Drawing Function
+                vkCmdDraw(vkCommandBuffer_array[i], 128 * 128, 1, 0, 0);
+            }
+            else if (bMesh256Chosen)
+            {
+                //! Bind with Vertex Position Buffer
+                VkDeviceSize vkDeviceSize_offset_position[1];
+                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                vkCmdBindVertexBuffers(
+                    vkCommandBuffer_array[i], 
+                    0, 
+                    1, 
+                    &vertexData_position_256x256_graphics.vkBuffer, 
+                    vkDeviceSize_offset_position
+                );
+
+                //! Vulkan Drawing Function
+                vkCmdDraw(vkCommandBuffer_array[i], 256 * 256, 1, 0, 0);
+            }
+            else if (bMesh512Chosen)
+            {
+                //! Bind with Vertex Position Buffer
+                VkDeviceSize vkDeviceSize_offset_position[1];
+                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                vkCmdBindVertexBuffers(
+                    vkCommandBuffer_array[i], 
+                    0, 
+                    1, 
+                    &vertexData_position_512x512_graphics.vkBuffer, 
+                    vkDeviceSize_offset_position
+                );
+
+                //! Vulkan Drawing Function
+                vkCmdDraw(vkCommandBuffer_array[i], 512 * 512, 1, 0, 0);
+            }
+            else if (bMesh1024Chosen)
+            {
+                //! Bind with Vertex Position Buffer
+                VkDeviceSize vkDeviceSize_offset_position[1];
+                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                vkCmdBindVertexBuffers(
+                    vkCommandBuffer_array[i], 
+                    0, 
+                    1, 
+                    &vertexData_position_1024x1024_graphics.vkBuffer, 
+                    vkDeviceSize_offset_position
+                );
+
+                //! Vulkan Drawing Function
+                vkCmdDraw(vkCommandBuffer_array[i], 1024 * 1024, 1, 0, 0);
+            
+            }
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
@@ -3772,11 +4341,171 @@ VkResult buildCommandBuffers(void)
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
             return vkResult;
         }
-        else
-            fprintf(gpFile, "%s() => vkEndCommandBuffer() Succeeded For Index : %d\n", __func__, i);
     }
 
     return vkResult;
+}
+
+VkResult prepareSineWaveForCPU(uint32_t meshWidth, uint32_t meshHeight, float animationTime)
+{
+    // Function Declarations
+    void populateSineWaveArraysForCPU(uint32_t, uint32_t, float);
+
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+    void *data = NULL;
+
+    VkDeviceSize bufferSize = meshWidth * meshHeight * 4 * sizeof(float);
+
+    // Code
+
+    // Map the buffer
+    if (meshWidth == 64 && meshHeight == 64)
+    {
+        populateSineWaveArraysForCPU(64, 64, animationTime);
+
+        vkResult = vkMapMemory(vkDevice, vertexData_position_64x64_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
+        if (vkResult != VK_SUCCESS)
+            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_64x64_graphics : %d\n", __func__, vkResult);
+
+        memcpy(data, position_64_graphics, bufferSize);
+
+        vkUnmapMemory(vkDevice, vertexData_position_64x64_graphics.vkDeviceMemory);
+    }
+
+    else if (meshWidth == 128 && meshHeight == 128)
+    {
+        populateSineWaveArraysForCPU(128, 128, animationTime);
+
+        vkResult = vkMapMemory(vkDevice, vertexData_position_128x128_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
+        if (vkResult != VK_SUCCESS)
+            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_128x128_graphics : %d\n", __func__, vkResult);
+
+        memcpy(data, position_128_graphics, bufferSize);
+
+        vkUnmapMemory(vkDevice, vertexData_position_128x128_graphics.vkDeviceMemory);
+    }
+
+    else if (meshWidth == 256 && meshHeight == 256)
+    {
+        populateSineWaveArraysForCPU(256, 256, animationTime);
+
+        vkResult = vkMapMemory(vkDevice, vertexData_position_256x256_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
+        if (vkResult != VK_SUCCESS)
+            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_256x256_graphics : %d\n", __func__, vkResult);
+
+        memcpy(data, position_256_graphics, bufferSize);
+
+        vkUnmapMemory(vkDevice, vertexData_position_256x256_graphics.vkDeviceMemory);
+    }
+
+    else if (meshWidth == 512 && meshHeight == 512)
+    {
+        populateSineWaveArraysForCPU(512, 512, animationTime);
+
+        vkResult = vkMapMemory(vkDevice, vertexData_position_512x512_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
+        if (vkResult != VK_SUCCESS)
+            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_512x512_graphics : %d\n", __func__, vkResult);
+
+        memcpy(data, position_512_graphics, bufferSize);
+
+        vkUnmapMemory(vkDevice, vertexData_position_512x512_graphics.vkDeviceMemory);
+    }
+
+    else if (meshWidth == 1024 && meshHeight == 1024)
+    {
+        populateSineWaveArraysForCPU(1024, 1024, animationTime);
+
+        vkResult = vkMapMemory(vkDevice, vertexData_position_1024x1024_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
+        if (vkResult != VK_SUCCESS)
+            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_1024x1024_graphics : %d\n", __func__, vkResult);
+
+        memcpy(data, position_1024_graphics, bufferSize);
+
+        vkUnmapMemory(vkDevice, vertexData_position_1024x1024_graphics.vkDeviceMemory);
+    }
+
+    return vkResult;
+  
+}
+
+void populateSineWaveArraysForCPU(uint32_t meshWidth, uint32_t meshHeight, float animationTime)
+{
+    for (unsigned int i = 0; i < meshWidth; i++)
+    {
+        for (unsigned int j = 0; j < meshHeight; j++)
+        {
+            for (unsigned int k = 0; k < 4; k++)
+            {
+                float u = (float)i / (float)meshWidth;
+                float v = (float)j / (float)meshHeight;
+
+                u = u * 2.0f - 1.0f;
+                v = v * 2.0f - 1.0f;
+
+                float frequency = 4.0f;
+
+                float w = sinf(u * frequency + animationTime) * cosf(v * frequency + animationTime) * 0.5f;
+                
+                if (meshWidth == 64 && meshHeight == 64)
+                {
+                    if (k == 0)
+                        position_64_graphics[i][j][k] = u;
+                    if (k == 1)
+                        position_64_graphics[i][j][k] = w;
+                    if (k == 2)
+                        position_64_graphics[i][j][k] = v;
+                    if (k == 3)
+                        position_64_graphics[i][j][k] = 1.0f;
+                }
+                else if (meshWidth == 128 && meshHeight == 128)
+                {
+                    if (k == 0)
+                        position_128_graphics[i][j][k] = u;
+                    if (k == 1)
+                        position_128_graphics[i][j][k] = w;
+                    if (k == 2)
+                        position_128_graphics[i][j][k] = v;
+                    if (k == 3)
+                        position_128_graphics[i][j][k] = 1.0f;
+                }
+                else if (meshWidth == 256 && meshHeight == 256)
+                {
+                    if (k == 0)
+                        position_256_graphics[i][j][k] = u;
+                    if (k == 1)
+                        position_256_graphics[i][j][k] = w;
+                    if (k == 2)
+                        position_256_graphics[i][j][k] = v;
+                    if (k == 3)
+                        position_256_graphics[i][j][k] = 1.0f;
+                }
+                else if (meshWidth == 512 && meshHeight == 512)
+                {
+                    if (k == 0)
+                        position_512_graphics[i][j][k] = u;
+                    if (k == 1)
+                        position_512_graphics[i][j][k] = w;
+                    if (k == 2)
+                        position_512_graphics[i][j][k] = v;
+                    if (k == 3)
+                        position_512_graphics[i][j][k] = 1.0f;
+                }
+                else if (meshWidth == 1024 && meshHeight == 1024)
+                {
+                    if (k == 0)
+                        position_1024_graphics[i][j][k] = u;
+                    if (k == 1)
+                        position_1024_graphics[i][j][k] = w;
+                    if (k == 2)
+                        position_1024_graphics[i][j][k] = v;
+                    if (k == 3)
+                        position_1024_graphics[i][j][k] = 1.0f;
+                }
+               
+            }
+        }
+    }
 }
 
 

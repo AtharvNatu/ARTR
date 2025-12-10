@@ -1386,7 +1386,6 @@ VkResult display(void)
         return vkResult;
     }
 
-
     //! FBO Render
     VkSubmitInfo vkSubmitInfo;
     memset((void*)&vkSubmitInfo, 0, sizeof(VkSubmitInfo));
@@ -1438,7 +1437,6 @@ VkResult display(void)
         fprintf(gpFile, "%s() => vkQueueSubmit() Failed : %d\n", __func__, vkResult);
         return vkResult;
     }
-
 
     //! Present Rendered Image
     VkPresentInfoKHR vkPresentInfoKHR;
@@ -7153,7 +7151,7 @@ VkResult createRenderPass_fbo(void)
     vkAttachmentDescription_array[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     vkAttachmentDescription_array[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     vkAttachmentDescription_array[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    vkAttachmentDescription_array[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    vkAttachmentDescription_array[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     //! Depth Attachment
     vkAttachmentDescription_array[1].flags = 0;

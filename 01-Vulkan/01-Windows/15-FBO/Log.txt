@@ -533,254 +533,26 @@ buildCommandBuffer_fbo() => vkEndCommandBuffer() Succeeded
 initialize() => buildCommandBuffer_fbo() Succeeded
 initialize() => Initialization Completed Successfully
 WinMain() => initialize() Succeeded
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc313530, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc313530[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c0170, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c0170[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc317760, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc317760[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c3d80, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c3d80[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc313530, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc313530[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c0170, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c0170[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc317760, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc317760[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c3d80, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c3d80[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc313530, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc313530[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c0170, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c0170[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc317760, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc317760[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c3d80, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c3d80[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc313530, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc313530[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c0170, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c0170[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc317760, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc317760[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c3d80, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c3d80[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc313530, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc313530[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c0170, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c0170[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x21ddc317760, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x21ddc317760[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ADN_VALIDATION : debugReportCallback() => Validation(0) = Validation Error: [ VUID-vkCmdDraw-None-09600 ] Object 0: handle = 0x1d39a9c3d80, type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0xec4bec000000000b, type = VK_OBJECT_TYPE_IMAGE; | MessageID = 0x46582f7b | vkQueueSubmit(): pSubmits[0].pCommandBuffers[0] command buffer VkCommandBuffer 0x1d39a9c3d80[] expects VkImage 0xec4bec000000000b[] (subresource: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, mipLevel = 0, arrayLayer = 0) to be in layout VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL--instead, current layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 The Vulkan spec states: If a descriptor with type equal to any of VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT is accessed as a result of this command, the image subresource identified by that descriptor must be in the image layout identified when the descriptor was written (https://vulkan.lunarg.com/doc/view/1.4.304.0/windows/1.4-extensions/vkspec.html#VUID-vkCmdDraw-None-09600)
-createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded FBO Texture
-createImagesAndImageViews_fbo() => vkCreateSampler() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded For FBO Depth
-createRenderPass_fbo() => vkCreateRenderPass() Succeeded
-createPipelineLayout_fbo() => vkCreatePipelineLayout() Succeeded
-createPipeline_fbo() => vkCreatePipelineCache() Succeeded
-createPipeline_fbo() => vkCreateGraphicsPipelines() Succeeded
-createPipeline_fbo() => vkDestroyPipelineCache() Succeeded
-createCommandBuffer_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_fbo
-buildCommandBuffer_fbo() => vkResetCommandBuffer() Succeeded
-buildCommandBuffer_fbo() => vkBeginCommandBuffer() Succeeded
-buildCommandBuffer_fbo() => vkEndCommandBuffer() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
-createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
-createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
-createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 2048 x 1152
-getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
-getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
-
-------------------------------------------------------------------------------------------------
-Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
-------------------------------------------------------------------------------------------------
-
-getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
-createSwapchain() => getPhysicalDevicePresentMode() Succeeded
-createSwapchain() => vkCreateSwapchainKHR() Succeeded
-createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
-createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
-createImagesAndImageViews() => getSupportedDepthFormat() Succeded
-createImagesAndImageViews() => vkCreateImage() Succeeded
-createImagesAndImageViews() => vkAllocateMemory() Succeeded For Depth
-createImagesAndImageViews() => vkBindImageMemory() Succeeded For Depth
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Depth
-createRenderPass() => vkCreateRenderPass() Succeeded
-createPipelineLayout() => vkCreatePipelineLayout() Succeeded
-createPipeline() => vkCreatePipelineCache() Succeeded
-createPipeline() => vkCreateGraphicsPipelines() Succeeded
-createPipeline() => vkDestroyPipelineCache() Succeeded
-createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
-createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
-createDescriptorSet() => vkAllocateDescriptorSets() Succeeded
-buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
-buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
-buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
-createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded FBO Texture
-createImagesAndImageViews_fbo() => vkCreateSampler() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded For FBO Depth
-createRenderPass_fbo() => vkCreateRenderPass() Succeeded
-createPipelineLayout_fbo() => vkCreatePipelineLayout() Succeeded
-createPipeline_fbo() => vkCreatePipelineCache() Succeeded
-createPipeline_fbo() => vkCreateGraphicsPipelines() Succeeded
-createPipeline_fbo() => vkDestroyPipelineCache() Succeeded
-createCommandBuffer_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_fbo
-buildCommandBuffer_fbo() => vkResetCommandBuffer() Succeeded
-buildCommandBuffer_fbo() => vkBeginCommandBuffer() Succeeded
-buildCommandBuffer_fbo() => vkEndCommandBuffer() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
-createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
-createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
-createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 784 x 561
-getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
-getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
-
-------------------------------------------------------------------------------------------------
-Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
-------------------------------------------------------------------------------------------------
-
-getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
-createSwapchain() => getPhysicalDevicePresentMode() Succeeded
-createSwapchain() => vkCreateSwapchainKHR() Succeeded
-createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
-createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
-createImagesAndImageViews() => getSupportedDepthFormat() Succeded
-createImagesAndImageViews() => vkCreateImage() Succeeded
-createImagesAndImageViews() => vkAllocateMemory() Succeeded For Depth
-createImagesAndImageViews() => vkBindImageMemory() Succeeded For Depth
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Depth
-createRenderPass() => vkCreateRenderPass() Succeeded
-createPipelineLayout() => vkCreatePipelineLayout() Succeeded
-createPipeline() => vkCreatePipelineCache() Succeeded
-createPipeline() => vkCreateGraphicsPipelines() Succeeded
-createPipeline() => vkDestroyPipelineCache() Succeeded
-createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
-createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
-createDescriptorSet() => vkAllocateDescriptorSets() Succeeded
-buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
-buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
-buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
-createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded FBO Texture
-createImagesAndImageViews_fbo() => vkCreateSampler() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded For FBO Depth
-createRenderPass_fbo() => vkCreateRenderPass() Succeeded
-createPipelineLayout_fbo() => vkCreatePipelineLayout() Succeeded
-createPipeline_fbo() => vkCreatePipelineCache() Succeeded
-createPipeline_fbo() => vkCreateGraphicsPipelines() Succeeded
-createPipeline_fbo() => vkDestroyPipelineCache() Succeeded
-createCommandBuffer_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_fbo
-buildCommandBuffer_fbo() => vkResetCommandBuffer() Succeeded
-buildCommandBuffer_fbo() => vkBeginCommandBuffer() Succeeded
-buildCommandBuffer_fbo() => vkEndCommandBuffer() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
-createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
-createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
-createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 800 x 600
-getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
-getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
-
-------------------------------------------------------------------------------------------------
-Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
-------------------------------------------------------------------------------------------------
-
-getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
-createSwapchain() => getPhysicalDevicePresentMode() Succeeded
-createSwapchain() => vkCreateSwapchainKHR() Succeeded
-createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
-createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
-createImagesAndImageViews() => getSupportedDepthFormat() Succeded
-createImagesAndImageViews() => vkCreateImage() Succeeded
-createImagesAndImageViews() => vkAllocateMemory() Succeeded For Depth
-createImagesAndImageViews() => vkBindImageMemory() Succeeded For Depth
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Depth
-createRenderPass() => vkCreateRenderPass() Succeeded
-createPipelineLayout() => vkCreatePipelineLayout() Succeeded
-createPipeline() => vkCreatePipelineCache() Succeeded
-createPipeline() => vkCreateGraphicsPipelines() Succeeded
-createPipeline() => vkDestroyPipelineCache() Succeeded
-createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
-createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
-createDescriptorSet() => vkAllocateDescriptorSets() Succeeded
-buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
-buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
-buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
-createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded FBO Texture
-createImagesAndImageViews_fbo() => vkCreateSampler() Succeeded For FBO Texture
-createImagesAndImageViews_fbo() => vkCreateImage() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkAllocateMemory() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkBindImageMemory() Succeeded For FBO Depth
-createImagesAndImageViews_fbo() => vkCreateImageView() Succeeded For FBO Depth
-createRenderPass_fbo() => vkCreateRenderPass() Succeeded
-createPipelineLayout_fbo() => vkCreatePipelineLayout() Succeeded
-createPipeline_fbo() => vkCreatePipelineCache() Succeeded
-createPipeline_fbo() => vkCreateGraphicsPipelines() Succeeded
-createPipeline_fbo() => vkDestroyPipelineCache() Succeeded
-createCommandBuffer_fbo() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_fbo
-buildCommandBuffer_fbo() => vkResetCommandBuffer() Succeeded
-buildCommandBuffer_fbo() => vkBeginCommandBuffer() Succeeded
-buildCommandBuffer_fbo() => vkEndCommandBuffer() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 1 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => Call 2 : vkGetPhysicalDeviceSurfaceFormatsKHR() Succeeded
-getPhysicalDeviceSurfaceFormatAndColorSpace() => free() Succeeded For vkSurfaceFormatKHR_array
-createSwapchain() => getPhysicalDeviceSurfaceFormatAndColorSpace() Succeeded
-createSwapchain() => vkGetPhysicalDeviceSurfaceCapabilitiesKHR() Succeeded
-createSwapchain() => [If Block] => Swapchain Image Width x Swapchain Image Height = 2048 x 1152
-getPhysicalDevicePresentMode() => Call 1 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
-getPhysicalDevicePresentMode() => Call 2 : vkGetPhysicalDeviceSurfacePresentModesKHR() Succeeded
-
-------------------------------------------------------------------------------------------------
-Vulkan Physical Device Present Mode : VK_PRESENT_MODE_MAILBOX_KHR
-------------------------------------------------------------------------------------------------
-
-getPhysicalDevicePresentMode() => free() Succeeded For vkPresentModeKHR_array
-createSwapchain() => getPhysicalDevicePresentMode() Succeeded
-createSwapchain() => vkCreateSwapchainKHR() Succeeded
-createImagesAndImageViews() => Call 1 : vkGetSwapchainImagesKHR() => Swapchain Image Count = 2
-createImagesAndImageViews() => Call 2 : vkGetSwapchainImagesKHR() Succeeded
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 0
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Index : 1
-createImagesAndImageViews() => getSupportedDepthFormat() Succeded
-createImagesAndImageViews() => vkCreateImage() Succeeded
-createImagesAndImageViews() => vkAllocateMemory() Succeeded For Depth
-createImagesAndImageViews() => vkBindImageMemory() Succeeded For Depth
-createImagesAndImageViews() => vkCreateImageView() Succeeded For Depth
-createRenderPass() => vkCreateRenderPass() Succeeded
-createPipelineLayout() => vkCreatePipelineLayout() Succeeded
-createPipeline() => vkCreatePipelineCache() Succeeded
-createPipeline() => vkCreateGraphicsPipelines() Succeeded
-createPipeline() => vkDestroyPipelineCache() Succeeded
-createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 0
-createCommandBuffers() => vkAllocateCommandBuffers() Succeeded For Index : 1
-createDescriptorSet() => vkAllocateDescriptorSets() Succeeded
-buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 0
-buildCommandBuffers() => vkResetCommandBuffer() Succeeded For Index : 1
-buildCommandBuffers() => vkBeginCommandBuffer() Succeeded For Index : 1
-buildCommandBuffers() => vkEndCommandBuffer() Succeeded For Index : 1
 uninitialize_fbo() => vkDestroySemaphore() Succeeded For vkSemaphore_fbo
 uninitialize_fbo() => vkDestroyPipeline() Succeeded For vkPipeline_fbo
 uninitialize_fbo() => vkDestroyRenderPass() Succeeded For vkRenderPass_fbo
