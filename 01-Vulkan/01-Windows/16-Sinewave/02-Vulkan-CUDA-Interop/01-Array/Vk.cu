@@ -14,6 +14,9 @@
 
 #include "Vk.h"
 
+//! CUDA Header File
+#include <cuda.h>
+
 //! Vulkan Related Libraries
 #pragma comment(lib, "vulkan-1.lib")
 
@@ -59,7 +62,10 @@ VkPhysicalDevice *vkPhysicalDevice_array = NULL;
 
 //? Device Extensions Related Variables
 uint32_t enabledDeviceExtensionCount = 0;
-const char *enabledDeviceExtensionNames_array[1]; //* -> VK_KHR_SWAPCHAIN_EXTENSTION_NAME
+
+//* VK_KHR_SWAPCHAIN_EXTENSTION_NAME, 
+//* VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME
+const char *enabledDeviceExtensionNames_array[2];
 
 //? Vulkan Device Creation Related Variables
 VkDevice vkDevice = VK_NULL_HANDLE;
@@ -193,6 +199,34 @@ BOOL bMesh1024Chosen = FALSE;
 char selectedColor = 'O';
 float fAnimationSpeed = 0.0f;
 
+//* CUDA Related Variables
+cudaError_t cudaResult;
+VkExternalMemoryHandleTypeFlagBits vkExternalMemoryHandleTypeFlagBits;
+cudaExternalMemory_t cuExternalMemory;
+void *cudaDevicePtr = NULL;
+VertexData vertexData_external;
+BOOL onGPU = FALSE;
+
+// CUDA Kernel
+__global__ void sineWaveKernel(float4* pos, unsigned int width, unsigned int height, float time)
+{
+    // Code
+   unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+   unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+   float u = (float)i / (float)width;
+   float v = (float)j / (float)height;
+
+   u = u * 2.0f - 1.0f;
+   v = v * 2.0f - 1.0f;
+
+   float frequency = 4.0f;
+
+   float w = sinf(u * frequency + time) * cosf(v * frequency + time) * 0.5;
+
+   pos[j * width + i] = make_float4(u, w, v, 1.0f);
+}
+
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
 {
@@ -247,7 +281,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan Sine Wave Using Array Method"),
+        TEXT("Atharv Natu : Vulkan-CUDA Interop Sine Wave Using Array Method"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -414,6 +448,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                     ToggleFullScreen();
                 break;
 
+                case 'I':
+                case 'i':
+                    onGPU = FALSE;
+                break;
+
+                case 'N':
+                case 'n':
+                    onGPU = TRUE;
+                break;
+
                 case 'O':
                 case 'o':
                     selectedColor = 'O';
@@ -559,6 +603,10 @@ VkResult initialize(void)
     VkResult createFences(void);
     VkResult buildCommandBuffers(void);
 
+    //! CUDA Related Function Declarations
+    cudaError initializeCuda(void);
+    VkResult createExternalVertexBuffer(uint32_t, uint32_t, VertexData*);
+
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
@@ -599,6 +647,17 @@ VkResult initialize(void)
 
     //! Get Device Queue
     getDeviceQueue();
+
+    //! Initialize CUDA
+    cudaResult = initializeCuda();
+    if (cudaResult != cudaSuccess)
+    {
+        fprintf(gpFile, "%s() => initializeCuda() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    } 
+    else
+        fprintf(gpFile, "%s() => initializeCuda() Succeeded\n", __func__);
 
     //! Create Swapchain
     vkResult = createSwapchain(VK_FALSE);
@@ -746,6 +805,18 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_1024x1024_graphics\n", __func__);
+    
+    //! Create External Vertex Buffer
+    memset((void*)&vertexData_external, 0, sizeof(VertexData));
+    vkResult = createExternalVertexBuffer(1024, 1024, &vertexData_external);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external\n", __func__);
 
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
@@ -790,7 +861,7 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createPipelineLayout() Succeeded\n", __func__);
-
+    
     //! Create Descriptor Pool
     vkResult = createDescriptorPool();
     if (vkResult != VK_SUCCESS)
@@ -813,6 +884,7 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => createDescriptorSet() Succeeded\n", __func__);
 
+    
     //! Create Render Pass
     vkResult = createRenderPass();
     if (vkResult != VK_SUCCESS)
@@ -835,6 +907,7 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => createPipeline() Succeeded\n", __func__);
 
+    
     //! Create Framebuffers
     vkResult = createFramebuffers();
     if (vkResult != VK_SUCCESS)
@@ -895,6 +968,81 @@ VkResult initialize(void)
     fprintf(gpFile, "%s() => Initialization Completed Successfully\n", __func__);
     
     return vkResult;
+}
+
+cudaError initializeCuda(void)
+{
+    // Variable Declarations
+    int devCount;
+    int interopDeviceFound = -1;
+
+    // Code
+    cudaResult = cudaGetDeviceCount(&devCount);
+    if (cudaResult != cudaSuccess)
+    {
+        fprintf(gpFile, "%s() => cudaGetDeviceCount() Failed !!!\n", __func__);
+        return cudaResult;
+    }
+    else if (devCount == 0)
+    {
+        fprintf(gpFile, "%s() => cudaGetDeviceCount() Returned 0 CUDA Supported Devices !!!\n", __func__);
+        return cudaResult;
+    }
+
+    //* Check UUID between Vulkan and CUDA
+    VkPhysicalDeviceIDProperties vkPhysicalDeviceIDProperties;
+    memset((void*)&vkPhysicalDeviceIDProperties, 0, sizeof(VkPhysicalDeviceIDProperties));
+    vkPhysicalDeviceIDProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+    vkPhysicalDeviceIDProperties.pNext = NULL;
+
+    VkPhysicalDeviceProperties2 vkPhysicalDeviceProperties2;
+    memset((void*)&vkPhysicalDeviceProperties2, 0, sizeof(VkPhysicalDeviceProperties2));
+    vkPhysicalDeviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    vkPhysicalDeviceProperties2.pNext = &vkPhysicalDeviceIDProperties;
+
+    vkGetPhysicalDeviceProperties2(vkPhysicalDevice_selected, &vkPhysicalDeviceProperties2);
+
+    uint8_t vulkanDeviceUUID[VK_UUID_SIZE];
+    memcpy(vulkanDeviceUUID, vkPhysicalDeviceIDProperties.deviceUUID, VK_UUID_SIZE);
+
+    for (int i = 0; i < devCount; i++)
+    {
+        // Select the device whose compute mode is not prohibited
+        int computeMode;
+        cudaResult = cudaDeviceGetAttribute(&computeMode, cudaDevAttrComputeMode, i);
+        if (cudaResult != cudaSuccess)
+            continue;
+
+        if (computeMode == cudaComputeModeProhibited)
+            continue;
+
+        // Get CUDA Device Properties
+        cudaDeviceProp devProp;
+        memset((void*)&devProp, 0, sizeof(cudaDeviceProp));
+        cudaResult = cudaGetDeviceProperties(&devProp, i);
+        if (cudaResult != cudaSuccess)
+            continue;
+
+        if (memcmp((void*)&devProp.uuid, vulkanDeviceUUID, VK_UUID_SIZE) != 0)
+            continue;
+
+        // Required Device Found
+        cudaResult = cudaSetDevice(i);
+        if (cudaResult != cudaSuccess)
+            continue;
+
+        fprintf(gpFile, "%s() => Selected CUDA Device : %s\n", __func__, devProp.name);
+        interopDeviceFound = 1;
+        break;
+    }
+
+    if (interopDeviceFound == -1)
+        return cudaErrorUnknown;
+
+    // Assumption : Using OS greater than Windows 8.1 and Win32 Application (Not Win64 UWP Application)
+    vkExternalMemoryHandleTypeFlagBits = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+
+    return cudaSuccess;
 }
 
 VkResult resize(int width, int height)
@@ -1177,6 +1325,7 @@ VkResult display(void)
     VkResult resize(int, int);
     VkResult updateUniformBuffer(void);
     VkResult buildCommandBuffers(void);
+    VkResult prepareSineWaveForCPU(uint32_t, uint32_t, float);
 
     // Variable Declarations
     VkCommandBuffer* vkCommandBuffer_array = NULL;
@@ -1189,16 +1338,130 @@ VkResult display(void)
         return (VkResult)VK_FALSE;
     }
 
-    if (bMesh64Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
-    else if (bMesh128Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
-    else if (bMesh256Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_256x256_graphics_array;
-    else if (bMesh512Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_512x512_graphics_array;
-    else if (bMesh1024Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
+    if (onGPU)
+    {
+        // if (bMesh64Chosen)
+        // {
+        //     // Run CUDA Kernel
+        //     dim3 block(8, 8, 1);
+        //     dim3 grid(64 / block.x, 64 / block.y, 1);
+
+        //     sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 64, 64, fAnimationSpeed);
+        // }
+        // else if (bMesh128Chosen)
+        // {
+        //     // Run CUDA Kernel
+        //     dim3 block(8, 8, 1);
+        //     dim3 grid(128 / block.x, 128 / block.y, 1);
+
+        //     sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 128, 128, fAnimationSpeed);
+        // }
+        // else if (bMesh256Chosen)
+        // {
+        //     // Run CUDA Kernel
+        //     dim3 block(8, 8, 1);
+        //     dim3 grid(256 / block.x, 256 / block.y, 1);
+
+        //     sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 256, 256, fAnimationSpeed);
+        // }
+        // else if (bMesh512Chosen)
+        // {
+        //     // Run CUDA Kernel
+        //     dim3 block(8, 8, 1);
+        //     dim3 grid(512 / block.x, 512 / block.y, 1);
+
+        //     sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 512, 512, fAnimationSpeed);
+        // }
+        // else if (bMesh1024Chosen)
+        // {
+        //     // Run CUDA Kernel
+        //     dim3 block(8, 8, 1);
+        //     dim3 grid(1024 / block.x, 1024 / block.y, 1);
+
+        //     sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 1024, 1024, fAnimationSpeed);
+        // }
+
+        // Run CUDA Kernel
+            dim3 block(8, 8, 1);
+            dim3 grid(1024 / block.x, 1024 / block.y, 1);
+
+            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 1024, 1024, fAnimationSpeed);
+
+        cudaResult = cudaGetLastError();
+        if (cudaResult != cudaSuccess)
+        {
+            fprintf(gpFile, "%s() => cudaGetLastError() Returned : %s !!!\n", __func__, cudaGetErrorString(cudaResult));
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+
+        cudaResult = cudaDeviceSynchronize();
+        if (cudaResult != cudaSuccess)
+        {
+            fprintf(gpFile, "%s() => cudaDeviceSynchronize() Failed : %s !!!\n", __func__, cudaGetErrorString(cudaResult));
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+            
+    }
+    else
+    {
+        if (bMesh64Chosen)
+        {
+            vkResult = prepareSineWaveForCPU(64, 64, fAnimationSpeed);
+            if (vkResult != VK_SUCCESS)
+            {
+                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 64x64 : %d\n", __func__, vkResult);
+                vkResult = VK_ERROR_INITIALIZATION_FAILED;
+                return vkResult;
+            }
+            vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
+        }
+        else if (bMesh128Chosen)
+        {
+            vkResult = prepareSineWaveForCPU(128, 128, fAnimationSpeed);
+            if (vkResult != VK_SUCCESS)
+            {
+                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 128x128 : %d\n", __func__, vkResult);
+                vkResult = VK_ERROR_INITIALIZATION_FAILED;
+                return vkResult;
+            }
+            vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
+        }
+        else if (bMesh256Chosen)
+        {
+            vkResult = prepareSineWaveForCPU(256, 256, fAnimationSpeed);
+            if (vkResult != VK_SUCCESS)
+            {
+                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 256x256 : %d\n", __func__, vkResult);
+                vkResult = VK_ERROR_INITIALIZATION_FAILED;
+                return vkResult;
+            }
+            vkCommandBuffer_array = vkCommandBuffer_256x256_graphics_array;
+        }   
+        else if (bMesh512Chosen)
+        {
+            vkResult = prepareSineWaveForCPU(512, 512, fAnimationSpeed);
+            if (vkResult != VK_SUCCESS)
+            {
+                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 512x512 : %d\n", __func__, vkResult);
+                vkResult = VK_ERROR_INITIALIZATION_FAILED;
+                return vkResult;
+            }
+            vkCommandBuffer_array = vkCommandBuffer_512x512_graphics_array;
+        }
+        else if (bMesh1024Chosen)
+        {
+            vkResult = prepareSineWaveForCPU(1024, 1024, fAnimationSpeed);
+            if (vkResult != VK_SUCCESS)
+            {
+                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 1024x1024 : %d\n", __func__, vkResult);
+                vkResult = VK_ERROR_INITIALIZATION_FAILED;
+                return vkResult;
+            }
+            vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
+        }
+    }
 
     vkResult = buildCommandBuffers();
     if (vkResult != VK_SUCCESS)
@@ -1304,6 +1567,7 @@ void uninitialize(void)
 {
     // Function Declarations
     void ToggleFullScreen(void);
+    cudaError uninitializeCuda(void);
 
     // Code
     if (gbFullScreen)
@@ -1431,6 +1695,28 @@ void uninitialize(void)
         vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
         uniformData.vkBuffer = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
+    }
+
+    //* Uninitialize CUDA
+    cudaResult = uninitializeCuda();
+    if (cudaResult != cudaSuccess)
+        fprintf(gpFile, "%s() => uninitializeCuda() Failed !!!\n", __func__);
+    else
+        fprintf(gpFile, "%s() => uninitializeCuda() Succeeded !!!\n", __func__);
+
+    //* External Buffer
+    if (vertexData_external.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_external.vkDeviceMemory, NULL);
+        vertexData_external.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_external.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_external.vkBuffer, NULL);
+        vertexData_external.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external.vkBuffer\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer
@@ -1655,6 +1941,36 @@ void uninitialize(void)
         fclose(gpFile);
         gpFile = NULL;
     }
+}
+
+cudaError uninitializeCuda()
+{
+    // Code
+    if (cudaDevicePtr)
+    {
+        cudaResult = cudaFree(cudaDevicePtr);
+        if (cudaResult != cudaSuccess)
+            fprintf(gpFile, "%s() => cudaFree() Failed For cudaDevicePtr !!!\n", __func__);
+        else
+        {
+            fprintf(gpFile, "%s() => cudaFree() Succeeded For cudaDevicePtr\n", __func__);
+            cudaDevicePtr = NULL;
+        }    
+    }
+
+    if (cuExternalMemory)
+    {
+        cudaResult = cudaDestroyExternalMemory(cuExternalMemory);
+        if (cudaResult != cudaSuccess)
+            fprintf(gpFile, "%s() => cudaDestroyExternalMemory() Failed For cuExternalMemory !!!\n", __func__);
+        else
+        {
+            fprintf(gpFile, "%s() => cudaDestroyExternalMemory() Succeeded For cuExternalMemory\n", __func__);
+            cuExternalMemory = NULL;
+        }    
+    }
+
+    return cudaResult;
 }
 
 //! Definition of Vulkan Related Functions
@@ -2437,12 +2753,20 @@ VkResult fillDeviceExtensionNames(void)
 
     //* Step - 5
     VkBool32 vulkanSwapchainExtensionFound = VK_FALSE;
+    VkBool32 vulkanExternalMemoryWin32ExtensionFound = VK_FALSE;
+
     for (uint32_t i = 0; i < deviceExtensionCount; i++)
     {
         if (strcmp(deviceExtensionNames_array[i], VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
         {
             vulkanSwapchainExtensionFound = VK_TRUE;
             enabledDeviceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+        }
+
+        if (strcmp(deviceExtensionNames_array[i], VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) == 0)
+        {
+            vulkanExternalMemoryWin32ExtensionFound = VK_TRUE;
+            enabledDeviceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME;
         }
     }
 
@@ -2467,6 +2791,16 @@ VkResult fillDeviceExtensionNames(void)
     }
     else
         fprintf(gpFile, "%s() => VK_KHR_SWAPCHAIN_EXTENSION_NAME Extension Found\n", __func__);
+
+    if (vulkanExternalMemoryWin32ExtensionFound == VK_FALSE)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => VK_KHR_external_memory_win32 Extension Not Found !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => VK_KHR_external_memory_win32 Extension Found\n", __func__);
+
 
     //* Step - 8
     for (uint32_t i = 0; i < enabledDeviceExtensionCount; i++)
@@ -3163,6 +3497,165 @@ VkResult createVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData*
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
     //! -------------------------------------------------------------------------------------------------------------------------------------
     
+    *pVertexData = vertexData_position;
+
+    return vkResult;
+}
+
+VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData* pVertexData)
+{
+    // Variable Declarations
+    VertexData vertexData_position;
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    size_t bufferSize = meshWidth * meshHeight * 4 * sizeof(float);
+
+    memset((void*)&vertexData_position, 0, sizeof(VertexData));
+
+    //* Initialize External Memory Buffer
+    VkExternalMemoryBufferCreateInfo vkExternalMemoryBufferCreateInfo;
+    memset((void*)&vkExternalMemoryBufferCreateInfo, 0, sizeof(VkExternalMemoryBufferCreateInfo));
+    vkExternalMemoryBufferCreateInfo.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO;
+    vkExternalMemoryBufferCreateInfo.pNext = NULL;
+    vkExternalMemoryBufferCreateInfo.handleTypes = vkExternalMemoryHandleTypeFlagBits;
+    
+    //* Step - 5
+    VkBufferCreateInfo vkBufferCreateInfo;
+    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
+    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
+    vkBufferCreateInfo.size = bufferSize;
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    vkBufferCreateInfo.pNext = &vkExternalMemoryBufferCreateInfo;
+    
+    //* Step - 6
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For External Vertex Buffer  : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For External Vertex Buffer\n", __func__);
+    
+    //* Step - 7
+    VkMemoryRequirements vkMemoryRequirements;
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_position.vkBuffer, &vkMemoryRequirements);
+
+    //* Initialize Exportable Memory Allocation
+    VkExportMemoryAllocateInfoKHR vkExportMemoryAllocateInfoKHR;
+    memset((void*)&vkExportMemoryAllocateInfoKHR, 0, sizeof(VkExportMemoryAllocateInfoKHR));
+    vkExportMemoryAllocateInfoKHR.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
+    vkExportMemoryAllocateInfoKHR.handleTypes = vkExternalMemoryHandleTypeFlagBits;
+    
+    //* Step - 8
+    VkMemoryAllocateInfo vkMemoryAllocateInfo;
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    vkMemoryAllocateInfo.pNext = &vkExportMemoryAllocateInfoKHR;
+    
+    //* Step - 8.1
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Step - 9
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For External Vertex Buffer\n", __func__);
+
+    //* Step - 10
+    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_position.vkBuffer, vertexData_position.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For External Vertex Buffer\n", __func__);
+
+    VkMemoryGetWin32HandleInfoKHR vkMemoryGetWin32HandleInfoKHR;
+    memset((void*)&vkMemoryGetWin32HandleInfoKHR, 0, sizeof(VkMemoryGetWin32HandleInfoKHR));
+    vkMemoryGetWin32HandleInfoKHR.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+    vkMemoryGetWin32HandleInfoKHR.pNext = NULL;
+    vkMemoryGetWin32HandleInfoKHR.memory = vertexData_position.vkDeviceMemory;
+    vkMemoryGetWin32HandleInfoKHR.handleType = vkExternalMemoryHandleTypeFlagBits;
+    
+    PFN_vkGetMemoryWin32HandleKHR vkGetMemoryWin32HandleKHR = NULL;
+    vkGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(vkDevice, "vkGetMemoryWin32HandleKHR");
+    if (vkGetMemoryWin32HandleKHR == NULL)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => vkGetDeviceProcAddr() Failed To Get Function Pointer For vkGetMemoryWin32HandleKHR !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkGetDeviceProcAddr() Succeeded To Get Function Pointer For vkGetMemoryWin32HandleKHR\n", __func__);
+
+    HANDLE hMemoryWin32Handle = NULL;
+    vkResult = vkGetMemoryWin32HandleKHR(vkDevice, &vkMemoryGetWin32HandleInfoKHR, &hMemoryWin32Handle);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkGetMemoryWin32HandleKHR() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    } 
+    else
+        fprintf(gpFile, "%s() => vkGetMemoryWin32HandleKHR() Succeeded For External Vertex Buffer\n", __func__);
+
+    //* Import External Buffer Memory into CUDA
+    cudaExternalMemoryHandleDesc cuExtMemoryHandleDesc;
+    memset((void*)&cuExtMemoryHandleDesc, 0, sizeof(cudaExternalMemoryHandleDesc));
+    cuExtMemoryHandleDesc.type = cudaExternalMemoryHandleTypeOpaqueWin32;
+    cuExtMemoryHandleDesc.handle.win32.handle = hMemoryWin32Handle;
+    cuExtMemoryHandleDesc.size = bufferSize;
+    cuExtMemoryHandleDesc.flags = cudaExternalMemoryDedicated;
+    
+    cudaResult = cudaImportExternalMemory(&cuExternalMemory, &cuExtMemoryHandleDesc);
+    if (cudaResult != cudaSuccess)
+    {
+        fprintf(gpFile, "%s() => cudaImportExternalMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => cudaImportExternalMemory() Succeeded For External Vertex Buffer\n", __func__);
+
+    CloseHandle(hMemoryWin32Handle);
+    hMemoryWin32Handle = NULL;
+
+    //* Map to CUDA Pointer
+    cudaExternalMemoryBufferDesc cuExtMemoryBufferDesc;
+    memset((void*)&cuExtMemoryBufferDesc, 0, sizeof(cudaExternalMemoryBufferDesc));
+    cuExtMemoryBufferDesc.offset = 0;
+    cuExtMemoryBufferDesc.size = bufferSize;
+    cuExtMemoryBufferDesc.flags = 0;
+    
+    cudaResult = cudaExternalMemoryGetMappedBuffer(&cudaDevicePtr, cuExternalMemory, &cuExtMemoryBufferDesc);
+    if (cudaResult != cudaSuccess)
+    {
+        fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Succeeded For External Vertex Buffer\n", __func__);
+
     *pVertexData = vertexData_position;
 
     return vkResult;
@@ -4109,71 +4602,22 @@ VkResult createFences(void)
 
 VkResult buildCommandBuffers(void)
 {
-    // Function Declarations
-    VkResult prepareSineWaveForCPU(uint32_t, uint32_t, float);
-
     // Variable Declarations
     VkCommandBuffer *vkCommandBuffer_array = NULL;
     VkResult vkResult = VK_SUCCESS;
 
     // Code
     if (bMesh64Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(64, 64, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 64x64 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
-    }
     else if (bMesh128Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(128, 128, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 128x128 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
-    }
     else if (bMesh256Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(256, 256, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 256x256 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_256x256_graphics_array;
-    }   
     else if (bMesh512Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(512, 512, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 512x512 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_512x512_graphics_array;
-    }
     else if (bMesh1024Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(1024, 1024, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 1024x1024 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
-    }
-        
-
+ 
     //! Loop per swapchain image
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
@@ -4247,87 +4691,108 @@ VkResult buildCommandBuffers(void)
                 NULL
             );
 
-            if (bMesh64Chosen)
+            if (onGPU)
             {
-                //! Bind with Vertex Position Buffer
+                //! Bind with External Vertex Buffer
                 VkDeviceSize vkDeviceSize_offset_position[1];
                 memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
                 vkCmdBindVertexBuffers(
                     vkCommandBuffer_array[i], 
                     0, 
                     1, 
-                    &vertexData_position_64x64_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
-
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 64 * 64, 1, 0, 0);
-            }
-            else if (bMesh128Chosen)
-            {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_128x128_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
-
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 128 * 128, 1, 0, 0);
-            }
-            else if (bMesh256Chosen)
-            {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_256x256_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
-
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 256 * 256, 1, 0, 0);
-            }
-            else if (bMesh512Chosen)
-            {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_512x512_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
-
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 512 * 512, 1, 0, 0);
-            }
-            else if (bMesh1024Chosen)
-            {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_1024x1024_graphics.vkBuffer, 
+                    &vertexData_external.vkBuffer, 
                     vkDeviceSize_offset_position
                 );
 
                 //! Vulkan Drawing Function
                 vkCmdDraw(vkCommandBuffer_array[i], 1024 * 1024, 1, 0, 0);
-            
             }
+            else
+            {
+                if (bMesh64Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_64x64_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 64 * 64, 1, 0, 0);
+                }
+                else if (bMesh128Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_128x128_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 128 * 128, 1, 0, 0);
+                }
+                else if (bMesh256Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_256x256_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 256 * 256, 1, 0, 0);
+                }
+                else if (bMesh512Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_512x512_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 512 * 512, 1, 0, 0);
+                }
+                else if (bMesh1024Chosen)
+                {
+                     
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_1024x1024_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 1024 * 1024, 1, 0, 0);
+                }
+            }
+
+            
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
