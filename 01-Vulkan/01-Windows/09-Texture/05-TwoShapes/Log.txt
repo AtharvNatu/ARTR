@@ -388,21 +388,21 @@ createVertexBuffer() => vkBindBufferMemory() Succeeded For Vertex Texcoord Buffe
 createVertexBuffer() => vkMapMemory() Succeeded For Vertex Texcoord Buffer For Cube
 initialize() => createVertexBuffer() Succeeded
 
-Stone.png Properties
+Assets/Images/Stone.png Properties
 -------------------------------------------
 Image Width = 256
 Image Height = 256
 Image Size = 262144
 -------------------------------------------
 
-createTexture() => vkCreateBuffer() Succeeded For Staging Buffer : Stone.png
-createTexture() => vkAllocateMemory() Succeeded For Staging Buffer : Stone.png
-createTexture() => vkBindBufferMemory() Succeeded For Staging Buffer : Stone.png
-createTexture() => vkMapMemory() Succeeded For Staging Buffer : Stone.png
-createTexture() => stbi_image_free() Called For Texture : Stone.png
-createTexture() => vkCreateImage() Succeeded For Texture : Stone.png
-createTexture() => vkAllocateMemory() Succeeded For Texture : Stone.png
-createTexture() => vkBindImageMemory() Succeeded For Texture : Stone.png
+createTexture() => vkCreateBuffer() Succeeded For Staging Buffer : Assets/Images/Stone.png
+createTexture() => vkAllocateMemory() Succeeded For Staging Buffer : Assets/Images/Stone.png
+createTexture() => vkBindBufferMemory() Succeeded For Staging Buffer : Assets/Images/Stone.png
+createTexture() => vkMapMemory() Succeeded For Staging Buffer : Assets/Images/Stone.png
+createTexture() => stbi_image_free() Called For Texture : Assets/Images/Stone.png
+createTexture() => vkCreateImage() Succeeded For Texture : Assets/Images/Stone.png
+createTexture() => vkAllocateMemory() Succeeded For Texture : Assets/Images/Stone.png
+createTexture() => vkBindImageMemory() Succeeded For Texture : Assets/Images/Stone.png
 createTexture() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
 createTexture() => vkBeginCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
 createTexture() => vkEndCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
@@ -423,25 +423,25 @@ createTexture() => vkQueueWaitIdle() Succeeded For vkCommandBuffer_transition_im
 createTexture() => vkFreeCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
 createTexture() => vkDestroyBuffer() Succeeded For vkBuffer_stagingBuffer
 createTexture() => vkFreeMemory() Succeeded For vkDeviceMemory_stagingBuffer
-createTexture() => vkCreateImageView() Succeeded For Texture : Stone.png
-createTexture() => vkCreateSampler() Succeeded For Texture : Stone.png
+createTexture() => vkCreateImageView() Succeeded For Texture : Assets/Images/Stone.png
+createTexture() => vkCreateSampler() Succeeded For Texture : Assets/Images/Stone.png
 initialize() => createTexture() Succeeded For Stone.png
 
-Vijay_Kundali.png Properties
+Assets/Images/Vijay_Kundali.png Properties
 -------------------------------------------
 Image Width = 256
 Image Height = 256
 Image Size = 262144
 -------------------------------------------
 
-createTexture() => vkCreateBuffer() Succeeded For Staging Buffer : Vijay_Kundali.png
-createTexture() => vkAllocateMemory() Succeeded For Staging Buffer : Vijay_Kundali.png
-createTexture() => vkBindBufferMemory() Succeeded For Staging Buffer : Vijay_Kundali.png
-createTexture() => vkMapMemory() Succeeded For Staging Buffer : Vijay_Kundali.png
-createTexture() => stbi_image_free() Called For Texture : Vijay_Kundali.png
-createTexture() => vkCreateImage() Succeeded For Texture : Vijay_Kundali.png
-createTexture() => vkAllocateMemory() Succeeded For Texture : Vijay_Kundali.png
-createTexture() => vkBindImageMemory() Succeeded For Texture : Vijay_Kundali.png
+createTexture() => vkCreateBuffer() Succeeded For Staging Buffer : Assets/Images/Vijay_Kundali.png
+createTexture() => vkAllocateMemory() Succeeded For Staging Buffer : Assets/Images/Vijay_Kundali.png
+createTexture() => vkBindBufferMemory() Succeeded For Staging Buffer : Assets/Images/Vijay_Kundali.png
+createTexture() => vkMapMemory() Succeeded For Staging Buffer : Assets/Images/Vijay_Kundali.png
+createTexture() => stbi_image_free() Called For Texture : Assets/Images/Vijay_Kundali.png
+createTexture() => vkCreateImage() Succeeded For Texture : Assets/Images/Vijay_Kundali.png
+createTexture() => vkAllocateMemory() Succeeded For Texture : Assets/Images/Vijay_Kundali.png
+createTexture() => vkBindImageMemory() Succeeded For Texture : Assets/Images/Vijay_Kundali.png
 createTexture() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
 createTexture() => vkBeginCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
 createTexture() => vkEndCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
@@ -462,8 +462,8 @@ createTexture() => vkQueueWaitIdle() Succeeded For vkCommandBuffer_transition_im
 createTexture() => vkFreeCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
 createTexture() => vkDestroyBuffer() Succeeded For vkBuffer_stagingBuffer
 createTexture() => vkFreeMemory() Succeeded For vkDeviceMemory_stagingBuffer
-createTexture() => vkCreateImageView() Succeeded For Texture : Vijay_Kundali.png
-createTexture() => vkCreateSampler() Succeeded For Texture : Vijay_Kundali.png
+createTexture() => vkCreateImageView() Succeeded For Texture : Assets/Images/Vijay_Kundali.png
+createTexture() => vkCreateSampler() Succeeded For Texture : Assets/Images/Vijay_Kundali.png
 initialize() => createTexture() Succeeded For Vijay_Kundali.png
 createUniformBuffer() => vkCreateBuffer() Succeeded For Uniform Data For Pyramid
 createUniformBuffer() => vkAllocateMemory() Succeeded For Uniform Data For Pyramid
@@ -473,15 +473,15 @@ createUniformBuffer() => vkAllocateMemory() Succeeded For Uniform Data For Cube
 createUniformBuffer() => vkBindBufferMemory() Succeeded For Uniform Data For Cube
 createUniformBuffer() => updateUniformBuffer() Succeeded
 initialize() => createUniformBuffer() Succeeded
-createShaders() => Succeeded In Opening SPIR-V Shader File : Shader.vert.spv
-createShaders() => Successfully Read Shader From SPIR-V Shader File : Shader.vert.spv
-createShaders() => Closed SPIR-V File : Shader.vert.spv
+createShaders() => Succeeded In Opening SPIR-V Shader File : Bin/Shader.vert.spv
+createShaders() => Successfully Read Shader From SPIR-V Shader File : Bin/Shader.vert.spv
+createShaders() => Closed SPIR-V File : Bin/Shader.vert.spv
 createShaders() => vkCreateShaderModule() Succeeded For Vertex Shader
 createShaders() => free() Succeeded For shaderData
 createShaders() => Vertex Shader Module Successfully Created
-createShaders() => Succeeded In Opening SPIR-V Shader File : Shader.frag.spv
-createShaders() => Successfully Read Shader From SPIR-V Shader File : Shader.frag.spv
-createShaders() => Closed SPIR-V File : Shader.frag.spv
+createShaders() => Succeeded In Opening SPIR-V Shader File : Bin/Shader.frag.spv
+createShaders() => Successfully Read Shader From SPIR-V Shader File : Bin/Shader.frag.spv
+createShaders() => Closed SPIR-V File : Bin/Shader.frag.spv
 createShaders() => vkCreateShaderModule() Succeeded For Fragment Shader
 createShaders() => free() Succeeded For shaderData
 createShaders() => Fragment Shader Module Successfully Created

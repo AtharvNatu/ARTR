@@ -1,7 +1,10 @@
 .vs/*
 
+**/Bin/**
+
 *.obj
 *.exe
 *.res
 *.wav
-*.directory
+*.exp
+

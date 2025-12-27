@@ -3486,7 +3486,7 @@ VkResult createShaders(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "PerVertexShader.vert.spv";
+    const char* szFileName = "PerVertexBin/Shader.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -3563,7 +3563,7 @@ VkResult createShaders(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "PerVertexShader.frag.spv";
+    szFileName = "PerVertexBin/Shader.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");
@@ -3642,7 +3642,7 @@ VkResult createShaders(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    szFileName = "PerFragmentShader.vert.spv";
+    szFileName = "PerFragmentBin/Shader.vert.spv";
     fp = NULL;
 
     fp = fopen(szFileName, "rb");
@@ -3717,7 +3717,7 @@ VkResult createShaders(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "PerFragmentShader.frag.spv";
+    szFileName = "PerFragmentBin/Shader.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");

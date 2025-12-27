@@ -29,18 +29,18 @@ if (( SPV == 1)); then
     echo "Compiling Shader Files To SPIR-V Binaries ..."
     echo "--------------------------------------------------------------------------------"
     cd Shaders
-        glslangValidator -V -H -o PerVertexShader.vert.spv PerVertexShader.vert
-        glslangValidator -V -H -o PerVertexShader.frag.spv PerVertexShader.frag
-        glslangValidator -V -H -o PerFragmentShader.vert.spv PerFragmentShader.vert
-        glslangValidator -V -H -o PerFragmentShader.frag.spv PerFragmentShader.frag
+        glslangValidator -V -H -o PerVertexBin/Shader.vert.spv PerVertexShader.vert
+        glslangValidator -V -H -o PerVertexBin/Shader.frag.spv PerVertexShader.frag
+        glslangValidator -V -H -o PerFragmentBin/Shader.vert.spv PerFragmentShader.vert
+        glslangValidator -V -H -o PerFragmentBin/Shader.frag.spv PerFragmentShader.frag
         if [ $? -ne 0 ]; then
             echo "Shader Compilation Failed !!!"
             exit 1
         fi
-        mv PerVertexShader.vert.spv ../
-        mv PerVertexShader.frag.spv ../
-        mv PerFragmentShader.vert.spv ../
-        mv PerFragmentShader.frag.spv ../
+        mv PerVertexBin/Shader.vert.spv ../
+        mv PerVertexBin/Shader.frag.spv ../
+        mv PerFragmentBin/Shader.vert.spv ../
+        mv PerFragmentBin/Shader.frag.spv ../
     cd ..
 fi
 

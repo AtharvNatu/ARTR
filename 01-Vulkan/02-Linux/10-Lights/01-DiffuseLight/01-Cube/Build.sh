@@ -35,8 +35,8 @@ if (( SPV == 1)); then
             echo "Shader Compilation Failed !!!"
             exit 1
         fi
-        mv Shader.vert.spv ../
-        mv Shader.frag.spv ../
+        mv Bin/Shader.vert.spv ../
+        mv Bin/Shader.frag.spv ../
     cd ..
 fi
 

@@ -385,21 +385,21 @@ createUniformBuffer() => vkBindBufferMemory() Succeeded For Uniform Data
 createUniformBuffer() => updateUniformBuffer() Succeeded
 initialize() => createUniformBuffer() Succeeded
 
-Smiley.png Properties
+Assets/Images/Smiley.png Properties
 -------------------------------------------
 Image Width = 512
 Image Height = 512
 Image Size = 1048576
 -------------------------------------------
 
-createTexture() => vkCreateBuffer() Succeeded For Staging Buffer : Smiley.png
-createTexture() => vkAllocateMemory() Succeeded For Staging Buffer : Smiley.png
-createTexture() => vkBindBufferMemory() Succeeded For Staging Buffer : Smiley.png
-createTexture() => vkMapMemory() Succeeded For Staging Buffer : Smiley.png
-createTexture() => stbi_image_free() Called For Texture : Smiley.png
-createTexture() => vkCreateImage() Succeeded For Texture : Smiley.png
-createTexture() => vkAllocateMemory() Succeeded For Texture : Smiley.png
-createTexture() => vkBindImageMemory() Succeeded For Texture : Smiley.png
+createTexture() => vkCreateBuffer() Succeeded For Staging Buffer : Assets/Images/Smiley.png
+createTexture() => vkAllocateMemory() Succeeded For Staging Buffer : Assets/Images/Smiley.png
+createTexture() => vkBindBufferMemory() Succeeded For Staging Buffer : Assets/Images/Smiley.png
+createTexture() => vkMapMemory() Succeeded For Staging Buffer : Assets/Images/Smiley.png
+createTexture() => stbi_image_free() Called For Texture : Assets/Images/Smiley.png
+createTexture() => vkCreateImage() Succeeded For Texture : Assets/Images/Smiley.png
+createTexture() => vkAllocateMemory() Succeeded For Texture : Assets/Images/Smiley.png
+createTexture() => vkBindImageMemory() Succeeded For Texture : Assets/Images/Smiley.png
 createTexture() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
 createTexture() => vkBeginCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
 createTexture() => vkEndCommandBuffer() Succeeded For vkCommandBuffer_transition_image_layout
@@ -420,18 +420,18 @@ createTexture() => vkQueueWaitIdle() Succeeded For vkCommandBuffer_transition_im
 createTexture() => vkFreeCommandBuffers() Succeeded For vkCommandBuffer_transition_image_layout
 createTexture() => vkDestroyBuffer() Succeeded For vkBuffer_stagingBuffer
 createTexture() => vkFreeMemory() Succeeded For vkDeviceMemory_stagingBuffer
-createTexture() => vkCreateImageView() Succeeded For Texture : Smiley.png
-createTexture() => vkCreateSampler() Succeeded For Texture : Smiley.png
+createTexture() => vkCreateImageView() Succeeded For Texture : Assets/Images/Smiley.png
+createTexture() => vkCreateSampler() Succeeded For Texture : Assets/Images/Smiley.png
 initialize() => createTexture() Succeeded For Smiley.png
-createShaders() => Succeeded In Opening SPIR-V Shader File : Shader.vert.spv
-createShaders() => Successfully Read Shader From SPIR-V Shader File : Shader.vert.spv
-createShaders() => Closed SPIR-V File : Shader.vert.spv
+createShaders() => Succeeded In Opening SPIR-V Shader File : Bin/Shader.vert.spv
+createShaders() => Successfully Read Shader From SPIR-V Shader File : Bin/Shader.vert.spv
+createShaders() => Closed SPIR-V File : Bin/Shader.vert.spv
 createShaders() => vkCreateShaderModule() Succeeded For Vertex Shader
 createShaders() => free() Succeeded For shaderData
 createShaders() => Vertex Shader Module Successfully Created
-createShaders() => Succeeded In Opening SPIR-V Shader File : Shader.frag.spv
-createShaders() => Successfully Read Shader From SPIR-V Shader File : Shader.frag.spv
-createShaders() => Closed SPIR-V File : Shader.frag.spv
+createShaders() => Succeeded In Opening SPIR-V Shader File : Bin/Shader.frag.spv
+createShaders() => Successfully Read Shader From SPIR-V Shader File : Bin/Shader.frag.spv
+createShaders() => Closed SPIR-V File : Bin/Shader.frag.spv
 createShaders() => vkCreateShaderModule() Succeeded For Fragment Shader
 createShaders() => free() Succeeded For shaderData
 createShaders() => Fragment Shader Module Successfully Created

@@ -3616,7 +3616,7 @@ VkResult createShaders(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "Bin\\Cube.vert.spv";
+    const char* szFileName = "Bin/Cube.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -3693,7 +3693,7 @@ VkResult createShaders(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin\\Cube.frag.spv";
+    szFileName = "Bin/Cube.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");
@@ -6807,7 +6807,7 @@ VkResult createShaders_fbo(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "Bin\\Teapot.vert.spv";
+    const char* szFileName = "Bin/Teapot.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -6884,7 +6884,7 @@ VkResult createShaders_fbo(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin\\Teapot.frag.spv";
+    szFileName = "Bin/Teapot.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");
