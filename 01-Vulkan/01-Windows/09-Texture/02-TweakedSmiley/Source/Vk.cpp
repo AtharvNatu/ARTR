@@ -138,8 +138,6 @@ typedef struct
 VertexData vertexData_position;
 VertexData vertexData_texcoord;
 
-void* mappedPtr = NULL;
-
 //? Uniform Related Variables
 typedef struct
 {
@@ -1223,9 +1221,7 @@ void uninitialize(void)
     //* Step - 14 of Vertex Buffer
     if (vertexData_texcoord.vkDeviceMemory)
     {
-        vkUnmapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory);
         vkFreeMemory(vkDevice, vertexData_texcoord.vkDeviceMemory, NULL);
-        mappedPtr = NULL;
         vertexData_texcoord.vkDeviceMemory = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_texcoord.vkDeviceMemory\n", __func__);
     }
@@ -2793,6 +2789,19 @@ VkResult createVertexBuffer(void)
         1.0f,   1.0f,   0.0f,   // Top Right
     };
 
+    float rectangle_texcoords[] = 
+    {
+        // Triangle 1
+        1.0f, 0.0f,             // Top Right
+        0.0f, 0.0f,             // Top Left
+        0.0f, 1.0f,             // Bottom Left
+
+        // Triangle 2
+        0.0f, 1.0f,             // Bottom Left
+        1.0f, 1.0f,             // Bottom Right
+        1.0f, 0.0f              // Top Right
+    };
+
     // Code
     
     //? VERTEX POSITION
@@ -2944,12 +2953,19 @@ VkResult createVertexBuffer(void)
         fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Texcoord Buffer\n", __func__);
 
     //* Step - 11
-    vkResult = vkMapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &mappedPtr);
+    data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Texcoord Buffer\n", __func__);
-    
+
+    //* Step - 12
+    memcpy(data, rectangle_texcoords, sizeof(rectangle_texcoords));
+
+    //* Step - 13
+    vkUnmapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory);
+
     return vkResult;
 
 }
@@ -4163,13 +4179,13 @@ VkResult createUniformBuffer(void)
 
 VkResult updateUniformBuffer(void)
 {
+    // Function Declarations
+    void updateTexcoords(void);
+
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
-    float texcoords[12];
 
     // Code
-    memset((void*)&texcoords, 0, sizeof(texcoords));
-
     Host_UniformData host_uniformData;
     memset((void*)&host_uniformData, 0, sizeof(Host_UniformData));
 
@@ -4193,75 +4209,18 @@ VkResult updateUniformBuffer(void)
     switch(keyPressed)
     {
         case 1:
-            texcoords[0] = 0.5f;
-            texcoords[1] = 0.5f;
-            texcoords[2] = 0.0f;
-            texcoords[3] = 0.5f;
-            texcoords[4] = 0.0f;
-            texcoords[5] = 1.0f;
-            texcoords[6] = 0.0f;
-            texcoords[7] = 1.0f;
-            texcoords[8] = 0.5f;
-            texcoords[9] = 1.0f;
-            texcoords[10] = 0.5f;
-            texcoords[11] = 0.5f;
-            host_uniformData.keyPressedUniform = 1;
-        break;
-
         case 2:
-            texcoords[0] = 1.0f;
-            texcoords[1] = 0.0f;
-            texcoords[2] = 0.0f;
-            texcoords[3] = 0.0f;
-            texcoords[4] = 0.0f;
-            texcoords[5] = 1.0f;
-            texcoords[6] = 0.0f;
-            texcoords[7] = 1.0f;
-            texcoords[8] = 1.0f;
-            texcoords[9] = 1.0f;
-            texcoords[10] = 1.0f;
-            texcoords[11] = 0.0f;
-            host_uniformData.keyPressedUniform = 1;
-        break;
-
         case 3:
-            texcoords[0] = 2.0f;
-            texcoords[1] = 0.0f;
-            texcoords[2] = 0.0f;
-            texcoords[3] = 0.0f;
-            texcoords[4] = 0.0f;
-            texcoords[5] = 2.0f;
-            texcoords[6] = 0.0f;
-            texcoords[7] = 2.0f;
-            texcoords[8] = 2.0f;
-            texcoords[9] = 2.0f;
-            texcoords[10] = 2.0f;
-            texcoords[11] = 0.0f;
-            host_uniformData.keyPressedUniform = 1;
-        break;
-
         case 4:
-            texcoords[0] = 0.5f;
-            texcoords[1] = 0.5f;
-            texcoords[2] = 0.5f;
-            texcoords[3] = 0.5f;
-            texcoords[4] = 0.5f;
-            texcoords[5] = 0.5f;
-            texcoords[6] = 0.5f;
-            texcoords[7] = 0.5f;
-            texcoords[8] = 0.5f;
-            texcoords[9] = 0.5f;
-            texcoords[10] = 0.5f;
-            texcoords[11] = 0.5f;
             host_uniformData.keyPressedUniform = 1;
         break;
-
+        
         default:
             host_uniformData.keyPressedUniform = 0;
         break;
     }
 
-    memcpy(mappedPtr, texcoords, sizeof(texcoords));
+    updateTexcoords();
 
     //! Map Uniform Buffer
     void* data = NULL;
@@ -4279,6 +4238,90 @@ VkResult updateUniformBuffer(void)
     vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
 
     return vkResult;
+}
+
+void updateTexcoords(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+    float texcoords[12];
+
+    // Code
+    memset((void*)&texcoords, 0, sizeof(texcoords));
+
+    switch(keyPressed)
+    {
+        case 1:
+            texcoords[0] = 0.5f;
+            texcoords[1] = 0.5f;
+            texcoords[2] = 0.0f;
+            texcoords[3] = 0.5f;
+            texcoords[4] = 0.0f;
+            texcoords[5] = 1.0f;
+            texcoords[6] = 0.0f;
+            texcoords[7] = 1.0f;
+            texcoords[8] = 0.5f;
+            texcoords[9] = 1.0f;
+            texcoords[10] = 0.5f;
+            texcoords[11] = 0.5f;
+        break;
+
+        case 2:
+            texcoords[0] = 1.0f;
+            texcoords[1] = 0.0f;
+            texcoords[2] = 0.0f;
+            texcoords[3] = 0.0f;
+            texcoords[4] = 0.0f;
+            texcoords[5] = 1.0f;
+            texcoords[6] = 0.0f;
+            texcoords[7] = 1.0f;
+            texcoords[8] = 1.0f;
+            texcoords[9] = 1.0f;
+            texcoords[10] = 1.0f;
+            texcoords[11] = 0.0f;
+        break;
+
+        case 3:
+            texcoords[0] = 2.0f;
+            texcoords[1] = 0.0f;
+            texcoords[2] = 0.0f;
+            texcoords[3] = 0.0f;
+            texcoords[4] = 0.0f;
+            texcoords[5] = 2.0f;
+            texcoords[6] = 0.0f;
+            texcoords[7] = 2.0f;
+            texcoords[8] = 2.0f;
+            texcoords[9] = 2.0f;
+            texcoords[10] = 2.0f;
+            texcoords[11] = 0.0f;
+        break;
+
+        case 4:
+            texcoords[0] = 0.5f;
+            texcoords[1] = 0.5f;
+            texcoords[2] = 0.5f;
+            texcoords[3] = 0.5f;
+            texcoords[4] = 0.5f;
+            texcoords[5] = 0.5f;
+            texcoords[6] = 0.5f;
+            texcoords[7] = 0.5f;
+            texcoords[8] = 0.5f;
+            texcoords[9] = 0.5f;
+            texcoords[10] = 0.5f;
+            texcoords[11] = 0.5f;
+        break;
+    }
+
+    void* data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory, 0, 6 * 2 * sizeof(float), 0, &data);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Texcoord Buffer : %d !!!\n", __func__, vkResult);
+
+    //* Step - 12
+    memcpy(data, texcoords, sizeof(texcoords));
+
+    //* Step - 13
+    vkUnmapMemory(vkDevice, vertexData_texcoord.vkDeviceMemory);
 }
 
 VkResult createShaders(void)
