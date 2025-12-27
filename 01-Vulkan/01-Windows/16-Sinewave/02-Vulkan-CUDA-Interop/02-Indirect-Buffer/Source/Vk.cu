@@ -100,6 +100,9 @@ VkImageView vkImageView_depth = VK_NULL_HANDLE;
 //? Command Pool
 VkCommandPool vkCommandPool = VK_NULL_HANDLE;
 
+//? Command Buffer Array
+VkCommandBuffer* vkCommandBuffer_array = NULL;
+
 //? Render Pass
 VkRenderPass vkRenderPass = VK_NULL_HANDLE;
 
@@ -138,6 +141,7 @@ typedef struct
 {
     glm::mat4 mvpMatrix;
     glm::vec4 color;
+    int useGPU;
 } Host_UniformData;
 
 typedef struct
@@ -170,31 +174,15 @@ VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
 //* Sine Wave Related Variables
-float position_64_graphics[64][64][4];
-VertexData vertexData_position_64x64_graphics;
-VkCommandBuffer* vkCommandBuffer_64x64_graphics_array = NULL;
+#define MAX_MESH_SIZE   4096 * 4096 * 4
+uint32_t meshWidth = 256;
+uint32_t meshHeight = 256;
+uint32_t meshDepth = 4;
+uint32_t meshArraySize = meshWidth * meshHeight * meshDepth;
+float* pPosition = NULL;
 
-float position_128_graphics[128][128][4];
-VertexData vertexData_position_128x128_graphics;
-VkCommandBuffer* vkCommandBuffer_128x128_graphics_array = NULL;
-
-float position_256_graphics[256][256][4];
-VertexData vertexData_position_256x256_graphics;
-VkCommandBuffer* vkCommandBuffer_256x256_graphics_array = NULL;
-
-float position_512_graphics[512][512][4];
-VertexData vertexData_position_512x512_graphics;
-VkCommandBuffer* vkCommandBuffer_512x512_graphics_array = NULL;
-
-float position_1024_graphics[1024][1024][4];
-VertexData vertexData_position_1024x1024_graphics;
-VkCommandBuffer* vkCommandBuffer_1024x1024_graphics_array = NULL;
-
-BOOL bMesh64Chosen = TRUE;
-BOOL bMesh128Chosen = FALSE;
-BOOL bMesh256Chosen = FALSE;
-BOOL bMesh512Chosen = FALSE;
-BOOL bMesh1024Chosen = FALSE;
+VertexData vertexData_position;
+VertexData vertexData_indirect_buffer;
 
 char selectedColor = 'O';
 float fAnimationSpeed = 0.0f;
@@ -204,20 +192,8 @@ cudaError_t cudaResult;
 VkExternalMemoryHandleTypeFlagBits vkExternalMemoryHandleTypeFlagBits;
 cudaExternalMemory_t cuExternalMemory;
 
-VertexData vertexData_external_64x64;
-void *cudaDevicePtr_64x64 = NULL;
-
-VertexData vertexData_external_128x128;
-void *cudaDevicePtr_128x128 = NULL;
-
-VertexData vertexData_external_256x256;
-void *cudaDevicePtr_256x256 = NULL;
-
-VertexData vertexData_external_512x512;
-void *cudaDevicePtr_512x512 = NULL;
-
-VertexData vertexData_external_1024x1024;
-void *cudaDevicePtr_1024x1024 = NULL;
+VertexData vertexData_external;
+void *cudaDevicePtr = NULL;
 
 BOOL onGPU = FALSE;
 
@@ -295,7 +271,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan-CUDA Interop Sine Wave Using Array Method"),
+        TEXT("Atharv Natu : Vulkan-CUDA Interop Sine Wave Using Indirect Drawing"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -408,48 +384,45 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                 break;
 
                 case 49:
-                    bMesh64Chosen = TRUE;
-                    bMesh128Chosen = FALSE;
-                    bMesh256Chosen = FALSE;
-                    bMesh512Chosen = FALSE;
-                    bMesh1024Chosen = FALSE;
+                    meshWidth = 64;
+                    meshHeight = 64;
                 break;
 
                 case 50:
-                    bMesh64Chosen = FALSE;
-                    bMesh128Chosen = TRUE;
-                    bMesh256Chosen = FALSE;
-                    bMesh512Chosen = FALSE;
-                    bMesh1024Chosen = FALSE;
+                    meshWidth = 128;
+                    meshHeight = 128;
                 break;
 
                 case 51:
-                    bMesh64Chosen = FALSE;
-                    bMesh128Chosen = FALSE;
-                    bMesh256Chosen = TRUE;
-                    bMesh512Chosen = FALSE;
-                    bMesh1024Chosen = FALSE;
+                    meshWidth = 256;
+                    meshHeight = 256;
                 break;
 
                 case 52:
-                    bMesh64Chosen = FALSE;
-                    bMesh128Chosen = FALSE;
-                    bMesh256Chosen = FALSE;
-                    bMesh512Chosen = TRUE;
-                    bMesh1024Chosen = FALSE;
+                    meshWidth = 512;
+                    meshHeight = 512;
                 break;
 
                 case 53:
-                    bMesh64Chosen = FALSE;
-                    bMesh128Chosen = FALSE;
-                    bMesh256Chosen = FALSE;
-                    bMesh512Chosen = FALSE;
-                    bMesh1024Chosen = TRUE;
+                    meshWidth = 1024;
+                    meshHeight = 1024;
+                break;
+
+                case 54:
+                    meshWidth = 2048;
+                    meshHeight = 2048;
+                break;
+
+                case 55:
+                    meshWidth = 4096;
+                    meshHeight = 4096;
                 break;
 
                 default:
                 break;
             }
+
+            meshArraySize = meshWidth * meshHeight * meshDepth;
 
         break;
 
@@ -601,9 +574,9 @@ VkResult initialize(void)
     VkResult createSwapchain(VkBool32);
     VkResult createImagesAndImageViews(void);
     VkResult createCommandPool(void);
-    VkResult createCommandBuffers(VkCommandBuffer**);
-    void initializeSinewaveArrays(uint32_t, uint32_t);
-    VkResult createVertexBuffer(uint32_t, uint32_t, VertexData*);
+    VkResult createCommandBuffers(void);
+    VkResult createVertexBuffer(void);
+    VkResult createIndirectBuffer(void);
     VkResult createUniformBuffer(void);
     VkResult createShaders(void);
     VkResult createDescriptorSetLayout(void);
@@ -619,7 +592,7 @@ VkResult initialize(void)
 
     //! CUDA Related Function Declarations
     cudaError initializeCuda(void);
-    VkResult createExternalVertexBuffer(uint32_t, uint32_t, VertexData*);
+    VkResult createExternalVertexBuffer(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -707,175 +680,69 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createCommandPool() Succeeded\n", __func__);
 
     //! Create Command Buffers
-    vkResult = createCommandBuffers(&vkCommandBuffer_64x64_graphics_array);
+    vkResult = createCommandBuffers();
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_64x64_graphics_array : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_array : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_64x64_graphics_array\n", __func__);
-    
-    vkResult = createCommandBuffers(&vkCommandBuffer_128x128_graphics_array);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_128x128_graphics_array : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_128x128_graphics_array\n", __func__);
-    
-    vkResult = createCommandBuffers(&vkCommandBuffer_256x256_graphics_array);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_256x256_graphics_array : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_256x256_graphics_array\n", __func__);
-    
-    vkResult = createCommandBuffers(&vkCommandBuffer_512x512_graphics_array);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_512x512_graphics_array : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_512x512_graphics_array\n", __func__);
-    
-    vkResult = createCommandBuffers(&vkCommandBuffer_1024x1024_graphics_array);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_1024x1024_graphics_array : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_1024x1024_graphics_array\n", __func__);
+        fprintf(gpFile, "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_array\n", __func__);
 
-    //! Initialize Sinewave Arrays - 64, 128, 256, 512, 1024
-    initializeSinewaveArrays(64, 64);
-    initializeSinewaveArrays(128, 128);
-    initializeSinewaveArrays(256, 256);
-    initializeSinewaveArrays(512, 512);
-    initializeSinewaveArrays(1024, 1024);
+    //! Initialize Position Array
+    pPosition = (float*)malloc(meshArraySize * sizeof(float));
+    if (pPosition == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For pPosition : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
 
-    //! Create Vertex Buffers
-    memset((void*)&vertexData_position_64x64_graphics, 0, sizeof(VertexData));
-    vkResult = createVertexBuffer(64, 64, &vertexData_position_64x64_graphics);
+    for (int i = 0; i < meshWidth; i++)
+    {
+        for (int j = 0; j < meshHeight; j++)
+        {
+            for (int k = 0; k < meshDepth; k++)
+            {
+                pPosition[(j * meshWidth + i) * meshDepth + k] = 0.0f;
+            }
+        }
+    }
+
+    //! Create Vertex Buffer
+    vkResult = createVertexBuffer();
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_64x64_graphics : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_64x64_graphics\n", __func__);
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
 
-    memset((void*)&vertexData_position_128x128_graphics, 0, sizeof(VertexData));
-    vkResult = createVertexBuffer(128, 128, &vertexData_position_128x128_graphics);
+    //! Create Indirect Buffer
+    vkResult = createIndirectBuffer();
     if (vkResult != VK_SUCCESS)
     {
-        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_128x128_graphics : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => createIndirectBuffer() Failed : %d !!!\n", __func__, vkResult);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_128x128_graphics\n", __func__);
+        fprintf(gpFile, "%s() => createIndirectBuffer() Succeeded\n", __func__);
+
+    //! Create External Buffer
+    vkResult = createExternalVertexBuffer();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded\n", __func__);
     
-    memset((void*)&vertexData_position_256x256_graphics, 0, sizeof(VertexData));
-    vkResult = createVertexBuffer(256, 256, &vertexData_position_256x256_graphics);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_256x256_graphics : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_256x256_graphics\n", __func__);
-    
-    memset((void*)&vertexData_position_512x512_graphics, 0, sizeof(VertexData));
-    vkResult = createVertexBuffer(512, 512, &vertexData_position_512x512_graphics);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_512x512_graphics : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_512x512_graphics\n", __func__);
-    
-    memset((void*)&vertexData_position_1024x1024_graphics, 0, sizeof(VertexData));
-    vkResult = createVertexBuffer(1024, 1024, &vertexData_position_1024x1024_graphics);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_1024x1024_graphics : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_1024x1024_graphics\n", __func__);
-    
-    //! Create External Vertex Buffers
-    memset((void*)&vertexData_external_64x64, 0, sizeof(VertexData));
-    vkResult = createExternalVertexBuffer(64, 64, &vertexData_external_64x64);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_64x64 : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_64x64\n", __func__);
-
-    memset((void*)&vertexData_external_128x128, 0, sizeof(VertexData));
-    vkResult = createExternalVertexBuffer(128, 128, &vertexData_external_128x128);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_128x128 : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_128x128\n", __func__);
-
-    memset((void*)&vertexData_external_256x256, 0, sizeof(VertexData));
-    vkResult = createExternalVertexBuffer(256, 256, &vertexData_external_256x256);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_256x256 : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_256x256\n", __func__);
-
-    memset((void*)&vertexData_external_512x512, 0, sizeof(VertexData));
-    vkResult = createExternalVertexBuffer(512, 512, &vertexData_external_512x512);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_512x512 : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_512x512\n", __func__);
-
-    memset((void*)&vertexData_external_1024x1024, 0, sizeof(VertexData));
-    vkResult = createExternalVertexBuffer(1024, 1024, &vertexData_external_1024x1024);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_1024x1024 : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_1024x1024\n", __func__);
-
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
     if (vkResult != VK_SUCCESS)
@@ -1108,7 +975,7 @@ VkResult resize(int width, int height)
     // Function Declarations
     VkResult createSwapchain(VkBool32);
     VkResult createImagesAndImageViews(void);
-    VkResult createCommandBuffers(VkCommandBuffer**);
+    VkResult createCommandBuffers(void);
     VkResult createPipelineLayout(void);
     VkResult createRenderPass(void);
     VkResult createPipeline(void);
@@ -1162,42 +1029,12 @@ VkResult resize(int width, int height)
 
         //* Destroy Command Buffer
         for (uint32_t i = 0; i < swapchainImageCount; i++)
-        {
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_1024x1024_graphics_array[i]);
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_512x512_graphics_array[i]);
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_256x256_graphics_array[i]);
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_128x128_graphics_array[i]);
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_64x64_graphics_array[i]);
-        }
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_array[i]);
             
-        if (vkCommandBuffer_1024x1024_graphics_array)
+        if (vkCommandBuffer_array)
         {
-            free(vkCommandBuffer_1024x1024_graphics_array);
-            vkCommandBuffer_1024x1024_graphics_array = NULL;
-        }
-            
-        if (vkCommandBuffer_512x512_graphics_array)
-        {
-            free(vkCommandBuffer_512x512_graphics_array);
-            vkCommandBuffer_512x512_graphics_array = NULL;
-        }
-            
-        if (vkCommandBuffer_256x256_graphics_array)
-        {
-            free(vkCommandBuffer_256x256_graphics_array);
-            vkCommandBuffer_256x256_graphics_array = NULL;
-        }
-            
-        if (vkCommandBuffer_128x128_graphics_array)
-        {
-            free(vkCommandBuffer_128x128_graphics_array);
-            vkCommandBuffer_128x128_graphics_array = NULL;
-        }
-            
-        if (vkCommandBuffer_64x64_graphics_array)
-        {
-            free(vkCommandBuffer_64x64_graphics_array);
-            vkCommandBuffer_64x64_graphics_array = NULL;
+            free(vkCommandBuffer_array);
+            vkCommandBuffer_array = NULL;
         }
 
         //* Destroy PipelineLayout
@@ -1315,42 +1152,10 @@ VkResult resize(int width, int height)
         }
 
         //* Create Command Buffers
-        vkResult = createCommandBuffers(&vkCommandBuffer_64x64_graphics_array);
+        vkResult = createCommandBuffers();
         if (vkResult != VK_SUCCESS)
         {
-            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_64x64_graphics_array : %d !!!\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        
-        vkResult = createCommandBuffers(&vkCommandBuffer_128x128_graphics_array);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_128x128_graphics_array : %d !!!\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        
-        vkResult = createCommandBuffers(&vkCommandBuffer_256x256_graphics_array);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_256x256_graphics_array : %d !!!\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        
-        vkResult = createCommandBuffers(&vkCommandBuffer_512x512_graphics_array);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_512x512_graphics_array : %d !!!\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        
-        vkResult = createCommandBuffers(&vkCommandBuffer_1024x1024_graphics_array);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_1024x1024_graphics_array : %d !!!\n", __func__, vkResult);
+            fprintf(gpFile, "%s() => createCommandBuffers() Failed For vkCommandBuffer_array : %d !!!\n", __func__, vkResult);
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
             return vkResult;
         }
@@ -1382,11 +1187,11 @@ VkResult display(void)
     // Function Declarations
     VkResult resize(int, int);
     VkResult updateUniformBuffer(void);
-    VkResult buildCommandBuffers(void);
-    VkResult prepareSineWaveForCPU(uint32_t, uint32_t, float);
+    void sinewave(uint32_t, uint32_t, float);
+    VkResult updateVertexBuffer(void);
+    VkResult updateIndirectBuffer(void);
 
     // Variable Declarations
-    VkCommandBuffer* vkCommandBuffer_array = NULL;
     VkResult vkResult = VK_SUCCESS;
 
     // Code
@@ -1394,137 +1199,6 @@ VkResult display(void)
     {
         fprintf(gpFile, "%s() => Initialization Not Yet Completed !!!\n", __func__);
         return (VkResult)VK_FALSE;
-    }
-
-    if (onGPU)
-    {
-        if (bMesh64Chosen)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(64 / block.x, 64 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr_64x64, 64, 64, fAnimationSpeed);
-        }
-        else if (bMesh128Chosen)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(128 / block.x, 128 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr_128x128, 128, 128, fAnimationSpeed);
-        }
-        else if (bMesh256Chosen)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(256 / block.x, 256 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr_256x256, 256, 256, fAnimationSpeed);
-        }
-        else if (bMesh512Chosen)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(512 / block.x, 512 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr_512x512, 512, 512, fAnimationSpeed);
-        }
-        else if (bMesh1024Chosen)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(1024 / block.x, 1024 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr_1024x1024, 1024, 1024, fAnimationSpeed);
-        }
-
-        cudaResult = cudaGetLastError();
-        if (cudaResult != cudaSuccess)
-        {
-            fprintf(gpFile, "%s() => cudaGetLastError() Returned : %s !!!\n", __func__, cudaGetErrorString(cudaResult));
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-
-        cudaResult = cudaDeviceSynchronize();
-        if (cudaResult != cudaSuccess)
-        {
-            fprintf(gpFile, "%s() => cudaDeviceSynchronize() Failed : %s !!!\n", __func__, cudaGetErrorString(cudaResult));
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-    }
-    else
-    {
-        if (bMesh64Chosen)
-        {
-            vkResult = prepareSineWaveForCPU(64, 64, fAnimationSpeed);
-            if (vkResult != VK_SUCCESS)
-            {
-                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 64x64 : %d\n", __func__, vkResult);
-                vkResult = VK_ERROR_INITIALIZATION_FAILED;
-                return vkResult;
-            }
-        }
-        else if (bMesh128Chosen)
-        {
-            vkResult = prepareSineWaveForCPU(128, 128, fAnimationSpeed);
-            if (vkResult != VK_SUCCESS)
-            {
-                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 128x128 : %d\n", __func__, vkResult);
-                vkResult = VK_ERROR_INITIALIZATION_FAILED;
-                return vkResult;
-            }
-        }
-        else if (bMesh256Chosen)
-        {
-            vkResult = prepareSineWaveForCPU(256, 256, fAnimationSpeed);
-            if (vkResult != VK_SUCCESS)
-            {
-                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 256x256 : %d\n", __func__, vkResult);
-                vkResult = VK_ERROR_INITIALIZATION_FAILED;
-                return vkResult;
-            }
-        }   
-        else if (bMesh512Chosen)
-        {
-            vkResult = prepareSineWaveForCPU(512, 512, fAnimationSpeed);
-            if (vkResult != VK_SUCCESS)
-            {
-                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 512x512 : %d\n", __func__, vkResult);
-                vkResult = VK_ERROR_INITIALIZATION_FAILED;
-                return vkResult;
-            }
-        }
-        else if (bMesh1024Chosen)
-        {
-            vkResult = prepareSineWaveForCPU(1024, 1024, fAnimationSpeed);
-            if (vkResult != VK_SUCCESS)
-            {
-                fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 1024x1024 : %d\n", __func__, vkResult);
-                vkResult = VK_ERROR_INITIALIZATION_FAILED;
-                return vkResult;
-            }
-        }
-    }
-
-    if (bMesh64Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
-    else if (bMesh128Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
-    else if (bMesh256Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_256x256_graphics_array;
-    else if (bMesh512Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_512x512_graphics_array;
-    else if (bMesh1024Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
-
-    vkResult = buildCommandBuffers();
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => buildCommandBuffers() Failed : %d\n", __func__, vkResult);
-        return vkResult;
     }
 
     //! Acquire next image index
@@ -1604,6 +1278,109 @@ VkResult display(void)
         }
     }
 
+    if (onGPU)
+    {   
+        if (meshWidth == 64 && meshHeight == 64)
+        {
+            // Run CUDA Kernel
+            dim3 block(8, 8, 1);
+            dim3 grid(64 / block.x, 64 / block.y, 1);
+
+            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 64, 64, fAnimationSpeed);
+        }
+        else if (meshWidth == 128 && meshHeight == 128)
+        {
+            // Run CUDA Kernel
+            dim3 block(8, 8, 1);
+            dim3 grid(128 / block.x, 128 / block.y, 1);
+
+            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 128, 128, fAnimationSpeed);
+        }
+        else if (meshWidth == 256 && meshHeight == 256)
+        {
+            // Run CUDA Kernel
+            dim3 block(8, 8, 1);
+            dim3 grid(256 / block.x, 256 / block.y, 1);
+
+            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 256, 256, fAnimationSpeed);
+        }
+        else if (meshWidth == 512 && meshHeight == 512)
+        {
+            // Run CUDA Kernel
+            dim3 block(8, 8, 1);
+            dim3 grid(512 / block.x, 512 / block.y, 1);
+
+            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 512, 512, fAnimationSpeed);
+        }
+        else if (meshWidth == 1024 && meshHeight == 1024)
+        {
+            // Run CUDA Kernel
+            dim3 block(8, 8, 1);
+            dim3 grid(1024 / block.x, 1024 / block.y, 1);
+
+            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 1024, 1024, fAnimationSpeed);
+        }
+        else if (meshWidth == 2048 && meshHeight == 2048)
+        {
+            // Run CUDA Kernel
+            dim3 block(8, 8, 1);
+            dim3 grid(2048 / block.x, 2048 / block.y, 1);
+
+            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 2048, 2048, fAnimationSpeed);
+        }
+        else if (meshWidth == 4096 && meshHeight == 4096)
+        {
+            // Run CUDA Kernel
+            dim3 block(8, 8, 1);
+            dim3 grid(4096 / block.x, 4096 / block.y, 1);
+
+            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 4096, 4096, fAnimationSpeed);
+        }
+
+        cudaResult = cudaGetLastError();
+        if (cudaResult != cudaSuccess)
+        {
+            fprintf(gpFile, "%s() => cudaGetLastError() Returned : %s !!!\n", __func__, cudaGetErrorString(cudaResult));
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+
+        cudaResult = cudaDeviceSynchronize();
+        if (cudaResult != cudaSuccess)
+        {
+            fprintf(gpFile, "%s() => cudaDeviceSynchronize() Failed : %s !!!\n", __func__, cudaGetErrorString(cudaResult));
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+    }
+    else
+    {
+        //! Free Position Array
+        if (pPosition)
+        {
+            free(pPosition);
+            pPosition = NULL;
+        }
+
+        //! Reallocate Position Array
+        pPosition = (float*)malloc(meshArraySize * sizeof(float));
+        if (pPosition == NULL)
+            fprintf(gpFile, "%s() => malloc() Failed For pPosition: %d\n", __func__, vkResult);
+
+        //! Create Sinewave
+        sinewave(meshWidth, meshHeight, fAnimationSpeed);
+
+        //! Update Vertex Buffer
+        vkResult = updateVertexBuffer();
+        if (vkResult != VK_SUCCESS)
+            fprintf(gpFile, "%s() => updateVertexBuffer() Failed : %d\n", __func__, vkResult);
+    }
+
+    //! Update Indirect Buffer
+    vkResult = updateIndirectBuffer();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => updateIndirectBuffer() Failed : %d\n", __func__, vkResult);
+
     vkResult = updateUniformBuffer();
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
@@ -1612,6 +1389,34 @@ VkResult display(void)
     vkDeviceWaitIdle(vkDevice);
 
     return vkResult;
+}
+
+void sinewave(uint32_t mesh_width, uint32_t mesh_height, float animationTime)
+{
+    for (unsigned int i = 0; i < mesh_width; i++)
+    {
+        for (unsigned int j = 0; j < mesh_height; j++)
+        {
+            for (unsigned int k = 0; k < 4; k++)
+            {
+                float u = (float)i / (float)mesh_width;
+                float v = (float)j / (float)mesh_height;
+
+                u = u * 2.0f - 1.0f;
+                v = v * 2.0f - 1.0f;
+
+                float frequency = 4.0f;
+
+                float w = sinf(u * frequency + animationTime) * cosf(v * frequency + animationTime) * 0.5f;
+
+                pPosition[(j * mesh_width + i) * meshDepth + 0] = u;
+                pPosition[(j * mesh_width + i) * meshDepth + 1] = w;
+                pPosition[(j * mesh_width + i) * meshDepth + 2] = v;
+                pPosition[(j * mesh_width + i) * meshDepth + 3] = 1.0f;
+               
+            }
+        }
+    }
 }
 
 void update(void)
@@ -1754,6 +1559,13 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
     }
 
+    //! Free Position Array
+    if (pPosition)
+    {
+        free(pPosition);
+        pPosition = NULL;
+    }
+
     //* Uninitialize CUDA
     cudaResult = uninitializeCuda();
     if (cudaResult != cudaSuccess)
@@ -1762,191 +1574,62 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => uninitializeCuda() Succeeded !!!\n", __func__);
 
     //* External Buffer
-    if (vertexData_external_1024x1024.vkDeviceMemory)
+    if (vertexData_external.vkDeviceMemory)
     {
-        vkFreeMemory(vkDevice, vertexData_external_1024x1024.vkDeviceMemory, NULL);
-        vertexData_external_1024x1024.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_1024x1024.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, vertexData_external.vkDeviceMemory, NULL);
+        vertexData_external.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external.vkDeviceMemory\n", __func__);
     }
 
-    if (vertexData_external_1024x1024.vkBuffer)
+    if (vertexData_external.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, vertexData_external_1024x1024.vkBuffer, NULL);
-        vertexData_external_1024x1024.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_1024x1024.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, vertexData_external.vkBuffer, NULL);
+        vertexData_external.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external.vkBuffer\n", __func__);
     }
 
-    if (vertexData_external_512x512.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_external_512x512.vkDeviceMemory, NULL);
-        vertexData_external_512x512.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_512x512.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_external_512x512.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_external_512x512.vkBuffer, NULL);
-        vertexData_external_512x512.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_512x512.vkBuffer\n", __func__);
-    }
-
-    if (vertexData_external_256x256.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_external_256x256.vkDeviceMemory, NULL);
-        vertexData_external_256x256.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_256x256.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_external_256x256.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_external_256x256.vkBuffer, NULL);
-        vertexData_external_256x256.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_256x256.vkBuffer\n", __func__);
-    }
-
-    if (vertexData_external_128x128.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_external_128x128.vkDeviceMemory, NULL);
-        vertexData_external_128x128.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_128x128.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_external_128x128.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_external_128x128.vkBuffer, NULL);
-        vertexData_external_128x128.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_128x128.vkBuffer\n", __func__);
-    }
-
-    if (vertexData_external_64x64.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_external_64x64.vkDeviceMemory, NULL);
-        vertexData_external_64x64.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_64x64.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_external_64x64.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_external_64x64.vkBuffer, NULL);
-        vertexData_external_64x64.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_64x64.vkBuffer\n", __func__);
-    }
 
     //* Step - 14 of Vertex Buffer
-    if (vertexData_position_1024x1024_graphics.vkDeviceMemory)
+    if (vertexData_indirect_buffer.vkDeviceMemory)
     {
-        vkFreeMemory(vkDevice, vertexData_position_1024x1024_graphics.vkDeviceMemory, NULL);
-        vertexData_position_1024x1024_graphics.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_1024x1024_graphics.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, vertexData_indirect_buffer.vkDeviceMemory, NULL);
+        vertexData_indirect_buffer.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_indirect_buffer.vkDeviceMemory\n", __func__);
     }
 
-    if (vertexData_position_1024x1024_graphics.vkBuffer)
+    if (vertexData_indirect_buffer.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, vertexData_position_1024x1024_graphics.vkBuffer, NULL);
-        vertexData_position_1024x1024_graphics.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_1024x1024_graphics.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, vertexData_indirect_buffer.vkBuffer, NULL);
+        vertexData_indirect_buffer.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_indirect_buffer.vkBuffer\n", __func__);
     }
 
-    if (vertexData_position_512x512_graphics.vkDeviceMemory)
+    if (vertexData_position.vkDeviceMemory)
     {
-        vkFreeMemory(vkDevice, vertexData_position_512x512_graphics.vkDeviceMemory, NULL);
-        vertexData_position_512x512_graphics.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_512x512_graphics.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, vertexData_position.vkDeviceMemory, NULL);
+        vertexData_position.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position.vkDeviceMemory\n", __func__);
     }
 
-    if (vertexData_position_512x512_graphics.vkBuffer)
+    if (vertexData_position.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, vertexData_position_512x512_graphics.vkBuffer, NULL);
-        vertexData_position_512x512_graphics.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_512x512_graphics.vkBuffer\n", __func__);
-    }
-
-    if (vertexData_position_256x256_graphics.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_position_256x256_graphics.vkDeviceMemory, NULL);
-        vertexData_position_256x256_graphics.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_256x256_graphics.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_position_256x256_graphics.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_position_256x256_graphics.vkBuffer, NULL);
-        vertexData_position_256x256_graphics.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_256x256_graphics.vkBuffer\n", __func__);
-    }
-
-    if (vertexData_position_128x128_graphics.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_position_128x128_graphics.vkDeviceMemory, NULL);
-        vertexData_position_128x128_graphics.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_128x128_graphics.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_position_128x128_graphics.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_position_128x128_graphics.vkBuffer, NULL);
-        vertexData_position_128x128_graphics.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_128x128_graphics.vkBuffer\n", __func__);
-    }
-
-    if (vertexData_position_64x64_graphics.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_position_64x64_graphics.vkDeviceMemory, NULL);
-        vertexData_position_64x64_graphics.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_position_64x64_graphics.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_position_64x64_graphics.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_position_64x64_graphics.vkBuffer, NULL);
-        vertexData_position_64x64_graphics.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position_64x64_graphics.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, vertexData_position.vkBuffer, NULL);
+        vertexData_position.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position.vkBuffer\n", __func__);
     }
 
     //* Step - 5 of Command Buffer
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_1024x1024_graphics_array[i]);
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_512x512_graphics_array[i]);
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_256x256_graphics_array[i]);
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_128x128_graphics_array[i]);
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_64x64_graphics_array[i]);
+        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_array[i]);
         fprintf(gpFile, "%s() => vkFreeCommandBuffers() Succeeded For Index : %d\n", __func__, i);
     }
 
-    if (vkCommandBuffer_1024x1024_graphics_array)
+    if (vkCommandBuffer_array)
     {
-        free(vkCommandBuffer_1024x1024_graphics_array);
-        vkCommandBuffer_1024x1024_graphics_array = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_1024x1024_graphics_array\n", __func__);
-    }
-
-    if (vkCommandBuffer_512x512_graphics_array)
-    {
-        free(vkCommandBuffer_512x512_graphics_array);
-        vkCommandBuffer_512x512_graphics_array = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_512x512_graphics_array\n", __func__);
-    }
-
-    if (vkCommandBuffer_256x256_graphics_array)
-    {
-        free(vkCommandBuffer_256x256_graphics_array);
-        vkCommandBuffer_256x256_graphics_array = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_256x256_graphics_array\n", __func__);
-    }
-
-    if (vkCommandBuffer_128x128_graphics_array)
-    {
-        free(vkCommandBuffer_128x128_graphics_array);
-        vkCommandBuffer_128x128_graphics_array = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_128x128_graphics_array\n", __func__);
-    }
-
-    if (vkCommandBuffer_64x64_graphics_array)
-    {
-        free(vkCommandBuffer_64x64_graphics_array);
-        vkCommandBuffer_64x64_graphics_array = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_64x64_graphics_array\n", __func__);
+        free(vkCommandBuffer_array);
+        vkCommandBuffer_array = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_array\n", __func__);
     }
 
     //* Step - 4 of Command Pool (Destroy Command Pool)
@@ -2059,63 +1742,15 @@ void uninitialize(void)
 cudaError uninitializeCuda()
 {
     // Code
-    if (cudaDevicePtr_1024x1024)
+    if (cudaDevicePtr)
     {
-        cudaResult = cudaFree(cudaDevicePtr_1024x1024);
-        if (cudaResult != cudaSuccess)
-            fprintf(gpFile, "%s() => cudaFree() Failed For cudaDevicePtr_1024x1024 !!!\n", __func__);
-        else
-        {
-            fprintf(gpFile, "%s() => cudaFree() Succeeded For cudaDevicePtr_1024x1024\n", __func__);
-            cudaDevicePtr_1024x1024 = NULL;
-        }    
-    }
-    
-    if (cudaDevicePtr_512x512)
-    {
-        cudaResult = cudaFree(cudaDevicePtr_512x512);
+        cudaResult = cudaFree(cudaDevicePtr);
         if (cudaResult != cudaSuccess)
             fprintf(gpFile, "%s() => cudaFree() Failed For cudaDevicePtr !!!\n", __func__);
         else
         {
             fprintf(gpFile, "%s() => cudaFree() Succeeded For cudaDevicePtr\n", __func__);
-            cudaDevicePtr_512x512 = NULL;
-        }    
-    }
-    
-    if (cudaDevicePtr_256x256)
-    {
-        cudaResult = cudaFree(cudaDevicePtr_256x256);
-        if (cudaResult != cudaSuccess)
-            fprintf(gpFile, "%s() => cudaFree() Failed For cudaDevicePtr_256x256 !!!\n", __func__);
-        else
-        {
-            fprintf(gpFile, "%s() => cudaFree() Succeeded For cudaDevicePtr_256x256\n", __func__);
-            cudaDevicePtr_256x256 = NULL;
-        }    
-    }
-    
-    if (cudaDevicePtr_128x128)
-    {
-        cudaResult = cudaFree(cudaDevicePtr_128x128);
-        if (cudaResult != cudaSuccess)
-            fprintf(gpFile, "%s() => cudaFree() Failed For cudaDevicePtr_128x128 !!!\n", __func__);
-        else
-        {
-            fprintf(gpFile, "%s() => cudaFree() Succeeded For cudaDevicePtr_128x128\n", __func__);
-            cudaDevicePtr_128x128 = NULL;
-        }    
-    }
-    
-    if (cudaDevicePtr_64x64)
-    {
-        cudaResult = cudaFree(cudaDevicePtr_64x64);
-        if (cudaResult != cudaSuccess)
-            fprintf(gpFile, "%s() => cudaFree() Failed For cudaDevicePtr_64x64 !!!\n", __func__);
-        else
-        {
-            fprintf(gpFile, "%s() => cudaFree() Succeeded For cudaDevicePtr_64x64\n", __func__);
-            cudaDevicePtr_64x64 = NULL;
+            cudaDevicePtr = NULL;
         }    
     }
 
@@ -3519,10 +3154,9 @@ VkResult createCommandPool(void)
     return vkResult;
 }
 
-VkResult createCommandBuffers(VkCommandBuffer** pPvkCommandBuffer_array)
+VkResult createCommandBuffers(void)
 {
     // Variable Declarations
-    VkCommandBuffer *vkCommandBuffer_array = NULL;
     VkResult vkResult = VK_SUCCESS;
 
     // Code
@@ -3554,22 +3188,22 @@ VkResult createCommandBuffers(VkCommandBuffer** pPvkCommandBuffer_array)
             fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Succeeded For Index : %d\n", __func__, i);
     }
 
-    *pPvkCommandBuffer_array = vkCommandBuffer_array;
-
     return vkResult;
 }
 
-VkResult createVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData* pVertexData)
+VkResult createVertexBuffer(void)
 {
+    // Function Declarations
+    VkResult updateVertexBuffer(void);
+
     // Variable Declarations
-    VertexData vertexData_position;
     VkResult vkResult = VK_SUCCESS;
 
     // Code
     
     //! Vertex Position
     //! -------------------------------------------------------------------------------------------------------------------------------------
-    VkDeviceSize bufferSize = meshWidth * meshHeight * 4 * sizeof(float);
+    VkDeviceSize bufferSize = MAX_MESH_SIZE * sizeof(float);
 
     memset((void*)&vertexData_position, 0, sizeof(VertexData));
 
@@ -3636,43 +3270,149 @@ VkResult createVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData*
     else
         fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
-    //* Step - 11
-    void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    vkResult = updateVertexBuffer();
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkMapMemory() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => updateVertexBuffer() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
-
-    if (meshWidth == 64 && meshHeight == 64)
-        memcpy(data, position_64_graphics, bufferSize);
-    else if (meshWidth == 128 && meshHeight == 128)
-        memcpy(data, position_128_graphics, bufferSize);
-    else if (meshWidth == 256 && meshHeight == 256)
-        memcpy(data, position_256_graphics, bufferSize);
-    else if (meshWidth == 512 && meshHeight == 512)
-        memcpy(data, position_512_graphics, bufferSize);
-    else if (meshWidth == 1024 && meshHeight == 1024)
-        memcpy(data, position_1024_graphics, bufferSize);
-
-    vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
+        fprintf(gpFile, "%s() => updateVertexBuffer() Succeeded For Vertex Position Buffer\n", __func__);
     //! -------------------------------------------------------------------------------------------------------------------------------------
-    
-    *pVertexData = vertexData_position;
 
     return vkResult;
 }
 
-VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData* pVertexData)
+VkResult updateVertexBuffer(void)
 {
     // Variable Declarations
-    VertexData vertexData_position;
+    VkResult vkResult = VK_SUCCESS;
+
+    void* data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, meshArraySize * sizeof(float), 0, &data);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position : %d\n", __func__, vkResult);
+
+    memcpy(data, pPosition, meshArraySize * sizeof(float));
+
+    vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
+
+    return vkResult;
+}
+
+VkResult createIndirectBuffer(void)
+{
+    // Function Declarations
+    VkResult updateIndirectBuffer(void);
+
+    // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    size_t bufferSize = meshWidth * meshHeight * 4 * sizeof(float);
+    memset((void*)&vertexData_indirect_buffer, 0, sizeof(VertexData));
 
-    memset((void*)&vertexData_position, 0, sizeof(VertexData));
+    VkBufferCreateInfo vkBufferCreateInfo;
+    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
+    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkBufferCreateInfo.flags = 0;
+    vkBufferCreateInfo.pNext = NULL;
+    vkBufferCreateInfo.size = sizeof(VkDrawIndirectCommand);
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    
+    //* Step - 6
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_indirect_buffer.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Indirect Buffer  : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Indirect Buffer\n", __func__);
+    
+    //* Step - 7
+    VkMemoryRequirements vkMemoryRequirements;
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_indirect_buffer.vkBuffer, &vkMemoryRequirements);
+
+    //* Step - 8
+    VkMemoryAllocateInfo vkMemoryAllocateInfo;
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    
+    //* Step - 8.1
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Step - 9
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_indirect_buffer.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Indirect Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Indirect Buffer\n", __func__);
+
+    //* Step - 10
+    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_indirect_buffer.vkBuffer, vertexData_indirect_buffer.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Indirect Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Indirect Buffer\n", __func__);
+
+    vkResult = updateIndirectBuffer();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => updateIndirectBuffer() Failed For Vertex Position Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => updateIndirectBuffer() Succeeded For Vertex Position Buffer\n", __func__);
+
+    return vkResult;
+}
+
+VkResult updateIndirectBuffer(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    VkDrawIndirectCommand vkDrawIndirectCommand;
+    memset((void*)&vkDrawIndirectCommand, 0, sizeof(VkDrawIndirectCommand));
+    vkDrawIndirectCommand.firstVertex = 0;
+    vkDrawIndirectCommand.vertexCount = meshWidth * meshHeight;
+    vkDrawIndirectCommand.instanceCount = 1;
+    vkDrawIndirectCommand.firstInstance = 0;
+    
+    void* data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_indirect_buffer.vkDeviceMemory, 0, sizeof(vkDrawIndirectCommand), 0, &data);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_indirect_buffer : %d !!!\n", __func__, vkResult);
+
+    memcpy(data, &vkDrawIndirectCommand, sizeof(vkDrawIndirectCommand));
+
+    vkUnmapMemory(vkDevice, vertexData_indirect_buffer.vkDeviceMemory);
+
+    return vkResult;
+}
+
+VkResult createExternalVertexBuffer(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    VkDeviceSize bufferSize = MAX_MESH_SIZE * sizeof(float);
+
+    memset((void*)&vertexData_external, 0, sizeof(VertexData));
 
     //* Initialize External Memory Buffer
     VkExternalMemoryBufferCreateInfo vkExternalMemoryBufferCreateInfo;
@@ -3692,7 +3432,7 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
     vkBufferCreateInfo.pNext = &vkExternalMemoryBufferCreateInfo;
     
     //* Step - 6
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_external.vkBuffer);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkCreateBuffer() Failed For External Vertex Buffer  : %d !!!\n", __func__, vkResult);
     else
@@ -3701,7 +3441,7 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
     //* Step - 7
     VkMemoryRequirements vkMemoryRequirements;
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, vertexData_position.vkBuffer, &vkMemoryRequirements);
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_external.vkBuffer, &vkMemoryRequirements);
 
     //* Initialize Exportable Memory Allocation
     VkExportMemoryAllocateInfoKHR vkExportMemoryAllocateInfoKHR;
@@ -3737,7 +3477,7 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
     }
 
     //* Step - 9
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_external.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkAllocateMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
     else
@@ -3745,7 +3485,7 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
 
     //* Step - 10
     //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
-    vkResult = vkBindBufferMemory(vkDevice, vertexData_position.vkBuffer, vertexData_position.vkDeviceMemory, 0);
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_external.vkBuffer, vertexData_external.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
     else
@@ -3755,7 +3495,7 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
     memset((void*)&vkMemoryGetWin32HandleInfoKHR, 0, sizeof(VkMemoryGetWin32HandleInfoKHR));
     vkMemoryGetWin32HandleInfoKHR.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
     vkMemoryGetWin32HandleInfoKHR.pNext = NULL;
-    vkMemoryGetWin32HandleInfoKHR.memory = vertexData_position.vkDeviceMemory;
+    vkMemoryGetWin32HandleInfoKHR.memory = vertexData_external.vkDeviceMemory;
     vkMemoryGetWin32HandleInfoKHR.handleType = vkExternalMemoryHandleTypeFlagBits;
     
     PFN_vkGetMemoryWin32HandleKHR vkGetMemoryWin32HandleKHR = NULL;
@@ -3806,146 +3546,18 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
     cuExtMemoryBufferDesc.offset = 0;
     cuExtMemoryBufferDesc.size = bufferSize;
     cuExtMemoryBufferDesc.flags = 0;
-
-    if (meshWidth == 64 && meshHeight == 64)
-    {
-        cudaResult = cudaExternalMemoryGetMappedBuffer(&cudaDevicePtr_64x64, cuExternalMemory, &cuExtMemoryBufferDesc);
-        if (cudaResult != cudaSuccess)
-        {
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        else
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Succeeded For External Vertex Buffer\n", __func__);
-    }
-    else if (meshWidth == 128 && meshHeight == 128)
-    {
-        cudaResult = cudaExternalMemoryGetMappedBuffer(&cudaDevicePtr_128x128, cuExternalMemory, &cuExtMemoryBufferDesc);
-        if (cudaResult != cudaSuccess)
-        {
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        else
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Succeeded For External Vertex Buffer\n", __func__);
-    }
-    else if (meshWidth == 256 && meshHeight == 256)
-    {
-        cudaResult = cudaExternalMemoryGetMappedBuffer(&cudaDevicePtr_256x256, cuExternalMemory, &cuExtMemoryBufferDesc);
-        if (cudaResult != cudaSuccess)
-        {
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        else
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Succeeded For External Vertex Buffer\n", __func__);
-    }
-    else if (meshWidth == 512 && meshHeight == 512)
-    {
-        cudaResult = cudaExternalMemoryGetMappedBuffer(&cudaDevicePtr_512x512, cuExternalMemory, &cuExtMemoryBufferDesc);
-        if (cudaResult != cudaSuccess)
-        {
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        else
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Succeeded For External Vertex Buffer\n", __func__);
-    }
-    else if (meshWidth == 1024 && meshHeight == 1024)
-    {
-        cudaResult = cudaExternalMemoryGetMappedBuffer(&cudaDevicePtr_1024x1024, cuExternalMemory, &cuExtMemoryBufferDesc);
-        if (cudaResult != cudaSuccess)
-        {
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        else
-            fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Succeeded For External Vertex Buffer\n", __func__);
-    } 
     
-    *pVertexData = vertexData_position;
+    cudaResult = cudaExternalMemoryGetMappedBuffer(&cudaDevicePtr, cuExternalMemory, &cuExtMemoryBufferDesc);
+    if (cudaResult != cudaSuccess)
+    {
+        fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Succeeded For External Vertex Buffer\n", __func__);
 
     return vkResult;
-}
-
-void initializeSinewaveArrays(uint32_t meshWidth, uint32_t meshHeight)
-{
-    // Code
-    if (meshWidth == 64 && meshHeight == 64)
-    {
-        for (unsigned int i = 0; i < meshWidth; i++)
-        {
-            for (unsigned int j = 0; j < meshHeight; j++)
-            {
-                for (unsigned int k = 0; k < 4; k++)
-                {
-                    position_64_graphics[i][j][k] = 0;
-                }
-            }
-        }
-    }
-    
-    else if (meshWidth == 128 && meshHeight == 128)
-    {
-        for (unsigned int i = 0; i < meshWidth; i++)
-        {
-            for (unsigned int j = 0; j < meshHeight; j++)
-            {
-                for (unsigned int k = 0; k < 4; k++)
-                {
-                    position_128_graphics[i][j][k] = 0;
-                }
-            }
-        }
-    }
-    
-    else if (meshWidth == 256 && meshHeight == 256)
-    {
-        for (unsigned int i = 0; i < meshWidth; i++)
-        {
-            for (unsigned int j = 0; j < meshHeight; j++)
-            {
-                for (unsigned int k = 0; k < 4; k++)
-                {
-                    position_256_graphics[i][j][k] = 0;
-                }
-            }
-        }
-    }
-
-    else if (meshWidth == 512 && meshHeight == 512)
-    {
-        for (unsigned int i = 0; i < meshWidth; i++)
-        {
-            for (unsigned int j = 0; j < meshHeight; j++)
-            {
-                for (unsigned int k = 0; k < 4; k++)
-                {
-                    position_512_graphics[i][j][k] = 0;
-                }
-            }
-        }
-    }
-
-    else if (meshWidth == 1024 && meshHeight == 1024)
-    {
-        for (unsigned int i = 0; i < meshWidth; i++)
-        {
-            for (unsigned int j = 0; j < meshHeight; j++)
-            {
-                for (unsigned int k = 0; k < 4; k++)
-                {
-                    position_1024_graphics[i][j][k] = 0;
-                }
-            }
-        }
-    }
-    
 }
 
 VkResult createUniformBuffer(void)
@@ -4065,14 +3677,6 @@ VkResult updateUniformBuffer(void)
     //* Color Update
     switch (selectedColor)
     {
-        // Background - White, Foreground - Black
-        case 'K': 
-        {
-            host_uniformData.color = glm::vec4(0.0, 0.0, 0.0, 1.0); 
-        }
-        break;
-
-        // For all other colors - Black background
         case 'W': host_uniformData.color = glm::vec4(1.0, 1.0, 1.0, 1.0); break;    // White
         case 'R': host_uniformData.color = glm::vec4(1.0, 0.0, 0.0, 1.0); break;    // Red
         case 'G': host_uniformData.color = glm::vec4(0.0, 1.0, 0.0, 1.0); break;    // Green
@@ -4086,6 +3690,11 @@ VkResult updateUniformBuffer(void)
             host_uniformData.color = glm::vec4(1.0, 0.5, 0.0, 1.0);   // Orange
         break;
     }
+
+    if (onGPU)
+        host_uniformData.useGPU = 1;
+    else
+        host_uniformData.useGPU = 0;
 
     //! Map Uniform Buffer
     void* data = NULL;
@@ -4500,24 +4109,34 @@ VkResult createPipeline(void)
     //* Code
 
     //! Vertex Input State
-    VkVertexInputBindingDescription vkVertexInputBindingDescription_array[1];
+    VkVertexInputBindingDescription vkVertexInputBindingDescription_array[2];
     memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
-    
-    //! Position
+
+    //! CPU Position
     vkVertexInputBindingDescription_array[0].binding = 0;
     vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 4; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
+    //! GPU Position
+    vkVertexInputBindingDescription_array[1].binding = 1;
+    vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 4; 
+    vkVertexInputBindingDescription_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[1];
+    VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[2];
     memset((void*)vkVertexInputAttributeDescription_array, 0, sizeof(VkVertexInputAttributeDescription) * _ARRAYSIZE(vkVertexInputAttributeDescription_array));
     
-    //! Position
+    //! CPU Position
     vkVertexInputAttributeDescription_array[0].binding = 0;
     vkVertexInputAttributeDescription_array[0].location = 0;
     vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     vkVertexInputAttributeDescription_array[0].offset = 0;
-
+    
+    //! GPU Position
+    vkVertexInputAttributeDescription_array[1].binding = 1;
+    vkVertexInputAttributeDescription_array[1].location = 1;
+    vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vkVertexInputAttributeDescription_array[1].offset = 0;
+    
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
     memset((void*)&vkPipelineVertexInputStateCreateInfo, 0, sizeof(VkPipelineVertexInputStateCreateInfo));
     vkPipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -4815,21 +4434,10 @@ VkResult createFences(void)
 VkResult buildCommandBuffers(void)
 {
     // Variable Declarations
-    VkCommandBuffer *vkCommandBuffer_array = NULL;
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    if (bMesh64Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
-    else if (bMesh128Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
-    else if (bMesh256Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_256x256_graphics_array;
-    else if (bMesh512Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_512x512_graphics_array;
-    else if (bMesh1024Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
- 
+
     //! Loop per swapchain image
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
@@ -4861,14 +4469,7 @@ VkResult buildCommandBuffers(void)
         //* Step - 4 => Set Clear Value
         VkClearValue vkClearValue_array[2];
         memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
-        if (selectedColor == 'K')
-        {
-            VkClearColorValue vkClearColorValue_white = { 1.0f, 1.0f, 1.0f, 1.0f };
-            vkClearValue_array[0].color = vkClearColorValue_white;
-        }
-        else
-            vkClearValue_array[0].color = vkClearColorValue;
-
+        vkClearValue_array[0].color = vkClearColorValue;
         vkClearValue_array[1].depthStencil = vkClearDepthStencilValue;
 
         //* Step - 5
@@ -4903,175 +4504,29 @@ VkResult buildCommandBuffers(void)
                 NULL
             );
 
-            if (onGPU)
-            {
-                if (bMesh64Chosen)
-                {
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_external_64x64.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
+            //! Bind with Vertex Position Buffer
+            VkDeviceSize vkDeviceSize_offset_position[1];
+            memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+            vkCmdBindVertexBuffers(
+                vkCommandBuffer_array[i], 
+                0, 
+                1, 
+                &vertexData_position.vkBuffer, 
+                vkDeviceSize_offset_position
+            );
 
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 64 * 64, 1, 0, 0);
-                }
-                else if (bMesh128Chosen)
-                {
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_external_128x128.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
+            //! Bind with External Vertex Buffer
+            memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+            vkCmdBindVertexBuffers(
+                vkCommandBuffer_array[i], 
+                1, 
+                1, 
+                &vertexData_external.vkBuffer, 
+                vkDeviceSize_offset_position
+            );
 
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 128 * 128, 1, 0, 0);
-                }
-                else if (bMesh256Chosen)
-                {
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_external_256x256.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
-
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 256 * 256, 1, 0, 0);
-                }
-                else if (bMesh512Chosen)
-                {
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_external_512x512.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
-
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 512 * 512, 1, 0, 0);
-                }
-                else if (bMesh1024Chosen)
-                {
-                     
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_external_1024x1024.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
-
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 1024 * 1024, 1, 0, 0);
-                }
-            }
-            else
-            {
-                if (bMesh64Chosen)
-                {
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_position_64x64_graphics.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
-
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 64 * 64, 1, 0, 0);
-                }
-                else if (bMesh128Chosen)
-                {
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_position_128x128_graphics.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
-
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 128 * 128, 1, 0, 0);
-                }
-                else if (bMesh256Chosen)
-                {
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_position_256x256_graphics.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
-
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 256 * 256, 1, 0, 0);
-                }
-                else if (bMesh512Chosen)
-                {
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_position_512x512_graphics.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
-
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 512 * 512, 1, 0, 0);
-                }
-                else if (bMesh1024Chosen)
-                {
-                     
-                    //! Bind with Vertex Position Buffer
-                    VkDeviceSize vkDeviceSize_offset_position[1];
-                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                    vkCmdBindVertexBuffers(
-                        vkCommandBuffer_array[i], 
-                        0, 
-                        1, 
-                        &vertexData_position_1024x1024_graphics.vkBuffer, 
-                        vkDeviceSize_offset_position
-                    );
-
-                    //! Vulkan Drawing Function
-                    vkCmdDraw(vkCommandBuffer_array[i], 1024 * 1024, 1, 0, 0);
-                }
-            }
-
+            //! Vulkan Drawing Function
+            vkCmdDrawIndirect(vkCommandBuffer_array[i], vertexData_indirect_buffer.vkBuffer, 0, 1, sizeof(VkDrawIndirectCommand));
             
         }
         //* Step - 7
@@ -5089,169 +4544,6 @@ VkResult buildCommandBuffers(void)
 
     return vkResult;
 }
-
-VkResult prepareSineWaveForCPU(uint32_t meshWidth, uint32_t meshHeight, float animationTime)
-{
-    // Function Declarations
-    void populateSineWaveArraysForCPU(uint32_t, uint32_t, float);
-
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-    void *data = NULL;
-
-    VkDeviceSize bufferSize = meshWidth * meshHeight * 4 * sizeof(float);
-
-    // Code
-
-    // Map the buffer
-    if (meshWidth == 64 && meshHeight == 64)
-    {
-        populateSineWaveArraysForCPU(64, 64, animationTime);
-
-        vkResult = vkMapMemory(vkDevice, vertexData_position_64x64_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
-        if (vkResult != VK_SUCCESS)
-            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_64x64_graphics : %d\n", __func__, vkResult);
-
-        memcpy(data, position_64_graphics, bufferSize);
-
-        vkUnmapMemory(vkDevice, vertexData_position_64x64_graphics.vkDeviceMemory);
-    }
-
-    else if (meshWidth == 128 && meshHeight == 128)
-    {
-        populateSineWaveArraysForCPU(128, 128, animationTime);
-
-        vkResult = vkMapMemory(vkDevice, vertexData_position_128x128_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
-        if (vkResult != VK_SUCCESS)
-            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_128x128_graphics : %d\n", __func__, vkResult);
-
-        memcpy(data, position_128_graphics, bufferSize);
-
-        vkUnmapMemory(vkDevice, vertexData_position_128x128_graphics.vkDeviceMemory);
-    }
-
-    else if (meshWidth == 256 && meshHeight == 256)
-    {
-        populateSineWaveArraysForCPU(256, 256, animationTime);
-
-        vkResult = vkMapMemory(vkDevice, vertexData_position_256x256_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
-        if (vkResult != VK_SUCCESS)
-            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_256x256_graphics : %d\n", __func__, vkResult);
-
-        memcpy(data, position_256_graphics, bufferSize);
-
-        vkUnmapMemory(vkDevice, vertexData_position_256x256_graphics.vkDeviceMemory);
-    }
-
-    else if (meshWidth == 512 && meshHeight == 512)
-    {
-        populateSineWaveArraysForCPU(512, 512, animationTime);
-
-        vkResult = vkMapMemory(vkDevice, vertexData_position_512x512_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
-        if (vkResult != VK_SUCCESS)
-            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_512x512_graphics : %d\n", __func__, vkResult);
-
-        memcpy(data, position_512_graphics, bufferSize);
-
-        vkUnmapMemory(vkDevice, vertexData_position_512x512_graphics.vkDeviceMemory);
-    }
-
-    else if (meshWidth == 1024 && meshHeight == 1024)
-    {
-        populateSineWaveArraysForCPU(1024, 1024, animationTime);
-
-        vkResult = vkMapMemory(vkDevice, vertexData_position_1024x1024_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
-        if (vkResult != VK_SUCCESS)
-            fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position_1024x1024_graphics : %d\n", __func__, vkResult);
-
-        memcpy(data, position_1024_graphics, bufferSize);
-
-        vkUnmapMemory(vkDevice, vertexData_position_1024x1024_graphics.vkDeviceMemory);
-    }
-
-    return vkResult;
-  
-}
-
-void populateSineWaveArraysForCPU(uint32_t meshWidth, uint32_t meshHeight, float animationTime)
-{
-    for (unsigned int i = 0; i < meshWidth; i++)
-    {
-        for (unsigned int j = 0; j < meshHeight; j++)
-        {
-            for (unsigned int k = 0; k < 4; k++)
-            {
-                float u = (float)i / (float)meshWidth;
-                float v = (float)j / (float)meshHeight;
-
-                u = u * 2.0f - 1.0f;
-                v = v * 2.0f - 1.0f;
-
-                float frequency = 4.0f;
-
-                float w = sinf(u * frequency + animationTime) * cosf(v * frequency + animationTime) * 0.5f;
-                
-                if (meshWidth == 64 && meshHeight == 64)
-                {
-                    if (k == 0)
-                        position_64_graphics[i][j][k] = u;
-                    if (k == 1)
-                        position_64_graphics[i][j][k] = w;
-                    if (k == 2)
-                        position_64_graphics[i][j][k] = v;
-                    if (k == 3)
-                        position_64_graphics[i][j][k] = 1.0f;
-                }
-                else if (meshWidth == 128 && meshHeight == 128)
-                {
-                    if (k == 0)
-                        position_128_graphics[i][j][k] = u;
-                    if (k == 1)
-                        position_128_graphics[i][j][k] = w;
-                    if (k == 2)
-                        position_128_graphics[i][j][k] = v;
-                    if (k == 3)
-                        position_128_graphics[i][j][k] = 1.0f;
-                }
-                else if (meshWidth == 256 && meshHeight == 256)
-                {
-                    if (k == 0)
-                        position_256_graphics[i][j][k] = u;
-                    if (k == 1)
-                        position_256_graphics[i][j][k] = w;
-                    if (k == 2)
-                        position_256_graphics[i][j][k] = v;
-                    if (k == 3)
-                        position_256_graphics[i][j][k] = 1.0f;
-                }
-                else if (meshWidth == 512 && meshHeight == 512)
-                {
-                    if (k == 0)
-                        position_512_graphics[i][j][k] = u;
-                    if (k == 1)
-                        position_512_graphics[i][j][k] = w;
-                    if (k == 2)
-                        position_512_graphics[i][j][k] = v;
-                    if (k == 3)
-                        position_512_graphics[i][j][k] = 1.0f;
-                }
-                else if (meshWidth == 1024 && meshHeight == 1024)
-                {
-                    if (k == 0)
-                        position_1024_graphics[i][j][k] = u;
-                    if (k == 1)
-                        position_1024_graphics[i][j][k] = w;
-                    if (k == 2)
-                        position_1024_graphics[i][j][k] = v;
-                    if (k == 3)
-                        position_1024_graphics[i][j][k] = 1.0f;
-                }
-               
-            }
-        }
-    }
-}
-
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     VkDebugReportFlagsEXT vkDebugReportFlagsEXT,
