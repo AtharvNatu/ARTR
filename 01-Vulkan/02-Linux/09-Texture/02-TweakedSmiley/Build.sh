@@ -12,7 +12,6 @@ GLM_INCLUDE_PATH="/home/atharv/Desktop/Workspace/ARTR/01-Vulkan/02-Linux/Externa
 
 SOURCE_PATH=Source
 INCLUDE_PATH=Include
-IMAGES_PATH=Assets\Images
 
 BIN_DIR=Bin
 SPV=1
@@ -30,6 +29,7 @@ g++ -c \
     -o Vk.o \
     -I"$VULKAN_INCLUDE_PATH" \
     -I"$GLM_INCLUDE_PATH" \
+    -I"$INCLUDE_PATH" \
     "$SOURCE_PATH/Vk.cpp"
 
 if [ $? -ne 0 ]; then
@@ -61,7 +61,7 @@ echo "--------------------------------------------------------------------------
 echo "Linking Object Files and Creating Binary ..."
 echo "--------------------------------------------------------------------------------"
 
-g++ "$BIN_DIR"/Vk.o -o Vk \
+g++ "$BIN_DIR"/Vk.o -o "$BIN_DIR"/Vk \
     -lX11 \
     -lm \
     -L"$VULKAN_LIB_PATH" \
@@ -76,6 +76,7 @@ echo
 echo "--------------------------------------------------------------------------------"
 echo "Launching Application ..."
 echo "--------------------------------------------------------------------------------"
+cd "$BIN_DIR"
 ./Vk
 
 

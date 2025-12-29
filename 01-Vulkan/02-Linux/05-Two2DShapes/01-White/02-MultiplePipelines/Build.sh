@@ -12,7 +12,6 @@ GLM_INCLUDE_PATH="/home/atharv/Desktop/Workspace/ARTR/01-Vulkan/02-Linux/Externa
 
 SOURCE_PATH=Source
 INCLUDE_PATH=Include
-IMAGES_PATH=Assets\Images
 
 BIN_DIR=Bin
 SPV=1
@@ -30,6 +29,7 @@ g++ -c \
     -o Vk.o \
     -I"$VULKAN_INCLUDE_PATH" \
     -I"$GLM_INCLUDE_PATH" \
+    -I"$INCLUDE_PATH" \
     "$SOURCE_PATH/Vk.cpp"
 
 if [ $? -ne 0 ]; then

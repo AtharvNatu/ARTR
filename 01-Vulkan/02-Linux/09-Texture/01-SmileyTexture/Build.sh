@@ -12,7 +12,6 @@ GLM_INCLUDE_PATH="/home/atharv/Desktop/Workspace/ARTR/01-Vulkan/02-Linux/Externa
 
 SOURCE_PATH=Source
 INCLUDE_PATH=Include
-IMAGES_PATH="Assets\Images"
 
 BIN_DIR=Bin
 SPV=1
