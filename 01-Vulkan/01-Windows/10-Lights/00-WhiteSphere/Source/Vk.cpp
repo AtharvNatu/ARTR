@@ -3239,7 +3239,7 @@ VkResult createShaders(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "Bin/Shader.vert.spv";
+    const char* szFileName = "Shader.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -3316,7 +3316,7 @@ VkResult createShaders(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin/Shader.frag.spv";
+    szFileName = "Shader.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");

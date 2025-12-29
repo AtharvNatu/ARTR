@@ -574,7 +574,7 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
 
     //! Create Texture For Pyramid
-    vkResult = createTexture("Assets/Images/Stone.png", &vkImage_texture_pyramid, &vkDeviceMemory_texture_pyramid, &vkImageView_texture_pyramid, &vkSampler_texture_pyramid);
+    vkResult = createTexture("../Assets/Images/Stone.png", &vkImage_texture_pyramid, &vkDeviceMemory_texture_pyramid, &vkImageView_texture_pyramid, &vkSampler_texture_pyramid);
     if (vkResult != VK_SUCCESS)
     {
         fprintf(gpFile, "%s() => createTexture() Failed For Stone.png : %d !!!\n", __func__, vkResult);
@@ -584,7 +584,7 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createTexture() Succeeded For Stone.png\n", __func__);
 
     //! Create Texture For Cube
-    vkResult = createTexture("Assets/Images/Vijay_Kundali.png", &vkImage_texture_cube, &vkDeviceMemory_texture_cube, &vkImageView_texture_cube, &vkSampler_texture_cube);
+    vkResult = createTexture("../Assets/Images/Vijay_Kundali.png", &vkImage_texture_cube, &vkDeviceMemory_texture_cube, &vkImageView_texture_cube, &vkSampler_texture_cube);
     if (vkResult != VK_SUCCESS)
     {
         fprintf(gpFile, "%s() => createTexture() Failed For Vijay_Kundali.png : %d !!!\n", __func__, vkResult);
@@ -4731,7 +4731,7 @@ VkResult createShaders(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "Bin/Shader.vert.spv";
+    const char* szFileName = "Shader.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -4808,7 +4808,7 @@ VkResult createShaders(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin/Shader.frag.spv";
+    szFileName = "Shader.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");

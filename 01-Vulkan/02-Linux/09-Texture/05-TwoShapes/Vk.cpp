@@ -2798,8 +2798,8 @@ VkResult createImagesAndImageViews(void)
     vkImageCreateInfo.flags = 0;
     vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     vkImageCreateInfo.format = vkFormat_depth;
-    vkImageCreateInfo.extent.width = winWidth;
-    vkImageCreateInfo.extent.height = winHeight;
+    vkImageCreateInfo.extent.width = vkExtent2D_swapchain.width;
+    vkImageCreateInfo.extent.height = vkExtent2D_swapchain.height;
     vkImageCreateInfo.extent.depth = 1;
     vkImageCreateInfo.mipLevels = 1;
     vkImageCreateInfo.arrayLayers = 1;
@@ -4848,7 +4848,7 @@ VkResult createShaders(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "Bin/Shader.vert.spv";
+    const char* szFileName = "Shader.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -4925,7 +4925,7 @@ VkResult createShaders(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin/Shader.frag.spv";
+    szFileName = "Shader.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");

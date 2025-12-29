@@ -1,1 +1,0 @@
-This directory contains shaders used in Multi-Colored Triangle

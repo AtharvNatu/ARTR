@@ -2785,8 +2785,8 @@ VkResult createImagesAndImageViews(void)
     vkImageCreateInfo.flags = 0;
     vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     vkImageCreateInfo.format = vkFormat_depth;
-    vkImageCreateInfo.extent.width = winWidth;
-    vkImageCreateInfo.extent.height = winHeight;
+    vkImageCreateInfo.extent.width = vkExtent2D_swapchain.width;
+    vkImageCreateInfo.extent.height = vkExtent2D_swapchain.height;
     vkImageCreateInfo.extent.depth = 1;
     vkImageCreateInfo.mipLevels = 1;
     vkImageCreateInfo.arrayLayers = 1;

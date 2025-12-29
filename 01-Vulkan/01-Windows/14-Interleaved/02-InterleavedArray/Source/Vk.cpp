@@ -573,7 +573,7 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
 
     //! Create Texture
-    vkResult = createTexture("Assets/Images/Marble.png");
+    vkResult = createTexture("../Assets/Images/Marble.png");
     if (vkResult != VK_SUCCESS)
     {
         fprintf(gpFile, "%s() => createTexture() Failed For Marble.png : %d !!!\n", __func__, vkResult);
@@ -4189,7 +4189,7 @@ VkResult createShaders(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "Bin/Shader.vert.spv";
+    const char* szFileName = "Shader.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -4266,7 +4266,7 @@ VkResult createShaders(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin/Shader.frag.spv";
+    szFileName = "Shader.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");
