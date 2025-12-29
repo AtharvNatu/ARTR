@@ -177,7 +177,7 @@ VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
 //* Cube Animation Related
-const float fAnimationSpeed = 0.02f;
+const float fAnimationSpeed = 0.5f;
 float fAngle = 0.0f;
 
 //! FBO Related Variable Declarations
@@ -3021,7 +3021,7 @@ VkResult createImagesAndImageViews(void)
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkCreateImage() Failed : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateImage() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateImage() Succeeded For Depth Image\n", __func__);
 
     //! Memory Requirements For Depth Image
     VkMemoryRequirements vkMemoryRequirements;
@@ -5092,9 +5092,9 @@ VkResult createImagesAndImageViews_fbo(void)
 
     vkResult = vkCreateImage(vkDevice, &vkImageCreateInfo, NULL, &vkImage_depth_fbo);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateImage() Failed For FBO Depth : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateImage() Failed For FBO Depth Image : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateImage() Succeeded For FBO Depth\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateImage() Succeeded For FBO Depth Image\n", __func__);
 
     //! Memory Requirements For FBO Depth Image
     VkMemoryRequirements vkMemoryRequirements;
@@ -7150,7 +7150,7 @@ VkResult createRenderPass_fbo(void)
     vkAttachmentDescription_array[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     vkAttachmentDescription_array[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     vkAttachmentDescription_array[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    vkAttachmentDescription_array[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vkAttachmentDescription_array[0].initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     vkAttachmentDescription_array[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     //! Depth Attachment
