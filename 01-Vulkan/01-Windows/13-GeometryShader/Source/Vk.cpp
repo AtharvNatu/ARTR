@@ -3013,7 +3013,7 @@ VkResult createShaders(void)
 
     //! Geometry Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin/Shader.geom.spv";
+    szFileName = "Shader.geom.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");

@@ -177,7 +177,7 @@ VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
 //* Cube Animation Related
-const float fAnimationSpeed = 0.5f;
+const float fAnimationSpeed = 0.02f;
 float fAngle = 0.0f;
 
 //! FBO Related Variable Declarations
@@ -814,7 +814,7 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createIndexBuffer_fbo() Succeeded\n", __func__);
 
     //! Create Texture
-    vkResult = createTexture_fbo("Assets\\Images\\Marble.png");
+    vkResult = createTexture_fbo("../Assets/Images/Marble.png");
     if (vkResult != VK_SUCCESS)
     {
         fprintf(gpFile, "%s() => createTexture() Failed For Marble.png : %d !!!\n", __func__, vkResult);
@@ -3616,7 +3616,7 @@ VkResult createShaders(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "Bin/Cube.vert.spv";
+    const char* szFileName = "Cube.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -3693,7 +3693,7 @@ VkResult createShaders(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin/Cube.frag.spv";
+    szFileName = "Cube.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");
@@ -3906,7 +3906,7 @@ VkResult createDescriptorSet(void)
     VkDescriptorImageInfo vkDescriptorImageInfo;
     memset((void*)&vkDescriptorImageInfo, 0, sizeof(VkDescriptorImageInfo));
     vkDescriptorImageInfo.imageView = vkImageView_fbo;
-    vkDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    vkDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     vkDescriptorImageInfo.sampler = vkSampler_fbo;
     
     VkWriteDescriptorSet vkWriteDescriptorSet_array[2];
@@ -6807,7 +6807,7 @@ VkResult createShaders_fbo(void)
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
-    const char* szFileName = "Bin/Teapot.vert.spv";
+    const char* szFileName = "Teapot.vert.spv";
     FILE *fp = NULL;
     size_t size;
 
@@ -6884,7 +6884,7 @@ VkResult createShaders_fbo(void)
 
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin/Teapot.frag.spv";
+    szFileName = "Teapot.frag.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");
@@ -7150,7 +7150,7 @@ VkResult createRenderPass_fbo(void)
     vkAttachmentDescription_array[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     vkAttachmentDescription_array[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     vkAttachmentDescription_array[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    vkAttachmentDescription_array[0].initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    vkAttachmentDescription_array[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     vkAttachmentDescription_array[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     //! Depth Attachment

@@ -1093,7 +1093,7 @@ void update(void)
     if (chosenAxis == 'x' || chosenAxis == 'y' || chosenAxis == 'z')
     {
         // Radians
-        lightAngle = lightAngle + 0.005f;
+        lightAngle = lightAngle + 0.0002f;
         if (lightAngle > (float)(M_PI * 2.0f))
             lightAngle = lightAngle - (float)(M_PI * 2.0f);
     }

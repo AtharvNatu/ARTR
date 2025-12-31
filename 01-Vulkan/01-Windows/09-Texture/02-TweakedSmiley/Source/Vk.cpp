@@ -591,7 +591,7 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => createUniformBuffer() Succeeded\n", __func__);
 
     //! Create Texture
-    vkResult = createTexture("Assets/Images/Smiley.png");
+    vkResult = createTexture("../Assets/Images/Smiley.png");
     if (vkResult != VK_SUCCESS)
     {
         fprintf(gpFile, "%s() => createTexture() Failed For Smiley.png : %d !!!\n", __func__, vkResult);

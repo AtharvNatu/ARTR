@@ -12,7 +12,6 @@ set INCLUDE_PATH=Include
 set IMAGES_PATH=Assets\Images
 
 set BIN_DIR=Bin
-set SPV=0
 
 if not exist %BIN_DIR% mkdir %BIN_DIR%
 
@@ -58,24 +57,6 @@ if errorlevel 1 (
 )
 
 @echo:
-if %SPV%==1 (
-    echo ----------------------------------------------------------------------------------------------------------------
-    echo Compiling Shader Files To SPIR-V Binaries ...
-    echo ----------------------------------------------------------------------------------------------------------------
-    cd Shaders
-    %VULKAN_BIN_PATH%\glslangValidator.exe -V -H -o Shader.vert.spv Shader.vert
-    %VULKAN_BIN_PATH%\glslangValidator.exe -V -H -o Shader.frag.spv Shader.frag
-    move Shader.vert.spv ../%BIN_DIR%
-    move Shader.frag.spv ../%BIN_DIR%
-    cd ..
-    if errorlevel 1 (
-        @echo:
-        echo Shader Compilation Failed !!!
-        exit /b 1
-)
-)
-
-@echo:
 echo ----------------------------------------------------------------------------------------------------------------
 echo Linking Libraries and Resources...
 echo Creating Executable...
@@ -94,11 +75,10 @@ if errorlevel 1 (
         exit /b 1
 )
 
-move /Y %BIN_DIR%\Vk.exe . >nul 2>&1
-
-
 @echo:
 echo ----------------------------------------------------------------------------------------------------------------
 echo Launching Application ...
 echo ----------------------------------------------------------------------------------------------------------------
+cd %BIN_DIR%
 Vk.exe
+cd ..

@@ -3062,7 +3062,7 @@ VkResult createShaders(void)
 
     //! Tessellation Control Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin/Shader.tesc.spv";
+    szFileName = "Shader.tesc.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");
@@ -3137,7 +3137,7 @@ VkResult createShaders(void)
     
     //! Tessellation Evaluation Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
-    szFileName = "Bin/Shader.tese.spv";
+    szFileName = "Shader.tese.spv";
 
     fp = NULL;
     fp = fopen(szFileName, "rb");

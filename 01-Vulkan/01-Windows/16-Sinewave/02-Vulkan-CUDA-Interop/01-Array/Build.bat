@@ -65,7 +65,7 @@ echo Compiling %API% and Win32 Source Code ...
 echo Linking Libraries and Resources...
 echo Creating Executable...
 echo ----------------------------------------------------------------------------------------------------------------
-nvcc.exe -w -o Vk.exe ^
+nvcc.exe -w -o %BIN_DIR%/Vk.exe ^
         -I%INCLUDE_PATH% ^
         -I%VULKAN_INCLUDE_PATH% ^
         -I%VULKAN_INCLUDE_PATH%\glm ^
@@ -87,4 +87,7 @@ if errorlevel 1 (
 echo ----------------------------------------------------------------------------------------------------------------
 echo Launching Application ...
 echo ----------------------------------------------------------------------------------------------------------------
+cd %BIN_DIR%
 Vk.exe
+cd ..
+

@@ -5,30 +5,33 @@ set API=Vulkan
 
 set VULKAN_INCLUDE_PATH="C:\\VulkanSDK\\Vulkan\\Include"
 set VULKAN_LIB_PATH="C:\\VulkanSDK\Vulkan\\Lib"
+set VULKAN_BIN_PATH="C:\\VulkanSDK\\Vulkan\\Bin"
 
-set CUDA_INCLUDE_PATH="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\include"
-set CUDA_LIB_PATH="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\lib\\x64"
+set SOURCE_PATH=Source
+set INCLUDE_PATH=Include
+set IMAGES_PATH=Assets\Images
 
+set BIN_DIR=Bin
 set SPV=1
+
+if not exist %BIN_DIR% mkdir %BIN_DIR%
 
 cls
 
-if exist *.obj del *.obj
-if exist *.exe del *.exe
-if exist *.res del *.res
+if exist %BIN_DIR%\*.obj del /q %BIN_DIR%\*.obj >nul 2>&1
+if exist %BIN_DIR%\*.exe del /q %BIN_DIR%\*.res >nul 2>&1
+if exist %BIN_DIR%\*.res del /q %BIN_DIR%\*.exe >nul 2>&1
 
 echo ----------------------------------------------------------------------------------------------------------------
 echo Compiling %API% and Win32 Source Code ...
 echo ----------------------------------------------------------------------------------------------------------------
-nvcc.exe ^
-        -c ^
-        -w ^
-        -I%CUDA_INCLUDE_PATH% ^
-        -I%VULKAN_INCLUDE_PATH% ^
-        -I%VULKAN_INCLUDE_PATH%\glm ^
-        -Xcompiler="/EHsc" ^
-        -Wno-deprecated-gpu-targets ^
-        Vk.cu
+        
+cl.exe  /c ^
+        /EHsc ^
+        /I %VULKAN_INCLUDE_PATH% ^
+        /I %VULKAN_INCLUDE_PATH%\glm ^
+        /I %INCLUDE_PATH% ^
+        %SOURCE_PATH%\Vk.cpp
 
 if errorlevel 1 (
         @echo:
@@ -36,11 +39,17 @@ if errorlevel 1 (
         exit /b 1
 )
 
+move *.obj %BIN_DIR% >nul 2>&1
+
 @echo:
 echo ----------------------------------------------------------------------------------------------------------------
 echo Compiling Resource Files ...
 echo ----------------------------------------------------------------------------------------------------------------
-rc.exe Vk.rc
+rc.exe ^
+        /I %INCLUDE_PATH% ^
+        /I %IMAGES_PATH%^
+        /fo %BIN_DIR%\Vk.res ^
+        Assets\Vk.rc
 
 if errorlevel 1 (
         @echo:
@@ -49,21 +58,21 @@ if errorlevel 1 (
 )
 
 @echo:
-if %SPV% == 1 (
+if %SPV%==1 (
     echo ----------------------------------------------------------------------------------------------------------------
     echo Compiling Shader Files To SPIR-V Binaries ...
     echo ----------------------------------------------------------------------------------------------------------------
     cd Shaders
-    C:\VulkanSDK\Vulkan\Bin\glslangValidator.exe -V -H -o Shader.vert.spv Shader.vert
-    C:\VulkanSDK\Vulkan\Bin\glslangValidator.exe -V -H -o Shader.frag.spv Shader.frag
-    move Shader.vert.spv ../
-    move Shader.frag.spv ../
+    %VULKAN_BIN_PATH%\glslangValidator.exe -V -H -o Shader.vert.spv Shader.vert
+    %VULKAN_BIN_PATH%\glslangValidator.exe -V -H -o Shader.frag.spv Shader.frag
+    move Shader.vert.spv ../%BIN_DIR%
+    move Shader.frag.spv ../%BIN_DIR%
     cd ..
     if errorlevel 1 (
         @echo:
         echo Shader Compilation Failed !!!
         exit /b 1
-    )
+)
 )
 
 @echo:
@@ -72,11 +81,11 @@ echo Linking Libraries and Resources...
 echo Creating Executable...
 echo ----------------------------------------------------------------------------------------------------------------
 link.exe ^
-        Vk.obj ^
-        Vk.res ^
+        /OUT:%BIN_DIR%\Vk.exe ^
+        %BIN_DIR%\*.obj ^
+        %BIN_DIR%\Vk.res ^
         /LIBPATH:%VULKAN_LIB_PATH% ^
-        /LIBPATH:%CUDA_LIB_PATH% ^
-        user32.lib gdi32.lib cudart.lib ^
+        user32.lib gdi32.lib^
         /SUBSYSTEM:WINDOWS
 
 if errorlevel 1 (
@@ -89,6 +98,6 @@ if errorlevel 1 (
 echo ----------------------------------------------------------------------------------------------------------------
 echo Launching Application ...
 echo ----------------------------------------------------------------------------------------------------------------
+cd %BIN_DIR%
 Vk.exe
-
-
+cd ..

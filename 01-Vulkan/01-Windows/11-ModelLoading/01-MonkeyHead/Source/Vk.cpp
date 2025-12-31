@@ -177,7 +177,7 @@ VkPipeline vkPipeline_lineMode = VK_NULL_HANDLE;
 VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures;
 
 float fAngle = 0.0f;
-const float fAnimationSpeed = 0.0003f;
+const float fAnimationSpeed = 0.003f;
 BOOL bPolygonLineMode = TRUE;
 
 // Entry Point Function

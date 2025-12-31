@@ -9,6 +9,7 @@ set VULKAN_BIN_PATH="C:\\VulkanSDK\\Vulkan\\Bin"
 
 set SOURCE_PATH=Source
 set INCLUDE_PATH=Include
+set LIB_PATH=Assets\Lib
 set IMAGES_PATH=Assets\Images
 
 set BIN_DIR=Bin
@@ -85,6 +86,7 @@ link.exe ^
         %BIN_DIR%\*.obj ^
         %BIN_DIR%\Vk.res ^
         /LIBPATH:%VULKAN_LIB_PATH% ^
+        /LIBPATH:%LIB_PATH% ^
         user32.lib gdi32.lib^
         /SUBSYSTEM:WINDOWS
 
@@ -94,11 +96,10 @@ if errorlevel 1 (
         exit /b 1
 )
 
-move /Y %BIN_DIR%\Vk.exe . >nul 2>&1
-
-
 @echo:
 echo ----------------------------------------------------------------------------------------------------------------
 echo Launching Application ...
 echo ----------------------------------------------------------------------------------------------------------------
+cd %BIN_DIR%
 Vk.exe
+cd ..

@@ -103,7 +103,7 @@ int loadMesh(void)
     int numPositionCords = 0, numTexcoords = 0, numNormalCords = 0, numFaces = 0;
 
     // Code
-    gpMeshFile = fopen("Assets/Models/Monkey-Head.obj.model", "r");
+    gpMeshFile = fopen("../Assets/Models/Monkey-Head.obj.model", "r");
     if (gpMeshFile == NULL)
         return FAILURE;
 

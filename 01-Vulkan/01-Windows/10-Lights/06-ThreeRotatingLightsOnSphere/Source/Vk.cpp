@@ -201,7 +201,7 @@ VkPipeline vkPipeline = VK_NULL_HANDLE;
 
 BOOL bLight = FALSE;
 
-const float fAnimationSpeed = 0.6f;
+const float fAnimationSpeed = 0.02f;
 
 float lightAngleZero = 0.0f;
 float lightAngleOne = 0.0f;
