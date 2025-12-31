@@ -7,12 +7,12 @@
 namespace glm{
 namespace detail
 {
-	template<length_t L, typename T, typename floatType, qualifier Q, bool isInteger, bool signedType>
+	template<length_t L, typename T, typename floatType, qualifier Q, Bool isInteger, Bool signedType>
 	struct compute_compNormalize
 	{};
 
 	template<length_t L, typename T, typename floatType, qualifier Q>
-	struct compute_compNormalize<L, T, floatType, Q, true, true>
+	struct compute_compNormalize<L, T, floatType, Q, True, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, floatType, Q> call(vec<L, T, Q> const& v)
 		{
@@ -23,7 +23,7 @@ namespace detail
 	};
 
 	template<length_t L, typename T, typename floatType, qualifier Q>
-	struct compute_compNormalize<L, T, floatType, Q, true, false>
+	struct compute_compNormalize<L, T, floatType, Q, True, False>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, floatType, Q> call(vec<L, T, Q> const& v)
 		{
@@ -32,7 +32,7 @@ namespace detail
 	};
 
 	template<length_t L, typename T, typename floatType, qualifier Q>
-	struct compute_compNormalize<L, T, floatType, Q, false, true>
+	struct compute_compNormalize<L, T, floatType, Q, False, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, floatType, Q> call(vec<L, T, Q> const& v)
 		{
@@ -40,12 +40,12 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, typename floatType, qualifier Q, bool isInteger, bool signedType>
+	template<length_t L, typename T, typename floatType, qualifier Q, Bool isInteger, Bool signedType>
 	struct compute_compScale
 	{};
 
 	template<length_t L, typename T, typename floatType, qualifier Q>
-	struct compute_compScale<L, T, floatType, Q, true, true>
+	struct compute_compScale<L, T, floatType, Q, True, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, floatType, Q> const& v)
 		{
@@ -57,7 +57,7 @@ namespace detail
 	};
 
 	template<length_t L, typename T, typename floatType, qualifier Q>
-	struct compute_compScale<L, T, floatType, Q, true, false>
+	struct compute_compScale<L, T, floatType, Q, True, False>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, floatType, Q> const& v)
 		{
@@ -66,7 +66,7 @@ namespace detail
 	};
 
 	template<length_t L, typename T, typename floatType, qualifier Q>
-	struct compute_compScale<L, T, floatType, Q, false, true>
+	struct compute_compScale<L, T, floatType, Q, False, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, floatType, Q> const& v)
 		{

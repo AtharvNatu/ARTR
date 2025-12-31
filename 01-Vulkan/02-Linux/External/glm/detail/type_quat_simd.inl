@@ -7,7 +7,7 @@ namespace detail
 {
 /*
 	template<qualifier Q>
-	struct compute_quat_mul<float, Q, true>
+	struct compute_quat_mul<float, Q, True>
 	{
 		static qua<float, Q> call(qua<float, Q> const& q1, qua<float, Q> const& q2)
 		{
@@ -61,7 +61,7 @@ namespace detail
 */
 
 	template<qualifier Q>
-	struct compute_quat_add<float, Q, true>
+	struct compute_quat_add<float, Q, True>
 	{
 		static qua<float, Q> call(qua<float, Q> const& q, qua<float, Q> const& p)
 		{
@@ -73,7 +73,7 @@ namespace detail
 
 #	if GLM_ARCH & GLM_ARCH_AVX_BIT
 	template<qualifier Q>
-	struct compute_quat_add<double, Q, true>
+	struct compute_quat_add<double, Q, True>
 	{
 		static qua<double, Q> call(qua<double, Q> const& a, qua<double, Q> const& b)
 		{
@@ -85,7 +85,7 @@ namespace detail
 #	endif
 
 	template<qualifier Q>
-	struct compute_quat_sub<float, Q, true>
+	struct compute_quat_sub<float, Q, True>
 	{
 		static qua<float, Q> call(qua<float, Q> const& q, qua<float, Q> const& p)
 		{
@@ -97,7 +97,7 @@ namespace detail
 
 #	if GLM_ARCH & GLM_ARCH_AVX_BIT
 	template<qualifier Q>
-	struct compute_quat_sub<double, Q, true>
+	struct compute_quat_sub<double, Q, True>
 	{
 		static qua<double, Q> call(qua<double, Q> const& a, qua<double, Q> const& b)
 		{
@@ -109,7 +109,7 @@ namespace detail
 #	endif
 
 	template<qualifier Q>
-	struct compute_quat_mul_scalar<float, Q, true>
+	struct compute_quat_mul_scalar<float, Q, True>
 	{
 		static qua<float, Q> call(qua<float, Q> const& q, float s)
 		{
@@ -121,7 +121,7 @@ namespace detail
 
 #	if GLM_ARCH & GLM_ARCH_AVX_BIT
 	template<qualifier Q>
-	struct compute_quat_mul_scalar<double, Q, true>
+	struct compute_quat_mul_scalar<double, Q, True>
 	{
 		static qua<double, Q> call(qua<double, Q> const& q, double s)
 		{
@@ -133,7 +133,7 @@ namespace detail
 #	endif
 
 	template<qualifier Q>
-	struct compute_quat_div_scalar<float, Q, true>
+	struct compute_quat_div_scalar<float, Q, True>
 	{
 		static qua<float, Q> call(qua<float, Q> const& q, float s)
 		{
@@ -145,7 +145,7 @@ namespace detail
 
 #	if GLM_ARCH & GLM_ARCH_AVX_BIT
 	template<qualifier Q>
-	struct compute_quat_div_scalar<double, Q, true>
+	struct compute_quat_div_scalar<double, Q, True>
 	{
 		static qua<double, Q> call(qua<double, Q> const& q, double s)
 		{
@@ -157,7 +157,7 @@ namespace detail
 #	endif
 
 	template<qualifier Q>
-	struct compute_quat_mul_vec4<float, Q, true>
+	struct compute_quat_mul_vec4<float, Q, True>
 	{
 		static vec<4, float, Q> call(qua<float, Q> const& q, vec<4, float, Q> const& v)
 		{

@@ -78,14 +78,14 @@ namespace glm
 	/// 1 component vector aligned in memory of unsigned integer numbers.
 	typedef vec<1, uint, aligned_lowp>		aligned_lowp_uvec1;
 
-	/// 1 component vector aligned in memory of bool values.
-	typedef vec<1, bool, aligned_highp>		aligned_highp_bvec1;
+	/// 1 component vector aligned in memory of Bool values.
+	typedef vec<1, Bool, aligned_highp>		aligned_highp_bvec1;
 
-	/// 1 component vector aligned in memory of bool values.
-	typedef vec<1, bool, aligned_mediump>	aligned_mediump_bvec1;
+	/// 1 component vector aligned in memory of Bool values.
+	typedef vec<1, Bool, aligned_mediump>	aligned_mediump_bvec1;
 
-	/// 1 component vector aligned in memory of bool values.
-	typedef vec<1, bool, aligned_lowp>		aligned_lowp_bvec1;
+	/// 1 component vector aligned in memory of Bool values.
+	typedef vec<1, Bool, aligned_lowp>		aligned_lowp_bvec1;
 
 	/// 1 component vector tightly packed in memory of single-precision floating-point numbers using high precision arithmetic in term of ULPs.
 	typedef vec<1, float, packed_highp>		packed_highp_vec1;
@@ -123,14 +123,14 @@ namespace glm
 	/// 1 component vector tightly packed in memory of unsigned integer numbers.
 	typedef vec<1, uint, packed_lowp>		packed_lowp_uvec1;
 
-	/// 1 component vector tightly packed in memory of bool values.
-	typedef vec<1, bool, packed_highp>		packed_highp_bvec1;
+	/// 1 component vector tightly packed in memory of Bool values.
+	typedef vec<1, Bool, packed_highp>		packed_highp_bvec1;
 
-	/// 1 component vector tightly packed in memory of bool values.
-	typedef vec<1, bool, packed_mediump>	packed_mediump_bvec1;
+	/// 1 component vector tightly packed in memory of Bool values.
+	typedef vec<1, Bool, packed_mediump>	packed_mediump_bvec1;
 
-	/// 1 component vector tightly packed in memory of bool values.
-	typedef vec<1, bool, packed_lowp>		packed_lowp_bvec1;
+	/// 1 component vector tightly packed in memory of Bool values.
+	typedef vec<1, Bool, packed_lowp>		packed_lowp_bvec1;
 
 	// -- *vec2 --
 
@@ -170,14 +170,14 @@ namespace glm
 	/// 2 components vector aligned in memory of unsigned integer numbers.
 	typedef vec<2, uint, aligned_lowp>		aligned_lowp_uvec2;
 
-	/// 2 components vector aligned in memory of bool values.
-	typedef vec<2, bool, aligned_highp>		aligned_highp_bvec2;
+	/// 2 components vector aligned in memory of Bool values.
+	typedef vec<2, Bool, aligned_highp>		aligned_highp_bvec2;
 
-	/// 2 components vector aligned in memory of bool values.
-	typedef vec<2, bool, aligned_mediump>	aligned_mediump_bvec2;
+	/// 2 components vector aligned in memory of Bool values.
+	typedef vec<2, Bool, aligned_mediump>	aligned_mediump_bvec2;
 
-	/// 2 components vector aligned in memory of bool values.
-	typedef vec<2, bool, aligned_lowp>		aligned_lowp_bvec2;
+	/// 2 components vector aligned in memory of Bool values.
+	typedef vec<2, Bool, aligned_lowp>		aligned_lowp_bvec2;
 
 	/// 2 components vector tightly packed in memory of single-precision floating-point numbers using high precision arithmetic in term of ULPs.
 	typedef vec<2, float, packed_highp>		packed_highp_vec2;
@@ -215,14 +215,14 @@ namespace glm
 	/// 2 components vector tightly packed in memory of unsigned integer numbers.
 	typedef vec<2, uint, packed_lowp>		packed_lowp_uvec2;
 
-	/// 2 components vector tightly packed in memory of bool values.
-	typedef vec<2, bool, packed_highp>		packed_highp_bvec2;
+	/// 2 components vector tightly packed in memory of Bool values.
+	typedef vec<2, Bool, packed_highp>		packed_highp_bvec2;
 
-	/// 2 components vector tightly packed in memory of bool values.
-	typedef vec<2, bool, packed_mediump>	packed_mediump_bvec2;
+	/// 2 components vector tightly packed in memory of Bool values.
+	typedef vec<2, Bool, packed_mediump>	packed_mediump_bvec2;
 
-	/// 2 components vector tightly packed in memory of bool values.
-	typedef vec<2, bool, packed_lowp>		packed_lowp_bvec2;
+	/// 2 components vector tightly packed in memory of Bool values.
+	typedef vec<2, Bool, packed_lowp>		packed_lowp_bvec2;
 
 	// -- *vec3 --
 
@@ -262,14 +262,14 @@ namespace glm
 	/// 3 components vector aligned in memory of unsigned integer numbers.
 	typedef vec<3, uint, aligned_lowp>		aligned_lowp_uvec3;
 
-	/// 3 components vector aligned in memory of bool values.
-	typedef vec<3, bool, aligned_highp>		aligned_highp_bvec3;
+	/// 3 components vector aligned in memory of Bool values.
+	typedef vec<3, Bool, aligned_highp>		aligned_highp_bvec3;
 
-	/// 3 components vector aligned in memory of bool values.
-	typedef vec<3, bool, aligned_mediump>	aligned_mediump_bvec3;
+	/// 3 components vector aligned in memory of Bool values.
+	typedef vec<3, Bool, aligned_mediump>	aligned_mediump_bvec3;
 
-	/// 3 components vector aligned in memory of bool values.
-	typedef vec<3, bool, aligned_lowp>		aligned_lowp_bvec3;
+	/// 3 components vector aligned in memory of Bool values.
+	typedef vec<3, Bool, aligned_lowp>		aligned_lowp_bvec3;
 
 	/// 3 components vector tightly packed in memory of single-precision floating-point numbers using high precision arithmetic in term of ULPs.
 	typedef vec<3, float, packed_highp>		packed_highp_vec3;
@@ -307,14 +307,14 @@ namespace glm
 	/// 3 components vector tightly packed in memory of unsigned integer numbers.
 	typedef vec<3, uint, packed_lowp>		packed_lowp_uvec3;
 
-	/// 3 components vector tightly packed in memory of bool values.
-	typedef vec<3, bool, packed_highp>		packed_highp_bvec3;
+	/// 3 components vector tightly packed in memory of Bool values.
+	typedef vec<3, Bool, packed_highp>		packed_highp_bvec3;
 
-	/// 3 components vector tightly packed in memory of bool values.
-	typedef vec<3, bool, packed_mediump>	packed_mediump_bvec3;
+	/// 3 components vector tightly packed in memory of Bool values.
+	typedef vec<3, Bool, packed_mediump>	packed_mediump_bvec3;
 
-	/// 3 components vector tightly packed in memory of bool values.
-	typedef vec<3, bool, packed_lowp>		packed_lowp_bvec3;
+	/// 3 components vector tightly packed in memory of Bool values.
+	typedef vec<3, Bool, packed_lowp>		packed_lowp_bvec3;
 
 	// -- *vec4 --
 
@@ -354,14 +354,14 @@ namespace glm
 	/// 4 components vector aligned in memory of unsigned integer numbers.
 	typedef vec<4, uint, aligned_lowp>		aligned_lowp_uvec4;
 
-	/// 4 components vector aligned in memory of bool values.
-	typedef vec<4, bool, aligned_highp>		aligned_highp_bvec4;
+	/// 4 components vector aligned in memory of Bool values.
+	typedef vec<4, Bool, aligned_highp>		aligned_highp_bvec4;
 
-	/// 4 components vector aligned in memory of bool values.
-	typedef vec<4, bool, aligned_mediump>	aligned_mediump_bvec4;
+	/// 4 components vector aligned in memory of Bool values.
+	typedef vec<4, Bool, aligned_mediump>	aligned_mediump_bvec4;
 
-	/// 4 components vector aligned in memory of bool values.
-	typedef vec<4, bool, aligned_lowp>		aligned_lowp_bvec4;
+	/// 4 components vector aligned in memory of Bool values.
+	typedef vec<4, Bool, aligned_lowp>		aligned_lowp_bvec4;
 
 	/// 4 components vector tightly packed in memory of single-precision floating-point numbers using high precision arithmetic in term of ULPs.
 	typedef vec<4, float, packed_highp>		packed_highp_vec4;
@@ -399,14 +399,14 @@ namespace glm
 	/// 4 components vector tightly packed in memory of unsigned integer numbers.
 	typedef vec<4, uint, packed_lowp>		packed_lowp_uvec4;
 
-	/// 4 components vector tightly packed in memory of bool values.
-	typedef vec<4, bool, packed_highp>		packed_highp_bvec4;
+	/// 4 components vector tightly packed in memory of Bool values.
+	typedef vec<4, Bool, packed_highp>		packed_highp_bvec4;
 
-	/// 4 components vector tightly packed in memory of bool values.
-	typedef vec<4, bool, packed_mediump>	packed_mediump_bvec4;
+	/// 4 components vector tightly packed in memory of Bool values.
+	typedef vec<4, Bool, packed_mediump>	packed_mediump_bvec4;
 
-	/// 4 components vector tightly packed in memory of bool values.
-	typedef vec<4, bool, packed_lowp>		packed_lowp_bvec4;
+	/// 4 components vector tightly packed in memory of Bool values.
+	typedef vec<4, Bool, packed_lowp>		packed_lowp_bvec4;
 
 	// -- *mat2 --
 
@@ -1349,28 +1349,28 @@ namespace glm
 	typedef aligned_mediump_bvec3		aligned_bvec3;
 	typedef aligned_mediump_bvec4		aligned_bvec4;
 #else //defined(GLM_PRECISION_HIGHP_BOOL)
-	/// 1 component vector aligned in memory of bool values.
+	/// 1 component vector aligned in memory of Bool values.
 	typedef aligned_highp_bvec1			aligned_bvec1;
 
-	/// 2 components vector aligned in memory of bool values.
+	/// 2 components vector aligned in memory of Bool values.
 	typedef aligned_highp_bvec2			aligned_bvec2;
 
-	/// 3 components vector aligned in memory of bool values.
+	/// 3 components vector aligned in memory of Bool values.
 	typedef aligned_highp_bvec3			aligned_bvec3;
 
-	/// 4 components vector aligned in memory of bool values.
+	/// 4 components vector aligned in memory of Bool values.
 	typedef aligned_highp_bvec4			aligned_bvec4;
 
-	/// 1 components vector tightly packed in memory of bool values.
+	/// 1 components vector tightly packed in memory of Bool values.
 	typedef packed_highp_bvec1			packed_bvec1;
 
-	/// 2 components vector tightly packed in memory of bool values.
+	/// 2 components vector tightly packed in memory of Bool values.
 	typedef packed_highp_bvec2			packed_bvec2;
 
-	/// 3 components vector tightly packed in memory of bool values.
+	/// 3 components vector tightly packed in memory of Bool values.
 	typedef packed_highp_bvec3			packed_bvec3;
 
-	/// 4 components vector tightly packed in memory of bool values.
+	/// 4 components vector tightly packed in memory of Bool values.
 	typedef packed_highp_bvec4			packed_bvec4;
 #endif//GLM_PRECISION
 

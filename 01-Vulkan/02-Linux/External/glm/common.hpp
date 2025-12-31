@@ -270,9 +270,9 @@ namespace glm
 	///
 	/// If genTypeU is a boolean scalar or vector:
 	/// Selects which vector each returned component comes
-	/// from. For a component of 'a' that is false, the
+	/// from. For a component of 'a' that is False, the
 	/// corresponding component of 'x' is returned. For a
-	/// component of 'a' that is true, the corresponding
+	/// component of 'a' that is True, the corresponding
 	/// component of 'y' is returned. Components of 'x' and 'y' that
 	/// are not selected are allowed to be invalid floating point
 	/// values and will have no effect on the results. Thus, this
@@ -294,7 +294,7 @@ namespace glm
 	/// #include <glm/glm.hpp>
 	/// ...
 	/// float a;
-	/// bool b;
+	/// Bool b;
 	/// glm::dvec3 e;
 	/// glm::dvec3 f;
 	/// glm::vec4 g;
@@ -366,9 +366,9 @@ namespace glm
 	template<length_t L, typename T, qualifier Q>
 	GLM_FUNC_DECL vec<L, T, Q> smoothstep(vec<L, T, Q> const& edge0, vec<L, T, Q> const& edge1, vec<L, T, Q> const& x);
 
-	/// Returns true if x holds a NaN (not a number)
+	/// Returns True if x holds a NaN (not a number)
 	/// representation in the underlying implementation's set of
-	/// floating point representations. Returns false otherwise,
+	/// floating point representations. Returns False otherwise,
 	/// including for implementations with no NaN
 	/// representations.
 	///
@@ -381,11 +381,11 @@ namespace glm
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/isnan.xml">GLSL isnan man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.3 Common Functions</a>
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_DECL vec<L, bool, Q> isnan(vec<L, T, Q> const& x);
+	GLM_FUNC_DECL vec<L, Bool, Q> isnan(vec<L, T, Q> const& x);
 
-	/// Returns true if x holds a positive infinity or negative
+	/// Returns True if x holds a positive infinity or negative
 	/// infinity representation in the underlying implementation's
-	/// set of floating point representations. Returns false
+	/// set of floating point representations. Returns False
 	/// otherwise, including for implementations with no infinity
 	/// representations.
 	///
@@ -396,7 +396,7 @@ namespace glm
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/isinf.xml">GLSL isinf man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.3 Common Functions</a>
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_DECL vec<L, bool, Q> isinf(vec<L, T, Q> const& x);
+	GLM_FUNC_DECL vec<L, Bool, Q> isinf(vec<L, T, Q> const& x);
 
 	/// Returns a signed integer value representing
 	/// the encoding of a floating-point value. The floating-point

@@ -34,7 +34,7 @@ namespace glm
 	/// Decomposes a model matrix to translations, rotation and scale components
 	/// @see gtx_matrix_decompose
 	template<typename T, qualifier Q>
-	GLM_FUNC_DISCARD_DECL bool decompose(
+	GLM_FUNC_DISCARD_DECL Bool decompose(
 		mat<4, 4, T, Q> const& modelMatrix,
 		vec<3, T, Q> & scale, qua<T, Q> & orientation, vec<3, T, Q> & translation, vec<3, T, Q> & skew, vec<4, T, Q> & perspective);
 

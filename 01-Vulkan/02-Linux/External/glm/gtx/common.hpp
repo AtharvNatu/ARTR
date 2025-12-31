@@ -29,7 +29,7 @@ namespace glm
 	/// @addtogroup gtx_common
 	/// @{
 
-	/// Returns true if x is a denormalized number
+	/// Returns True if x is a denormalized number
 	/// Numbers whose absolute value is too small to be represented in the normal format are represented in an alternate, denormalized format.
 	/// This format is less precise but can represent values closer to zero.
 	///
@@ -56,7 +56,7 @@ namespace glm
 	///
 	/// @see ext_vector_relational
 	template <length_t L, typename T, qualifier Q>
-	GLM_FUNC_DECL vec<L, bool, Q> openBounded(vec<L, T, Q> const& Value, vec<L, T, Q> const& Min, vec<L, T, Q> const& Max);
+	GLM_FUNC_DECL vec<L, Bool, Q> openBounded(vec<L, T, Q> const& Value, vec<L, T, Q> const& Min, vec<L, T, Q> const& Max);
 
 	/// Returns whether vector components values are within an interval. A closed interval includes its endpoints, and is denoted with square brackets.
 	///
@@ -66,7 +66,7 @@ namespace glm
 	///
 	/// @see ext_vector_relational
 	template <length_t L, typename T, qualifier Q>
-	GLM_FUNC_DECL vec<L, bool, Q> closeBounded(vec<L, T, Q> const& Value, vec<L, T, Q> const& Min, vec<L, T, Q> const& Max);
+	GLM_FUNC_DECL vec<L, Bool, Q> closeBounded(vec<L, T, Q> const& Value, vec<L, T, Q> const& Min, vec<L, T, Q> const& Max);
 
 	/// @}
 }//namespace glm

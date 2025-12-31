@@ -17,30 +17,30 @@ namespace detail
 		char    _buffer[1];
 	};
 
-	template<int N, typename T, qualifier Q, int E0, int E1, int E2, int E3, bool UseSimd>
+	template<int N, typename T, qualifier Q, int E0, int E1, int E2, int E3, Bool UseSimd>
 	struct _swizzle_base1 : public _swizzle_base0<T, N>
 	{
 	};
 
 	template<int N, typename T, qualifier Q, int E0, int E1, int E2, int E3>
-	struct _swizzle_base1<N, T, Q, E0, E1, E2, E3, false> : public _swizzle_base0<T, N>
+	struct _swizzle_base1<N, T, Q, E0, E1, E2, E3, False> : public _swizzle_base0<T, N>
 	{
 	};
 
 	template<typename T, qualifier Q, int E0, int E1>
-	struct _swizzle_base1<2, T, Q, E0,E1,-1,-2, false> : public _swizzle_base0<T, 2>
+	struct _swizzle_base1<2, T, Q, E0,E1,-1,-2, False> : public _swizzle_base0<T, 2>
 	{
 		GLM_FUNC_QUALIFIER vec<2, T, Q> operator ()()  const { return vec<2, T, Q>(this->elem(E0), this->elem(E1)); }
 	};
 
 	template<typename T, qualifier Q, int E0, int E1, int E2>
-	struct _swizzle_base1<3, T, Q, E0,E1,E2,3, false> : public _swizzle_base0<T, 3>
+	struct _swizzle_base1<3, T, Q, E0,E1,E2,3, False> : public _swizzle_base0<T, 3>
 	{
 		GLM_FUNC_QUALIFIER vec<3, T, Q> operator ()()  const { return vec<3, T, Q>(this->elem(E0), this->elem(E1), this->elem(E2)); }
 	};
 
 	template<typename T, qualifier Q, int E0, int E1, int E2, int E3>
-	struct _swizzle_base1<4, T, Q, E0,E1,E2,E3, false> : public _swizzle_base0<T, 4>
+	struct _swizzle_base1<4, T, Q, E0,E1,E2,E3, False> : public _swizzle_base0<T, 4>
 	{
 		GLM_FUNC_QUALIFIER vec<4, T, Q> operator ()()  const { return vec<4, T, Q>(this->elem(E0), this->elem(E1), this->elem(E2), this->elem(E3)); }
 	};

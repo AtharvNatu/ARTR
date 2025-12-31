@@ -9,7 +9,7 @@ namespace glm{
 namespace detail
 {
 	template<qualifier Q>
-	struct compute_length<4, float, Q, true>
+	struct compute_length<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static float call(vec<4, float, Q> const& v)
 		{
@@ -18,7 +18,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_distance<4, float, Q, true>
+	struct compute_distance<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static float call(vec<4, float, Q> const& p0, vec<4, float, Q> const& p1)
 		{
@@ -27,7 +27,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_dot<vec<4, float, Q>, float, true>
+	struct compute_dot<vec<4, float, Q>, float, True>
 	{
 		GLM_FUNC_QUALIFIER static float call(vec<4, float, Q> const& x, vec<4, float, Q> const& y)
 		{
@@ -36,7 +36,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_dot<vec<3, float, Q>, float, true>
+	struct compute_dot<vec<3, float, Q>, float, True>
 	{
 		GLM_FUNC_QUALIFIER static float call(vec<3, float, Q> const& a, vec<3, float, Q> const& b)
 		{
@@ -47,7 +47,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_cross<float, Q, true>
+	struct compute_cross<float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<3, float, Q> call(vec<3, float, Q> const& a, vec<3, float, Q> const& b)
 		{
@@ -69,7 +69,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_normalize<4, float, Q, true>
+	struct compute_normalize<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v)
 		{
@@ -80,7 +80,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_faceforward<4, float, Q, true>
+	struct compute_faceforward<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& N, vec<4, float, Q> const& I, vec<4, float, Q> const& Nref)
 		{
@@ -91,7 +91,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_reflect<4, float, Q, true>
+	struct compute_reflect<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& I, vec<4, float, Q> const& N)
 		{
@@ -102,7 +102,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_refract<4, float, Q, true>
+	struct compute_refract<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& I, vec<4, float, Q> const& N, float eta)
 		{
@@ -119,26 +119,26 @@ namespace glm{
 namespace detail
 {
 	template<qualifier Q>
-	struct compute_length<4, float, Q, true>
+	struct compute_length<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static float call(vec<4, float, Q> const& v)
 		{
-			return sqrt(compute_dot<vec<4, float, Q>, float, true>::call(v, v));
+			return sqrt(compute_dot<vec<4, float, Q>, float, True>::call(v, v));
 		}
 	};
 
 	template<qualifier Q>
-	struct compute_distance<4, float, Q, true>
+	struct compute_distance<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static float call(vec<4, float, Q> const& p0, vec<4, float, Q> const& p1)
 		{
-			return compute_length<4, float, Q, true>::call(p1 - p0);
+			return compute_length<4, float, Q, True>::call(p1 - p0);
 		}
 	};
 
 
 	template<qualifier Q>
-	struct compute_dot<vec<4, float, Q>, float, true>
+	struct compute_dot<vec<4, float, Q>, float, True>
 	{
 		GLM_FUNC_QUALIFIER static float call(vec<4, float, Q> const& x, vec<4, float, Q> const& y)
 		{
@@ -155,7 +155,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_normalize<4, float, Q, true>
+	struct compute_normalize<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v)
 		{

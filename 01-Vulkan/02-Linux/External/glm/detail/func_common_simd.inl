@@ -11,7 +11,7 @@ namespace glm{
 namespace detail
 {
 	template<qualifier Q>
-	struct compute_abs_vector<4, float, Q, true>
+	struct compute_abs_vector<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v)
 		{
@@ -22,7 +22,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_abs_vector<4, int, Q, true>
+	struct compute_abs_vector<4, int, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, int, Q> call(vec<4, int, Q> const& v)
 		{
@@ -33,7 +33,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_floor<4, float, Q, true>
+	struct compute_floor<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v)
 		{
@@ -44,7 +44,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_ceil<4, float, Q, true>
+	struct compute_ceil<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v)
 		{
@@ -55,7 +55,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_fract<4, float, Q, true>
+	struct compute_fract<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v)
 		{
@@ -66,7 +66,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_round<4, float, Q, true>
+	struct compute_round<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v)
 		{
@@ -77,7 +77,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_mod<4, float, Q, true>
+	struct compute_mod<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& x, vec<4, float, Q> const& y)
 		{
@@ -88,7 +88,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_min_vector<4, float, Q, true>
+	struct compute_min_vector<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v1, vec<4, float, Q> const& v2)
 		{
@@ -99,7 +99,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_min_vector<4, int, Q, true>
+	struct compute_min_vector<4, int, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, int, Q> call(vec<4, int, Q> const& v1, vec<4, int, Q> const& v2)
 		{
@@ -110,7 +110,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_min_vector<4, uint, Q, true>
+	struct compute_min_vector<4, uint, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, uint, Q> call(vec<4, uint, Q> const& v1, vec<4, uint, Q> const& v2)
 		{
@@ -121,7 +121,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_max_vector<4, float, Q, true>
+	struct compute_max_vector<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v1, vec<4, float, Q> const& v2)
 		{
@@ -132,7 +132,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_max_vector<4, int, Q, true>
+	struct compute_max_vector<4, int, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, int, Q> call(vec<4, int, Q> const& v1, vec<4, int, Q> const& v2)
 		{
@@ -143,7 +143,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_max_vector<4, uint, Q, true>
+	struct compute_max_vector<4, uint, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, uint, Q> call(vec<4, uint, Q> const& v1, vec<4, uint, Q> const& v2)
 		{
@@ -154,7 +154,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_clamp_vector<4, float, Q, true>
+	struct compute_clamp_vector<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& x, vec<4, float, Q> const& minVal, vec<4, float, Q> const& maxVal)
 		{
@@ -165,7 +165,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_clamp_vector<4, int, Q, true>
+	struct compute_clamp_vector<4, int, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, int, Q> call(vec<4, int, Q> const& x, vec<4, int, Q> const& minVal, vec<4, int, Q> const& maxVal)
 		{
@@ -176,7 +176,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_clamp_vector<4, uint, Q, true>
+	struct compute_clamp_vector<4, uint, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, uint, Q> call(vec<4, uint, Q> const& x, vec<4, uint, Q> const& minVal, vec<4, uint, Q> const& maxVal)
 		{
@@ -187,9 +187,9 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_mix_vector<4, float, bool, Q, true>
+	struct compute_mix_vector<4, float, Bool, Q, True>
 	{
-		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& x, vec<4, float, Q> const& y, vec<4, bool, Q> const& a)
+		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& x, vec<4, float, Q> const& y, vec<4, Bool, Q> const& a)
 		{
 			__m128i const Load = _mm_set_epi32(-static_cast<int>(a.w), -static_cast<int>(a.z), -static_cast<int>(a.y), -static_cast<int>(a.x));
 			__m128 const Mask = _mm_castsi128_ps(Load);
@@ -216,7 +216,7 @@ namespace detail
 	};
 */
 	template<qualifier Q>
-	struct compute_smoothstep_vector<4, float, Q, true>
+	struct compute_smoothstep_vector<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& edge0, vec<4, float, Q> const& edge1, vec<4, float, Q> const& x)
 		{
@@ -227,7 +227,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_fma<4, float, Q, true>
+	struct compute_fma<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& a, vec<4, float, Q> const& b, vec<4, float, Q> const& c)
 		{
@@ -238,7 +238,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_fma<3, float, Q, true>
+	struct compute_fma<3, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<3, float, Q> call(vec<3, float, Q> const& a, vec<3, float, Q> const& b, vec<3, float, Q> const& c)
 		{
@@ -250,7 +250,7 @@ namespace detail
 
 
 	template<qualifier Q>
-	struct compute_fma<4, double, Q, true>
+	struct compute_fma<4, double, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, double, Q> call(vec<4, double, Q> const& a, vec<4, double, Q> const& b, vec<4, double, Q> const& c)
 		{
@@ -269,7 +269,7 @@ namespace detail
 
 	// copy vec3 to vec4 and set w to 0
 	template<qualifier Q>
-	struct convert_vec3_to_vec4W0<float, Q, true>
+	struct convert_vec3_to_vec4W0<float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<3, float, Q> const& a)
 		{
@@ -287,7 +287,7 @@ namespace detail
 
 	// copy vec3 to vec4 and set w to 1
 	template<qualifier Q>
-	struct convert_vec3_to_vec4W1<float, Q, true>
+	struct convert_vec3_to_vec4W1<float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<3, float, Q> const& a)
 		{
@@ -305,7 +305,7 @@ namespace detail
 
 	// copy vec3 to vec4 and set w to vec3.z
 	template<qualifier Q>
-	struct convert_vec3_to_vec4WZ<float, Q, true>
+	struct convert_vec3_to_vec4WZ<float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<3, float, Q> const& a)
 		{
@@ -317,7 +317,7 @@ namespace detail
 
 	// copy vec3 to vec4 and set w to 0
 	template<qualifier Q>
-	struct convert_vec3_to_vec4W0<double, Q, true>
+	struct convert_vec3_to_vec4W0<double, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, double, Q> call(vec<3, double, Q> const& a)
 		{
@@ -336,7 +336,7 @@ namespace detail
 
 	// copy vec3 to vec4 and set w to vec3.z
 	template<qualifier Q>
-	struct convert_vec3_to_vec4WZ<double, Q, true>
+	struct convert_vec3_to_vec4WZ<double, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, double, Q> call(vec<3, double, Q> const& a)
 		{
@@ -355,7 +355,7 @@ namespace detail
 
 	// copy vec3 to vec4 and set w to 1
 	template<qualifier Q>
-	struct convert_vec3_to_vec4W1<double, Q, true>
+	struct convert_vec3_to_vec4W1<double, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, double, Q> call(vec<3, double, Q> const& a)
 		{
@@ -373,7 +373,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct convert_vec4_to_vec3<float, Q, true> {
+	struct convert_vec4_to_vec3<float, Q, True> {
 		GLM_FUNC_QUALIFIER static vec<3, float, Q> call(vec<4, float, Q> const& a)
 		{
 			vec<3, float, Q> v;
@@ -383,7 +383,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct convert_vec4_to_vec3<double, Q, true> {
+	struct convert_vec4_to_vec3<double, Q, True> {
 		GLM_FUNC_QUALIFIER static vec<3, double, Q> call(vec<4, double, Q> const& a)
 		{
 			vec<3, double, Q> v;
@@ -400,7 +400,7 @@ namespace detail
 
 	// set all coordinates to same value vec[c]
 	template<length_t L, qualifier Q>
-	struct convert_splat<L, float, Q, true> {
+	struct convert_splat<L, float, Q, True> {
 		template<int c>
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, float, Q> call(vec<L, float, Q> const& a)
 		{
@@ -418,14 +418,14 @@ namespace detail
 
 	// set all coordinates to same value vec[c]
 	template<length_t L, qualifier Q>
-	struct convert_splat<L, double, Q, true> {
+	struct convert_splat<L, double, Q, True> {
 
-		template<bool, int c>
+		template<Bool, int c>
 		struct detailSSE
 		{};
 
 		template<int c>
-		struct detailSSE<true, c>
+		struct detailSSE<True, c>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, double, Q> call(vec<L, double, Q> const& a)
 			{
@@ -438,7 +438,7 @@ namespace detail
 		};
 
 		template<int c>
-		struct detailSSE<false, c>
+		struct detailSSE<False, c>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, double, Q> call(vec<L, double, Q> const& a)
 			{
@@ -452,11 +452,11 @@ namespace detail
 		};
 
 #if GLM_ARCH & GLM_ARCH_AVX_BIT
-		template<bool, int c> //note: bool is useless but needed to compil on linux (gcc)
+		template<Bool, int c> //note: Bool is useless but needed to compil on linux (gcc)
 		struct detailAVX
 		{};
 
-		template<bool b>
+		template<Bool b>
 		struct detailAVX<b, 0>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, double, Q> call(vec<L, double, Q> const& a)
@@ -468,7 +468,7 @@ namespace detail
 			}
 		};
 
-		template<bool b>
+		template<Bool b>
 		struct detailAVX<b, 1>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, double, Q> call(vec<L, double, Q> const& a)
@@ -480,7 +480,7 @@ namespace detail
 			}
 		};
 
-		template<bool b>
+		template<Bool b>
 		struct detailAVX<b, 2>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, double, Q> call(vec<L, double, Q> const& a)
@@ -492,7 +492,7 @@ namespace detail
 			}
 		};
 
-		template<bool b>
+		template<Bool b>
 		struct detailAVX<b, 3>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, double, Q> call(vec<L, double, Q> const& a)
@@ -508,12 +508,12 @@ namespace detail
 		template<int c>
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, double, Q> call(vec<L, double, Q> const& a)
 		{
-			//return compute_splat<L, double, Q, false>::call<c>(a);
+			//return compute_splat<L, double, Q, False>::call<c>(a);
 			vec<L, double, Q> Result;
 #	if GLM_ARCH & GLM_ARCH_AVX2_BIT
 			Result.data = _mm256_permute4x64_pd(a.data, _MM_SHUFFLE(c, c, c, c));
 #	elif GLM_ARCH & GLM_ARCH_AVX_BIT
-			Result = detailAVX<true, c>::call(a);
+			Result = detailAVX<True, c>::call(a);
 #	else
 #if 1 //detail<(c <= 1), c>::call2(a) is equivalent to following code but without if constexpr usage
 			Result = detailSSE<(c <= 1), c>::call(a);
@@ -547,7 +547,7 @@ namespace detail
 namespace glm {
 namespace detail {
 	template<qualifier Q>
-	struct convert_vec3_to_vec4W0<float, Q, true>
+	struct convert_vec3_to_vec4W0<float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<3, float, Q> const& a)
 		{
@@ -559,7 +559,7 @@ namespace detail {
 	};
 
 	template<qualifier Q>
-	struct convert_vec4_to_vec3<float, Q, true> {
+	struct convert_vec4_to_vec3<float, Q, True> {
 		GLM_FUNC_QUALIFIER static vec<3, float, Q> call(vec<4, float, Q> const& a)
 		{
 			vec<3, float, Q> v;
@@ -570,7 +570,7 @@ namespace detail {
 
 /* compute_splat is never called?
 	template<length_t L, qualifier Q>
-	struct compute_splat<L, float, Q, true> {
+	struct compute_splat<L, float, Q, True> {
 		template<int c>
 		GLM_FUNC_QUALIFIER static vec<L, float, Q> call(vec<L, float, Q> const& a)
 		{

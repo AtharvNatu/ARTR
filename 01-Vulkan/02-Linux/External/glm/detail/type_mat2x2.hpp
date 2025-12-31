@@ -166,10 +166,10 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator==(mat<2, 2, T, Q> const& m1, mat<2, 2, T, Q> const& m2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator==(mat<2, 2, T, Q> const& m1, mat<2, 2, T, Q> const& m2);
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator!=(mat<2, 2, T, Q> const& m1, mat<2, 2, T, Q> const& m2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator!=(mat<2, 2, T, Q> const& m1, mat<2, 2, T, Q> const& m2);
 } //namespace glm
 
 #ifndef GLM_EXTERNAL_TEMPLATE

@@ -19,7 +19,7 @@ namespace io
 	template<typename CTy>
 	GLM_FUNC_QUALIFIER format_punct<CTy>::format_punct(size_t a)
 		: std::locale::facet(a)
-		, formatted(true)
+		, formatted(True)
 		, precision(3)
 		, width(1 + 4 + 1 + precision)
 		, separator(',')
@@ -111,14 +111,14 @@ namespace io
 	template<typename CTy, typename CTr>
 	GLM_FUNC_QUALIFIER std::basic_ios<CTy, CTr>& formatted(std::basic_ios<CTy, CTr>& ios)
 	{
-		const_cast<format_punct<CTy>&>(get_facet<format_punct<CTy> >(ios)).formatted = true;
+		const_cast<format_punct<CTy>&>(get_facet<format_punct<CTy> >(ios)).formatted = True;
 		return ios;
 	}
 
 	template<typename CTy, typename CTr>
 	GLM_FUNC_QUALIFIER std::basic_ios<CTy, CTr>& unformatted(std::basic_ios<CTy, CTr>& ios)
 	{
-		const_cast<format_punct<CTy>&>(get_facet<format_punct<CTy> >(ios)).formatted = false;
+		const_cast<format_punct<CTy>&>(get_facet<format_punct<CTy> >(ios)).formatted = False;
 		return ios;
 	}
 

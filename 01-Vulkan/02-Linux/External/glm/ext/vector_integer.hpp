@@ -28,7 +28,7 @@ namespace glm
 	/// @addtogroup ext_vector_integer
 	/// @{
 
-	/// Return true if the value is a power of two number.
+	/// Return True if the value is a power of two number.
 	///
 	/// @tparam L Integer between 1 and 4 included that qualify the dimension of the vector
 	/// @tparam T Signed or unsigned integer scalar types.
@@ -36,7 +36,7 @@ namespace glm
 	///
 	/// @see ext_vector_integer
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_DECL vec<L, bool, Q> isPowerOfTwo(vec<L, T, Q> const& v);
+	GLM_FUNC_DECL vec<L, Bool, Q> isPowerOfTwo(vec<L, T, Q> const& v);
 
 	/// Return the power of two number which value is just higher the input value,
 	/// round up to a power of two.
@@ -60,7 +60,7 @@ namespace glm
 	template<length_t L, typename T, qualifier Q>
 	GLM_FUNC_DECL vec<L, T, Q> prevPowerOfTwo(vec<L, T, Q> const& v);
 
-	/// Return true if the 'Value' is a multiple of 'Multiple'.
+	/// Return True if the 'Value' is a multiple of 'Multiple'.
 	///
 	/// @tparam L Integer between 1 and 4 included that qualify the dimension of the vector
 	/// @tparam T Signed or unsigned integer scalar types.
@@ -68,9 +68,9 @@ namespace glm
 	///
 	/// @see ext_vector_integer
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_DECL vec<L, bool, Q> isMultiple(vec<L, T, Q> const& v, T Multiple);
+	GLM_FUNC_DECL vec<L, Bool, Q> isMultiple(vec<L, T, Q> const& v, T Multiple);
 
-	/// Return true if the 'Value' is a multiple of 'Multiple'.
+	/// Return True if the 'Value' is a multiple of 'Multiple'.
 	///
 	/// @tparam L Integer between 1 and 4 included that qualify the dimension of the vector
 	/// @tparam T Signed or unsigned integer scalar types.
@@ -78,7 +78,7 @@ namespace glm
 	///
 	/// @see ext_vector_integer
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_DECL vec<L, bool, Q> isMultiple(vec<L, T, Q> const& v, vec<L, T, Q> const& Multiple);
+	GLM_FUNC_DECL vec<L, Bool, Q> isMultiple(vec<L, T, Q> const& v, vec<L, T, Q> const& Multiple);
 
 	/// Higher multiple number of Source.
 	///

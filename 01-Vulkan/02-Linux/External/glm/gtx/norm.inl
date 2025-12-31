@@ -5,7 +5,7 @@
 namespace glm{
 namespace detail
 {
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_length2
 	{
 		GLM_FUNC_QUALIFIER static T call(vec<L, T, Q> const& v)

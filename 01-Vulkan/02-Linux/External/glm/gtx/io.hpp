@@ -58,7 +58,7 @@ namespace glm
 
 			static std::locale::id id;
 
-			bool       formatted;
+			Bool       formatted;
 			unsigned   precision;
 			unsigned   width;
 			char_type  separator;

@@ -98,7 +98,7 @@ namespace glm
 namespace glm{
 namespace detail
 {
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_abs_vector
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -107,7 +107,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, typename U, qualifier Q, bool Aligned>
+	template<length_t L, typename T, typename U, qualifier Q, Bool Aligned>
 	struct compute_mix_vector
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, vec<L, T, Q> const& y, vec<L, U, Q> const& a)
@@ -118,10 +118,10 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
-	struct compute_mix_vector<L, T, bool, Q, Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
+	struct compute_mix_vector<L, T, Bool, Q, Aligned>
 	{
-		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, vec<L, T, Q> const& y, vec<L, bool, Q> const& a)
+		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, vec<L, T, Q> const& y, vec<L, Bool, Q> const& a)
 		{
 			vec<L, T, Q> Result(0);
 			for(length_t i = 0; i < x.length(); ++i)
@@ -130,7 +130,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, typename U, qualifier Q, bool Aligned>
+	template<length_t L, typename T, typename U, qualifier Q, Bool Aligned>
 	struct compute_mix_scalar
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, vec<L, T, Q> const& y, U const& a)
@@ -141,10 +141,10 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
-	struct compute_mix_scalar<L, T, bool, Q, Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
+	struct compute_mix_scalar<L, T, Bool, Q, Aligned>
 	{
-		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, vec<L, T, Q> const& y, bool const& a)
+		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, vec<L, T, Q> const& y, Bool const& a)
 		{
 			return a ? y : x;
 		}
@@ -162,15 +162,15 @@ namespace detail
 	};
 
 	template<typename T>
-	struct compute_mix<T, bool>
+	struct compute_mix<T, Bool>
 	{
-		GLM_FUNC_QUALIFIER static T call(T const& x, T const& y, bool const& a)
+		GLM_FUNC_QUALIFIER static T call(T const& x, T const& y, Bool const& a)
 		{
 			return a ? y : x;
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool isFloat, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool isFloat, Bool Aligned>
 	struct compute_sign
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -180,8 +180,8 @@ namespace detail
 	};
 
 #	if GLM_ARCH == GLM_ARCH_X86
-	template<length_t L, typename T, qualifier Q, bool Aligned>
-	struct compute_sign<L, T, Q, false, Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
+	struct compute_sign<L, T, Q, False, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
 		{
@@ -193,7 +193,7 @@ namespace detail
 	};
 #	endif
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_floor
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -202,7 +202,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_ceil
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -211,7 +211,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_fract
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -220,7 +220,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_trunc
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -229,7 +229,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_round
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -238,7 +238,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_mod
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
@@ -248,7 +248,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_fma
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b, vec<L, T, Q> const& c)
@@ -257,7 +257,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_min_vector
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, vec<L, T, Q> const& y)
@@ -266,7 +266,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_max_vector
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, vec<L, T, Q> const& y)
@@ -275,7 +275,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_clamp_vector
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, vec<L, T, Q> const& minVal, vec<L, T, Q> const& maxVal)
@@ -284,7 +284,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_step_vector
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& edge, vec<L, T, Q> const& x)
@@ -293,7 +293,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_smoothstep_vector
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& edge0, vec<L, T, Q> const& edge1, vec<L, T, Q> const& x)
@@ -304,7 +304,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct convert_vec3_to_vec4W0
 	{
 		GLM_FUNC_QUALIFIER static vec<4, T, Q> call(vec<3, T, Q> const& a)
@@ -313,7 +313,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct convert_vec3_to_vec4WZ
 	{
 		GLM_FUNC_QUALIFIER static vec<4, T, Q> call(vec<3, T, Q> const& a)
@@ -322,7 +322,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct convert_vec3_to_vec4W1
 	{
 		GLM_FUNC_QUALIFIER static vec<4, T, Q> call(vec<3, T, Q> const& a)
@@ -331,7 +331,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct convert_vec4_to_vec3
 	{
 		GLM_FUNC_QUALIFIER static vec<4, T, Q> call(vec<3, T, Q> const& a)
@@ -340,7 +340,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct convert_splat {
 		template<int c>
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a)
@@ -729,7 +729,7 @@ namespace detail
 		using std::isnan;
 #	else
 		template<typename genType>
-		GLM_FUNC_QUALIFIER bool isnan(genType x)
+		GLM_FUNC_QUALIFIER Bool isnan(genType x)
 		{
 			GLM_STATIC_ASSERT(std::numeric_limits<genType>::is_iec559 || GLM_CONFIG_UNRESTRICTED_FLOAT, "'isnan' only accept floating-point inputs");
 
@@ -754,11 +754,11 @@ namespace detail
 #	endif
 
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<L, bool, Q> isnan(vec<L, T, Q> const& v)
+	GLM_FUNC_QUALIFIER vec<L, Bool, Q> isnan(vec<L, T, Q> const& v)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<T>::is_iec559 || GLM_CONFIG_UNRESTRICTED_FLOAT, "'isnan' only accept floating-point inputs");
 
-		vec<L, bool, Q> Result(0);
+		vec<L, Bool, Q> Result(0);
 		for (length_t l = 0; l < v.length(); ++l)
 			Result[l] = glm::isnan(v[l]);
 		return Result;
@@ -768,7 +768,7 @@ namespace detail
 		using std::isinf;
 #	else
 		template<typename genType>
-		GLM_FUNC_QUALIFIER bool isinf(genType x)
+		GLM_FUNC_QUALIFIER Bool isinf(genType x)
 		{
 			GLM_STATIC_ASSERT(std::numeric_limits<genType>::is_iec559 || GLM_CONFIG_UNRESTRICTED_FLOAT, "'isinf' only accept floating-point inputs");
 
@@ -796,11 +796,11 @@ namespace detail
 #	endif
 
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<L, bool, Q> isinf(vec<L, T, Q> const& v)
+	GLM_FUNC_QUALIFIER vec<L, Bool, Q> isinf(vec<L, T, Q> const& v)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<T>::is_iec559 || GLM_CONFIG_UNRESTRICTED_FLOAT, "'isinf' only accept floating-point inputs");
 
-		vec<L, bool, Q> Result(0);
+		vec<L, Bool, Q> Result(0);
 		for (length_t l = 0; l < v.length(); ++l)
 			Result[l] = glm::isinf(v[l]);
 		return Result;

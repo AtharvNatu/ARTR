@@ -9,7 +9,7 @@ namespace glm{
 namespace detail
 {
 	template<qualifier Q>
-	struct compute_sqrt<4, float, Q, true>
+	struct compute_sqrt<4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, Q> call(vec<4, float, Q> const& v)
 		{
@@ -21,7 +21,7 @@ namespace detail
 
 #	if GLM_CONFIG_ALIGNED_GENTYPES == GLM_ENABLE
 	template<>
-	struct compute_sqrt<4, float, aligned_lowp, true>
+	struct compute_sqrt<4, float, aligned_lowp, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<4, float, aligned_lowp> call(vec<4, float, aligned_lowp> const& v)
 		{

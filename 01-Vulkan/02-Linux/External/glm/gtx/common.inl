@@ -7,7 +7,7 @@
 namespace glm{
 namespace detail
 {
-	template<length_t L, typename T, qualifier Q, bool isFloat = true>
+	template<length_t L, typename T, qualifier Q, Bool isFloat = True>
 	struct compute_fmod
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
@@ -17,7 +17,7 @@ namespace detail
 	};
 
 	template<length_t L, typename T, qualifier Q>
-	struct compute_fmod<L, T, Q, false>
+	struct compute_fmod<L, T, Q, False>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 		{
@@ -27,7 +27,7 @@ namespace detail
 }//namespace detail
 
 	template<typename T>
-	GLM_FUNC_QUALIFIER bool isdenormal(T const& x)
+	GLM_FUNC_QUALIFIER Bool isdenormal(T const& x)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<T>::is_iec559 || GLM_CONFIG_UNRESTRICTED_FLOAT, "'isdenormal' only accept floating-point inputs");
 
@@ -112,13 +112,13 @@ namespace detail
 	}
 
 	template <length_t L, typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<L, bool, Q> openBounded(vec<L, T, Q> const& Value, vec<L, T, Q> const& Min, vec<L, T, Q> const& Max)
+	GLM_FUNC_QUALIFIER vec<L, Bool, Q> openBounded(vec<L, T, Q> const& Value, vec<L, T, Q> const& Min, vec<L, T, Q> const& Max)
 	{
 		return greaterThan(Value, Min) && lessThan(Value, Max);
 	}
 
 	template <length_t L, typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<L, bool, Q> closeBounded(vec<L, T, Q> const& Value, vec<L, T, Q> const& Min, vec<L, T, Q> const& Max)
+	GLM_FUNC_QUALIFIER vec<L, Bool, Q> closeBounded(vec<L, T, Q> const& Value, vec<L, T, Q> const& Min, vec<L, T, Q> const& Max)
 	{
 		return greaterThanEqual(Value, Min) && lessThanEqual(Value, Max);
 	}

@@ -177,27 +177,27 @@ namespace glm
 	typedef double					highp_float64_t;
 	typedef double					float64_t;
 
-	// Vector bool
+	// Vector Bool
 
-	typedef vec<1, bool, lowp>		lowp_bvec1;
-	typedef vec<2, bool, lowp>		lowp_bvec2;
-	typedef vec<3, bool, lowp>		lowp_bvec3;
-	typedef vec<4, bool, lowp>		lowp_bvec4;
+	typedef vec<1, Bool, lowp>		lowp_bvec1;
+	typedef vec<2, Bool, lowp>		lowp_bvec2;
+	typedef vec<3, Bool, lowp>		lowp_bvec3;
+	typedef vec<4, Bool, lowp>		lowp_bvec4;
 
-	typedef vec<1, bool, mediump>	mediump_bvec1;
-	typedef vec<2, bool, mediump>	mediump_bvec2;
-	typedef vec<3, bool, mediump>	mediump_bvec3;
-	typedef vec<4, bool, mediump>	mediump_bvec4;
+	typedef vec<1, Bool, mediump>	mediump_bvec1;
+	typedef vec<2, Bool, mediump>	mediump_bvec2;
+	typedef vec<3, Bool, mediump>	mediump_bvec3;
+	typedef vec<4, Bool, mediump>	mediump_bvec4;
 
-	typedef vec<1, bool, highp>		highp_bvec1;
-	typedef vec<2, bool, highp>		highp_bvec2;
-	typedef vec<3, bool, highp>		highp_bvec3;
-	typedef vec<4, bool, highp>		highp_bvec4;
+	typedef vec<1, Bool, highp>		highp_bvec1;
+	typedef vec<2, Bool, highp>		highp_bvec2;
+	typedef vec<3, Bool, highp>		highp_bvec3;
+	typedef vec<4, Bool, highp>		highp_bvec4;
 
-	typedef vec<1, bool, defaultp>	bvec1;
-	typedef vec<2, bool, defaultp>	bvec2;
-	typedef vec<3, bool, defaultp>	bvec3;
-	typedef vec<4, bool, defaultp>	bvec4;
+	typedef vec<1, Bool, defaultp>	bvec1;
+	typedef vec<2, Bool, defaultp>	bvec2;
+	typedef vec<3, Bool, defaultp>	bvec3;
+	typedef vec<4, Bool, defaultp>	bvec4;
 
 	// Vector int
 

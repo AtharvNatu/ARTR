@@ -24,7 +24,7 @@ namespace glm
 	/// @{
 
 	/// 1 components vector of boolean.
-	typedef vec<1, bool, defaultp>		bvec1;
+	typedef vec<1, Bool, defaultp>		bvec1;
 
 	/// @}
 }//namespace glm

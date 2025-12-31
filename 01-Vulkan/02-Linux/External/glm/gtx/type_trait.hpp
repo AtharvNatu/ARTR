@@ -31,9 +31,9 @@ namespace glm
 	template<typename T>
 	struct type
 	{
-		static bool const is_vec = false;
-		static bool const is_mat = false;
-		static bool const is_quat = false;
+		static Bool const is_vec = False;
+		static Bool const is_mat = False;
+		static Bool const is_quat = False;
 		static length_t const components = 0;
 		static length_t const cols = 0;
 		static length_t const rows = 0;
@@ -42,18 +42,18 @@ namespace glm
 	template<length_t L, typename T, qualifier Q>
 	struct type<vec<L, T, Q> >
 	{
-		static bool const is_vec = true;
-		static bool const is_mat = false;
-		static bool const is_quat = false;
+		static Bool const is_vec = True;
+		static Bool const is_mat = False;
+		static Bool const is_quat = False;
 		static length_t const components = L;
 	};
 
 	template<length_t C, length_t R, typename T, qualifier Q>
 	struct type<mat<C, R, T, Q> >
 	{
-		static bool const is_vec = false;
-		static bool const is_mat = true;
-		static bool const is_quat = false;
+		static Bool const is_vec = False;
+		static Bool const is_mat = True;
+		static Bool const is_quat = False;
 		static length_t const components = C;
 		static length_t const cols = C;
 		static length_t const rows = R;
@@ -62,18 +62,18 @@ namespace glm
 	template<typename T, qualifier Q>
 	struct type<qua<T, Q> >
 	{
-		static bool const is_vec = false;
-		static bool const is_mat = false;
-		static bool const is_quat = true;
+		static Bool const is_vec = False;
+		static Bool const is_mat = False;
+		static Bool const is_quat = True;
 		static length_t const components = 4;
 	};
 
 	template<typename T, qualifier Q>
 	struct type<tdualquat<T, Q> >
 	{
-		static bool const is_vec = false;
-		static bool const is_mat = false;
-		static bool const is_quat = true;
+		static Bool const is_vec = False;
+		static Bool const is_mat = False;
+		static Bool const is_quat = True;
 		static length_t const components = 8;
 	};
 

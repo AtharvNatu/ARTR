@@ -6,12 +6,12 @@
 namespace glm{
 namespace detail
 {
-	template<typename genFIType, bool /*signed*/>
+	template<typename genFIType, Bool /*signed*/>
 	struct compute_abs
 	{};
 
 	template<typename genFIType>
-	struct compute_abs<genFIType, true>
+	struct compute_abs<genFIType, True>
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static genFIType call(genFIType x)
 		{
@@ -26,7 +26,7 @@ namespace detail
 
 #if (GLM_COMPILER & GLM_COMPILER_CUDA) || (GLM_COMPILER & GLM_COMPILER_HIP)
 	template<>
-	struct compute_abs<float, true>
+	struct compute_abs<float, True>
 	{
 		GLM_FUNC_QUALIFIER static float call(float x)
 		{
@@ -36,7 +36,7 @@ namespace detail
 #endif
 
 	template<typename genFIType>
-	struct compute_abs<genFIType, false>
+	struct compute_abs<genFIType, False>
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static genFIType call(genFIType x)
 		{

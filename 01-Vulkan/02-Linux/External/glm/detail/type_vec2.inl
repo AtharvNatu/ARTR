@@ -888,7 +888,7 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator==(vec<2, T, Q> const& v1, vec<2, T, Q> const& v2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator==(vec<2, T, Q> const& v1, vec<2, T, Q> const& v2)
 	{
 		return
 			detail::compute_equal<T, std::numeric_limits<T>::is_iec559>::call(v1.x, v2.x) &&
@@ -896,20 +896,20 @@ namespace glm
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator!=(vec<2, T, Q> const& v1, vec<2, T, Q> const& v2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator!=(vec<2, T, Q> const& v1, vec<2, T, Q> const& v2)
 	{
 		return !(v1 == v2);
 	}
 
 	template<qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, bool, Q> operator&&(vec<2, bool, Q> const& v1, vec<2, bool, Q> const& v2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, Bool, Q> operator&&(vec<2, Bool, Q> const& v1, vec<2, Bool, Q> const& v2)
 	{
-		return vec<2, bool, Q>(v1.x && v2.x, v1.y && v2.y);
+		return vec<2, Bool, Q>(v1.x && v2.x, v1.y && v2.y);
 	}
 
 	template<qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, bool, Q> operator||(vec<2, bool, Q> const& v1, vec<2, bool, Q> const& v2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<2, Bool, Q> operator||(vec<2, Bool, Q> const& v1, vec<2, Bool, Q> const& v2)
 	{
-		return vec<2, bool, Q>(v1.x || v2.x, v1.y || v2.y);
+		return vec<2, Bool, Q>(v1.x || v2.x, v1.y || v2.y);
 	}
 }//namespace glm

@@ -122,19 +122,19 @@ namespace glm
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<4, bool, Q> isnan(qua<T, Q> const& q)
+	GLM_FUNC_QUALIFIER vec<4, Bool, Q> isnan(qua<T, Q> const& q)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<T>::is_iec559 || GLM_CONFIG_UNRESTRICTED_FLOAT, "'isnan' only accept floating-point inputs");
 
-		return vec<4, bool, Q>(isnan(q.x), isnan(q.y), isnan(q.z), isnan(q.w));
+		return vec<4, Bool, Q>(isnan(q.x), isnan(q.y), isnan(q.z), isnan(q.w));
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<4, bool, Q> isinf(qua<T, Q> const& q)
+	GLM_FUNC_QUALIFIER vec<4, Bool, Q> isinf(qua<T, Q> const& q)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<T>::is_iec559 || GLM_CONFIG_UNRESTRICTED_FLOAT, "'isinf' only accept floating-point inputs");
 
-		return vec<4, bool, Q>(isinf(q.x), isinf(q.y), isinf(q.z), isinf(q.w));
+		return vec<4, Bool, Q>(isinf(q.x), isinf(q.y), isinf(q.z), isinf(q.w));
 	}
 }//namespace glm
 

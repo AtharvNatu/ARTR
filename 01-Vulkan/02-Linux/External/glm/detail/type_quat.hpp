@@ -182,10 +182,10 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator==(qua<T, Q> const& q1, qua<T, Q> const& q2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator==(qua<T, Q> const& q1, qua<T, Q> const& q2);
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator!=(qua<T, Q> const& q1, qua<T, Q> const& q2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator!=(qua<T, Q> const& q1, qua<T, Q> const& q2);
 } //namespace glm
 
 #ifndef GLM_EXTERNAL_TEMPLATE

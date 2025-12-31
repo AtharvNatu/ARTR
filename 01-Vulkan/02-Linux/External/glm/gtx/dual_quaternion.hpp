@@ -125,10 +125,10 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL bool operator==(tdualquat<T, Q> const& q1, tdualquat<T, Q> const& q2);
+	GLM_FUNC_DECL Bool operator==(tdualquat<T, Q> const& q1, tdualquat<T, Q> const& q2);
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL bool operator!=(tdualquat<T, Q> const& q1, tdualquat<T, Q> const& q2);
+	GLM_FUNC_DECL Bool operator!=(tdualquat<T, Q> const& q1, tdualquat<T, Q> const& q2);
 
 	/// Creates an identity dual quaternion.
 	///

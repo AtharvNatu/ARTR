@@ -27,7 +27,7 @@ namespace detail
 		return Bits >= static_cast<T>(sizeof(T) * 8) ? ~static_cast<T>(0) : (static_cast<T>(1) << Bits) - static_cast<T>(1);
 	}
 
-	template<length_t L, typename T, qualifier Q, bool Aligned, bool EXEC>
+	template<length_t L, typename T, qualifier Q, Bool Aligned, Bool EXEC>
 	struct compute_bitfieldReverseStep
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& v, T, T)
@@ -36,8 +36,8 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
-	struct compute_bitfieldReverseStep<L, T, Q, Aligned, true>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
+	struct compute_bitfieldReverseStep<L, T, Q, Aligned, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& v, T Mask, T Shift)
 		{
@@ -45,7 +45,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned, bool EXEC>
+	template<length_t L, typename T, qualifier Q, Bool Aligned, Bool EXEC>
 	struct compute_bitfieldBitCountStep
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& v, T, T)
@@ -54,8 +54,8 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
-	struct compute_bitfieldBitCountStep<L, T, Q, Aligned, true>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
+	struct compute_bitfieldBitCountStep<L, T, Q, Aligned, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& v, T Mask, T Shift)
 		{
@@ -101,7 +101,7 @@ namespace detail
 #		endif
 #	endif//GLM_HAS_BITSCAN_WINDOWS
 
-	template<length_t L, typename T, qualifier Q, bool EXEC = true>
+	template<length_t L, typename T, qualifier Q, Bool EXEC = True>
 	struct compute_findMSB_step_vec
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, T Shift)
@@ -111,7 +111,7 @@ namespace detail
 	};
 
 	template<length_t L, typename T, qualifier Q>
-	struct compute_findMSB_step_vec<L, T, Q, false>
+	struct compute_findMSB_step_vec<L, T, Q, False>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x, T)
 		{

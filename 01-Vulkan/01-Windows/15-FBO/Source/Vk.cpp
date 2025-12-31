@@ -726,7 +726,7 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => createVertexBuffer() Succeeded\n", __func__);
 
-     //! Model Related
+    //! Model Related
 
     //* Calculate Number of Face Indices
     numFaceIndices = sizeof(face_indices) / sizeof(face_indices[0]);
@@ -1498,9 +1498,9 @@ void uninitialize(void)
     void ToggleFullScreen(void);
     void uninitialize_fbo(void);
 
+    // Code
     uninitialize_fbo();
 
-    // Code
     if (gbFullScreen)
         ToggleFullScreen();
 
@@ -3467,6 +3467,7 @@ VkResult createVertexBuffer(void)
 
     return vkResult;
 }
+
 VkResult createUniformBuffer(void)
 {
     // Function Declarations

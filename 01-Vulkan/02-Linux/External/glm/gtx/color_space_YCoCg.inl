@@ -28,7 +28,7 @@ namespace glm
 		return result;
 	}
 
-	template<typename T, qualifier Q, bool isInteger>
+	template<typename T, qualifier Q, Bool isInteger>
 	class compute_YCoCgR {
 	public:
 		static GLM_FUNC_QUALIFIER vec<3, T, Q> rgb2YCoCgR
@@ -58,7 +58,7 @@ namespace glm
 	};
 
 	template<typename T, qualifier Q>
-	class compute_YCoCgR<T, Q, true> {
+	class compute_YCoCgR<T, Q, True> {
 	public:
 		static GLM_FUNC_QUALIFIER vec<3, T, Q> rgb2YCoCgR
 		(

@@ -5,7 +5,7 @@
 namespace glm {
 namespace detail
 {
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_cross_vec2
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static T call(vec<2, T, Q> const& v, vec<2, T, Q> const& u)

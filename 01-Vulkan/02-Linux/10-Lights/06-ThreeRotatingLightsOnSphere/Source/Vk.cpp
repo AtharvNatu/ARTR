@@ -122,11 +122,11 @@ VkClearColorValue vkClearColorValue;
 VkClearDepthStencilValue vkClearDepthStencilValue;
 
 //? Render
-bool bInitialized = false;
+Bool bInitialized = False;
 uint32_t currentImageIndex = UINT32_MAX;
 
 //? Validation
-bool bValidation = true;
+Bool bValidation = True;
 uint32_t enabledValidationLayerCount = 0;
 const char *enabledValidationLayerNames_array[1];   //* For VK_LAYER_KHRONOS_validation
 VkDebugReportCallbackEXT vkDebugReportCallbackEXT = VK_NULL_HANDLE;
@@ -206,7 +206,7 @@ VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
-bool bLight = false;
+Bool bLight = False;
 
 //* Animation
 const float fAnimationSpeed = 0.6f;
@@ -441,7 +441,7 @@ int main(void)
                 if (vkResult != VK_FALSE && vkResult != VK_SUCCESS && vkResult != VK_ERROR_OUT_OF_DATE_KHR && vkResult != VK_SUBOPTIMAL_KHR)
                 {
                     fprintf(gpFile, "%s() => Call To Display Failed !!!\n", __func__);
-                    bDone = true;
+                    bDone = True;
                 }
 
                 //! Update the scene
@@ -849,7 +849,7 @@ VkResult initialize(void)
         fprintf(gpFile, "%s() => buildCommandBuffers() Succeeded\n", __func__);
 
     //! Initialization Completed
-    bInitialized = true;
+    bInitialized = True;
     fprintf(gpFile, "%s() => Initialization Completed Successfully\n", __func__);
     
     return vkResult;
@@ -875,15 +875,15 @@ VkResult resize(int width, int height)
         height = 1;
 
     //* Check the bInitialized Variable
-    if (bInitialized == false)
+    if (bInitialized == False)
     {
         fprintf(gpFile, "%s() => Initialization Not Yet Completed or Failed !!!\n", __func__);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
 
-    //* As recreation of swapchain is needed, we are going to repeat many steps of initialize() again. Hence, set bInitialize = false again
-    bInitialized = false;
+    //* As recreation of swapchain is needed, we are going to repeat many steps of initialize() again. Hence, set bInitialize = False again
+    bInitialized = False;
     {
         //* Set Global winWidth and winHeight variables
         winWidth = width;
@@ -1060,7 +1060,7 @@ VkResult resize(int width, int height)
         }
         //?--------------------------------------------------------------------------------------------------
     }
-    bInitialized = true;
+    bInitialized = True;
 
     return vkResult;
 }
@@ -1075,7 +1075,7 @@ VkResult display(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    if (bInitialized == false)
+    if (bInitialized == False)
     {
         fprintf(gpFile, "%s() => Initialization Not Yet Completed !!!\n", __func__);
         return (VkResult)VK_FALSE;
@@ -1535,7 +1535,7 @@ VkResult createVulkanInstance(void)
 
 
     //! Fill Validation Layers
-    if (bValidation == true)
+    if (bValidation == True)
     {
         vkResult = fillValidationLayerNames();
         if (vkResult != VK_SUCCESS)
@@ -1567,7 +1567,7 @@ VkResult createVulkanInstance(void)
     vkInstanceCreateInfo.enabledExtensionCount = enabledInstanceExtensionCount;
     vkInstanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensionNames_array;
 
-    if (bValidation == true)
+    if (bValidation == True)
     {
         vkInstanceCreateInfo.enabledLayerCount = enabledValidationLayerCount;
         vkInstanceCreateInfo.ppEnabledLayerNames = enabledValidationLayerNames_array;
@@ -1599,7 +1599,7 @@ VkResult createVulkanInstance(void)
         fprintf(gpFile, "%s() => vkCreateInstance() Succeeded\n", __func__);
 
     //! Handling Validation Callbacks
-    if (bValidation == true)
+    if (bValidation == True)
     {
         vkResult = createValidationCallbackFunction();
         if (vkResult != VK_SUCCESS)
@@ -1711,7 +1711,7 @@ VkResult fillInstanceExtensionNames(void)
         if (strcmp(instanceExtensionNames_array[i], VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
         {
             debugReportExtensionFound = VK_TRUE;
-            if (bValidation == true)
+            if (bValidation == True)
                 enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
             else
             {
@@ -1753,7 +1753,7 @@ VkResult fillInstanceExtensionNames(void)
 
     if (debugReportExtensionFound == VK_FALSE)
     {
-        if (bValidation == true)
+        if (bValidation == True)
         {
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
             fprintf(gpFile, "%s() => VALIDATION ON : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Not Supported !!!\n", __func__);
@@ -1764,7 +1764,7 @@ VkResult fillInstanceExtensionNames(void)
     }
     else
     {
-        if (bValidation == true)
+        if (bValidation == True)
             fprintf(gpFile, "%s() => VALIDATION ON : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Supported\n", __func__);
         else
             fprintf(gpFile, "%s() => VALIDATION OFF : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Supported\n", __func__);

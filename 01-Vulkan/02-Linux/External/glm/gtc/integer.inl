@@ -3,8 +3,8 @@
 namespace glm{
 namespace detail
 {
-	template<length_t L, typename T, qualifier Q, bool Aligned>
-	struct compute_log2<L, T, Q, false, Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
+	struct compute_log2<L, T, Q, False, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& v)
 		{
@@ -15,8 +15,8 @@ namespace detail
 	};
 
 #	if GLM_HAS_BITSCAN_WINDOWS
-		template<qualifier Q, bool Aligned>
-		struct compute_log2<4, int, Q, false, Aligned>
+		template<qualifier Q, Bool Aligned>
+		struct compute_log2<4, int, Q, False, Aligned>
 		{
 			GLM_FUNC_QUALIFIER static vec<4, int, Q> call(vec<4, int, Q> const& v)
 			{

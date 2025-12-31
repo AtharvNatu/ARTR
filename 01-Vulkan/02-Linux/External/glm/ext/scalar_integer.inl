@@ -3,7 +3,7 @@
 namespace glm{
 namespace detail
 {
-	template<length_t L, typename T, qualifier Q, bool compute = false>
+	template<length_t L, typename T, qualifier Q, Bool compute = False>
 	struct compute_ceilShift
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& v, T)
@@ -13,7 +13,7 @@ namespace detail
 	};
 
 	template<length_t L, typename T, qualifier Q>
-	struct compute_ceilShift<L, T, Q, true>
+	struct compute_ceilShift<L, T, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& v, T Shift)
 		{
@@ -21,7 +21,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool isSigned = true>
+	template<length_t L, typename T, qualifier Q, Bool isSigned = True>
 	struct compute_ceilPowerOfTwo
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -44,7 +44,7 @@ namespace detail
 	};
 
 	template<length_t L, typename T, qualifier Q>
-	struct compute_ceilPowerOfTwo<L, T, Q, false>
+	struct compute_ceilPowerOfTwo<L, T, Q, False>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
 		{
@@ -63,11 +63,11 @@ namespace detail
 		}
 	};
 
-	template<bool is_float, bool is_signed>
+	template<Bool is_float, Bool is_signed>
 	struct compute_ceilMultiple{};
 
 	template<>
-	struct compute_ceilMultiple<true, true>
+	struct compute_ceilMultiple<True, True>
 	{
 		template<typename genType>
 		GLM_FUNC_QUALIFIER static genType call(genType Source, genType Multiple)
@@ -80,7 +80,7 @@ namespace detail
 	};
 
 	template<>
-	struct compute_ceilMultiple<false, false>
+	struct compute_ceilMultiple<False, False>
 	{
 		template<typename genType>
 		GLM_FUNC_QUALIFIER static genType call(genType Source, genType Multiple)
@@ -91,7 +91,7 @@ namespace detail
 	};
 
 	template<>
-	struct compute_ceilMultiple<false, true>
+	struct compute_ceilMultiple<False, True>
 	{
 		template<typename genType>
 		GLM_FUNC_QUALIFIER static genType call(genType Source, genType Multiple)
@@ -107,11 +107,11 @@ namespace detail
 		}
 	};
 
-	template<bool is_float, bool is_signed>
+	template<Bool is_float, Bool is_signed>
 	struct compute_floorMultiple{};
 
 	template<>
-	struct compute_floorMultiple<true, true>
+	struct compute_floorMultiple<True, True>
 	{
 		template<typename genType>
 		GLM_FUNC_QUALIFIER static genType call(genType Source, genType Multiple)
@@ -124,7 +124,7 @@ namespace detail
 	};
 
 	template<>
-	struct compute_floorMultiple<false, false>
+	struct compute_floorMultiple<False, False>
 	{
 		template<typename genType>
 		GLM_FUNC_QUALIFIER static genType call(genType Source, genType Multiple)
@@ -140,7 +140,7 @@ namespace detail
 	};
 
 	template<>
-	struct compute_floorMultiple<false, true>
+	struct compute_floorMultiple<False, True>
 	{
 		template<typename genType>
 		GLM_FUNC_QUALIFIER static genType call(genType Source, genType Multiple)
@@ -157,7 +157,7 @@ namespace detail
 }//namespace detail
 
 	template<typename genIUType>
-	GLM_FUNC_QUALIFIER bool isPowerOfTwo(genIUType Value)
+	GLM_FUNC_QUALIFIER Bool isPowerOfTwo(genIUType Value)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<genIUType>::is_integer, "'isPowerOfTwo' only accept integer inputs");
 
@@ -182,7 +182,7 @@ namespace detail
 	}
 
 	template<typename genIUType>
-	GLM_FUNC_QUALIFIER bool isMultiple(genIUType Value, genIUType Multiple)
+	GLM_FUNC_QUALIFIER Bool isMultiple(genIUType Value, genIUType Multiple)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<genIUType>::is_integer, "'isMultiple' only accept integer inputs");
 

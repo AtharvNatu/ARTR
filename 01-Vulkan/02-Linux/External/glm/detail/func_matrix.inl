@@ -4,7 +4,7 @@
 namespace glm{
 namespace detail
 {
-	template<length_t C, length_t R, typename T, qualifier Q, bool Aligned>
+	template<length_t C, length_t R, typename T, qualifier Q, Bool Aligned>
 	struct compute_matrixCompMult
 	{
 		GLM_FUNC_QUALIFIER static mat<C, R, T, Q> call(mat<C, R, T, Q> const& x, mat<C, R, T, Q> const& y)
@@ -16,7 +16,7 @@ namespace detail
 		}
 	};
 
-	template<length_t C, length_t R, typename T, qualifier Q, bool IsFloat, bool Aligned>
+	template<length_t C, length_t R, typename T, qualifier Q, Bool IsFloat, Bool Aligned>
 	struct compute_matrixCompMult_type {
 		GLM_FUNC_QUALIFIER static mat<C, R, T, Q> call(mat<C, R, T, Q> const& x, mat<C, R, T, Q> const& y)
 		{
@@ -37,7 +37,7 @@ namespace detail
 		}
 	};
 
-	template<length_t DA, length_t DB, typename T, qualifier Q, bool IsFloat>
+	template<length_t DA, length_t DB, typename T, qualifier Q, Bool IsFloat>
 	struct compute_outerProduct_type {
 		GLM_FUNC_QUALIFIER static typename detail::outerProduct_trait<DA, DB, T, Q>::type call(vec<DA, T, Q> const& c, vec<DB, T, Q> const& r)
 		{
@@ -48,10 +48,10 @@ namespace detail
 		}
 	};
 
-	template<length_t C, length_t R, typename T, qualifier Q, bool Aligned>
+	template<length_t C, length_t R, typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose{};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose<2, 2, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<2, 2, T, Q> call(mat<2, 2, T, Q> const& m)
@@ -65,7 +65,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose<2, 3, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<3, 2, T, Q> call(mat<2, 3, T, Q> const& m)
@@ -81,7 +81,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose<2, 4, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<4, 2, T, Q> call(mat<2, 4, T, Q> const& m)
@@ -99,7 +99,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose<3, 2, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<2, 3, T, Q> call(mat<3, 2, T, Q> const& m)
@@ -115,7 +115,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose<3, 3, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<3, 3, T, Q> call(mat<3, 3, T, Q> const& m)
@@ -136,7 +136,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose<3, 4, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<4, 3, T, Q> call(mat<3, 4, T, Q> const& m)
@@ -158,7 +158,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose<4, 2, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<2, 4, T, Q> call(mat<4, 2, T, Q> const& m)
@@ -176,7 +176,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose<4, 3, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<3, 4, T, Q> call(mat<4, 3, T, Q> const& m)
@@ -198,7 +198,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_transpose<4, 4, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<4, 4, T, Q> call(mat<4, 4, T, Q> const& m)
@@ -227,7 +227,7 @@ namespace detail
 		}
 	};
 
-	template<length_t C, length_t R, typename T, qualifier Q, bool IsFloat, bool Aligned>
+	template<length_t C, length_t R, typename T, qualifier Q, Bool IsFloat, Bool Aligned>
 	struct compute_transpose_type {
 		GLM_FUNC_QUALIFIER static mat<R, C, T, Q> call(mat<C, R, T, Q> const& m)
 		{
@@ -237,10 +237,10 @@ namespace detail
 		}
 	};
 
-	template<length_t C, length_t R, typename T, qualifier Q, bool Aligned>
+	template<length_t C, length_t R, typename T, qualifier Q, Bool Aligned>
 	struct compute_determinant{};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_determinant<2, 2, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static T call(mat<2, 2, T, Q> const& m)
@@ -249,7 +249,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_determinant<3, 3, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static T call(mat<3, 3, T, Q> const& m)
@@ -261,7 +261,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_determinant<4, 4, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static T call(mat<4, 4, T, Q> const& m)
@@ -285,7 +285,7 @@ namespace detail
 		}
 	};
 
-	template<length_t C, length_t R, typename T, qualifier Q, bool IsFloat, bool Aligned>
+	template<length_t C, length_t R, typename T, qualifier Q, Bool IsFloat, Bool Aligned>
 	struct compute_determinant_type{
 	
 		GLM_FUNC_QUALIFIER static T call(mat<C, R, T, Q> const& m)
@@ -296,10 +296,10 @@ namespace detail
 		}
 	};
 
-	template<length_t C, length_t R, typename T, qualifier Q, bool Aligned>
+	template<length_t C, length_t R, typename T, qualifier Q, Bool Aligned>
 	struct compute_inverse{};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_inverse<2, 2, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<2, 2, T, Q> call(mat<2, 2, T, Q> const& m)
@@ -318,11 +318,11 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool is_aligned>
+	template<typename T, qualifier Q, Bool is_aligned>
 	struct inv3x3 {};
 
 	template<typename T, qualifier Q>
-	struct inv3x3<T, Q, true>
+	struct inv3x3<T, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static mat<3, 3, T, Q> call(mat<3, 3, T, Q> const& m)
 		{
@@ -332,9 +332,9 @@ namespace detail
 			vec<4, T, Q> b = xyz0(m[1]);
 			vec<4, T, Q> c = xyz0(m[2]);
 
-			vec<4, T, Q> i0 = compute_cross<T, Q, true>::call(b, c);
-			vec<4, T, Q> i1 = compute_cross<T, Q, true>::call(c, a);
-			vec<4, T, Q> i2 = compute_cross<T, Q, true>::call(a, b);
+			vec<4, T, Q> i0 = compute_cross<T, Q, True>::call(b, c);
+			vec<4, T, Q> i1 = compute_cross<T, Q, True>::call(c, a);
+			vec<4, T, Q> i2 = compute_cross<T, Q, True>::call(a, b);
 
 			mat<3, 3, T, Q> Inverse;
 			Inverse[0] = xyz(i0);
@@ -342,7 +342,7 @@ namespace detail
 			Inverse[2] = xyz(i2);
 			Inverse = transpose(Inverse);
 
-			T Determinant = compute_dot<vec<4, T, Q>, T, true>::call(a, compute_cross<T, Q, true>::call(b, c));
+			T Determinant = compute_dot<vec<4, T, Q>, T, True>::call(a, compute_cross<T, Q, True>::call(b, c));
 			vec<3, T, Q> OneOverDeterminant(static_cast<T>(1) / Determinant);
 			Inverse *= OneOverDeterminant;
 			return Inverse;
@@ -350,7 +350,7 @@ namespace detail
 	};
 
 	template<typename T, qualifier Q>
-	struct inv3x3<T, Q, false>
+	struct inv3x3<T, Q, False>
 	{
 		GLM_FUNC_QUALIFIER static mat<3, 3, T, Q> call(mat<3, 3, T, Q> const& m)
 		{
@@ -375,7 +375,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_inverse<3, 3, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<3, 3, T, Q> call(mat<3, 3, T, Q> const& m)
@@ -384,7 +384,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_inverse<4, 4, T, Q, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static mat<4, 4, T, Q> call(mat<4, 4, T, Q> const& m)

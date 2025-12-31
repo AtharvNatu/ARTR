@@ -20,7 +20,7 @@ namespace glm
 
 		typedef T value_type;
 		typedef vec<1, T, Q> type;
-		typedef vec<1, bool, Q> bool_type;
+		typedef vec<1, Bool, Q> bool_type;
 
 		// -- Data --
 
@@ -291,16 +291,16 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator==(vec<1, T, Q> const& v1, vec<1, T, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator==(vec<1, T, Q> const& v1, vec<1, T, Q> const& v2);
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator!=(vec<1, T, Q> const& v1, vec<1, T, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator!=(vec<1, T, Q> const& v1, vec<1, T, Q> const& v2);
 
 	template<qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR vec<1, bool, Q> operator&&(vec<1, bool, Q> const& v1, vec<1, bool, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR vec<1, Bool, Q> operator&&(vec<1, Bool, Q> const& v1, vec<1, Bool, Q> const& v2);
 
 	template<qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR vec<1, bool, Q> operator||(vec<1, bool, Q> const& v1, vec<1, bool, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR vec<1, Bool, Q> operator||(vec<1, Bool, Q> const& v1, vec<1, Bool, Q> const& v2);
 }//namespace glm
 
 #ifndef GLM_EXTERNAL_TEMPLATE

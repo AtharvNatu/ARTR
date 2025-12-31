@@ -4,7 +4,7 @@
 namespace glm{
 namespace detail
 {
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_length
 	{
 		GLM_FUNC_QUALIFIER static T call(vec<L, T, Q> const& v)
@@ -13,7 +13,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_distance
 	{
 		GLM_FUNC_QUALIFIER static T call(vec<L, T, Q> const& p0, vec<L, T, Q> const& p1)
@@ -22,10 +22,10 @@ namespace detail
 		}
 	};
 
-	template<typename V, typename T, bool Aligned>
+	template<typename V, typename T, Bool Aligned>
 	struct compute_dot{};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_dot<vec<1, T, Q>, T, Aligned>
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static T call(vec<1, T, Q> const& a, vec<1, T, Q> const& b)
@@ -34,7 +34,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_dot<vec<2, T, Q>, T, Aligned>
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static T call(vec<2, T, Q> const& a, vec<2, T, Q> const& b)
@@ -44,7 +44,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_dot<vec<3, T, Q>, T, Aligned>
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static T call(vec<3, T, Q> const& a, vec<3, T, Q> const& b)
@@ -54,7 +54,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_dot<vec<4, T, Q>, T, Aligned>
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static T call(vec<4, T, Q> const& a, vec<4, T, Q> const& b)
@@ -69,7 +69,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_cross
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<3, T, Q> call(vec<3, T, Q> const& x, vec<3, T, Q> const& y)
@@ -94,7 +94,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_normalize
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& v)
@@ -105,7 +105,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_faceforward
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& N, vec<L, T, Q> const& I, vec<L, T, Q> const& Nref)
@@ -116,7 +116,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_reflect
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& I, vec<L, T, Q> const& N)
@@ -125,7 +125,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_refract
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& I, vec<L, T, Q> const& N, T eta)

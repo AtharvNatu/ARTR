@@ -20,7 +20,7 @@ namespace glm
 
 		typedef T value_type;
 		typedef vec<4, T, Q> type;
-		typedef vec<4, bool, Q> bool_type;
+		typedef vec<4, Bool, Q> bool_type;
 		
 		enum is_aligned
 		{
@@ -497,16 +497,16 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator==(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator==(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2);
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator!=(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator!=(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2);
 
 	template<qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR vec<4, bool, Q> operator&&(vec<4, bool, Q> const& v1, vec<4, bool, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR vec<4, Bool, Q> operator&&(vec<4, Bool, Q> const& v1, vec<4, Bool, Q> const& v2);
 
 	template<qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR vec<4, bool, Q> operator||(vec<4, bool, Q> const& v1, vec<4, bool, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR vec<4, Bool, Q> operator||(vec<4, Bool, Q> const& v1, vec<4, Bool, Q> const& v2);
 }//namespace glm
 
 #ifndef GLM_EXTERNAL_TEMPLATE

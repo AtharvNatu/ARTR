@@ -20,7 +20,7 @@ namespace glm
 
 		typedef T value_type;
 		typedef vec<3, T, Q> type;
-		typedef vec<3, bool, Q> bool_type;
+		typedef vec<3, Bool, Q> bool_type;
 
 		enum is_aligned
 		{
@@ -426,16 +426,16 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator==(vec<3, T, Q> const& v1, vec<3, T, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator==(vec<3, T, Q> const& v1, vec<3, T, Q> const& v2);
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR bool operator!=(vec<3, T, Q> const& v1, vec<3, T, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR Bool operator!=(vec<3, T, Q> const& v1, vec<3, T, Q> const& v2);
 
 	template<qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR vec<3, bool, Q> operator&&(vec<3, bool, Q> const& v1, vec<3, bool, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR vec<3, Bool, Q> operator&&(vec<3, Bool, Q> const& v1, vec<3, Bool, Q> const& v2);
 
 	template<qualifier Q>
-	GLM_FUNC_DECL GLM_CONSTEXPR vec<3, bool, Q> operator||(vec<3, bool, Q> const& v1, vec<3, bool, Q> const& v2);
+	GLM_FUNC_DECL GLM_CONSTEXPR vec<3, Bool, Q> operator||(vec<3, Bool, Q> const& v1, vec<3, Bool, Q> const& v2);
 
 
 

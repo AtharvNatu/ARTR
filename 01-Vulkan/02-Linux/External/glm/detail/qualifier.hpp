@@ -58,30 +58,30 @@ namespace detail
 	template<glm::qualifier P>
 	struct is_aligned
 	{
-		static const bool value = false;
+		static const Bool value = False;
 	};
 
 #	if GLM_CONFIG_ALIGNED_GENTYPES == GLM_ENABLE
 		template<>
 		struct is_aligned<glm::aligned_lowp>
 		{
-			static const bool value = true;
+			static const Bool value = True;
 		};
 
 		template<>
 		struct is_aligned<glm::aligned_mediump>
 		{
-			static const bool value = true;
+			static const Bool value = True;
 		};
 
 		template<>
 		struct is_aligned<glm::aligned_highp>
 		{
-			static const bool value = true;
+			static const Bool value = True;
 		};
 #	endif
 
-	template<length_t L, typename T, bool is_aligned>
+	template<length_t L, typename T, Bool is_aligned>
 	struct storage
 	{
 		typedef struct type {
@@ -91,7 +91,7 @@ namespace detail
 
 #	if GLM_HAS_ALIGNOF
 		template<length_t L, typename T>
-		struct storage<L, T, true>
+		struct storage<L, T, True>
 		{
 			typedef struct alignas(L * sizeof(T)) type {
 				T data[L];
@@ -99,7 +99,7 @@ namespace detail
 		};
 
 		template<typename T>
-		struct storage<3, T, true>
+		struct storage<3, T, True>
 		{
 			typedef struct alignas(4 * sizeof(T)) type {
 				T data[4];
@@ -109,68 +109,68 @@ namespace detail
 
 #	if GLM_ARCH & GLM_ARCH_SSE2_BIT
 	template<>
-	struct storage<4, float, true>
+	struct storage<4, float, True>
 	{
 		typedef glm_f32vec4 type;
 	};
 
 	template<>
-	struct storage<4, int, true>
+	struct storage<4, int, True>
 	{
 		typedef glm_i32vec4 type;
 	};
 
 	template<>
-	struct storage<4, unsigned int, true>
+	struct storage<4, unsigned int, True>
 	{
 		typedef glm_u32vec4 type;
 	};
 
 	template<>
-	struct storage<3, float, true>
+	struct storage<3, float, True>
 	{
 		typedef glm_f32vec4 type;
 	};
 
 	template<>
-	struct storage<3, int, true>
+	struct storage<3, int, True>
 	{
 		typedef glm_i32vec4 type;
 	};
 
 	template<>
-	struct storage<3, unsigned int, true>
+	struct storage<3, unsigned int, True>
 	{
 		typedef glm_u32vec4 type;
 	};
 
 	template<>
-	struct storage<2, double, true>
+	struct storage<2, double, True>
 	{
 		typedef glm_f64vec2 type;
 	};
 
 	template<>
-	struct storage<2, detail::int64, true>
+	struct storage<2, detail::int64, True>
 	{
 		typedef glm_i64vec2 type;
 	};
 
 	template<>
-	struct storage<2, detail::uint64, true>
+	struct storage<2, detail::uint64, True>
 	{
 		typedef glm_u64vec2 type;
 	};
 
 
 	template<>
-	struct storage<3, detail::uint64, true>
+	struct storage<3, detail::uint64, True>
 	{
 		typedef glm_u64vec2 type;
 	};
 
 	template<>
-	struct storage<4, double, true>
+	struct storage<4, double, True>
 	{
 #	if (GLM_ARCH & GLM_ARCH_AVX_BIT)
 		typedef glm_f64vec4 type;
@@ -190,20 +190,20 @@ namespace detail
 
 
 	template<>
-	struct storage<3, double, true> : public storage<4, double, true>
+	struct storage<3, double, True> : public storage<4, double, True>
 	{};
 	
 #	endif
 
 #	if (GLM_ARCH & GLM_ARCH_AVX2_BIT)
 	template<>
-	struct storage<4, detail::int64, true>
+	struct storage<4, detail::int64, True>
 	{
 		typedef glm_i64vec4 type;
 	};
 
 	template<>
-	struct storage<4, detail::uint64, true>
+	struct storage<4, detail::uint64, True>
 	{
 		typedef glm_u64vec4 type;
 	};
@@ -211,38 +211,38 @@ namespace detail
 
 #	if GLM_ARCH & GLM_ARCH_NEON_BIT
 	template<>
-	struct storage<4, float, true>
+	struct storage<4, float, True>
 	{
 		typedef glm_f32vec4 type;
 	};
 
 	template<>
-	struct storage<3, float, true> : public storage<4, float, true>
+	struct storage<3, float, True> : public storage<4, float, True>
 	{};
 
 	template<>
-	struct storage<4, int, true>
+	struct storage<4, int, True>
 	{
 		typedef glm_i32vec4 type;
 	};
 
 	template<>
-	struct storage<3, int, true> : public storage<4, int, true>
+	struct storage<3, int, True> : public storage<4, int, True>
 	{};
 
 	template<>
-	struct storage<4, unsigned int, true>
+	struct storage<4, unsigned int, True>
 	{
 		typedef glm_u32vec4 type;
 	};
 
 	template<>
-	struct storage<3, unsigned int, true> : public storage<4, unsigned int, true>
+	struct storage<3, unsigned int, True> : public storage<4, unsigned int, True>
 	{};
 
 #	if GLM_HAS_ALIGNOF
 	template<>
-	struct storage<3, double, true>
+	struct storage<3, double, True>
 	{
 		typedef struct alignas(4 * sizeof(double)) type {
 			double data[4];

@@ -43,30 +43,30 @@ namespace detail
 		return buffer;
 	}
 
-	static const char* LabelTrue = "true";
-	static const char* LabelFalse = "false";
+	static const char* LabelTrue = "True";
+	static const char* LabelFalse = "False";
 
-	template<typename T, bool isFloat = false>
+	template<typename T, Bool isFloat = False>
 	struct literal
 	{
 		GLM_FUNC_QUALIFIER static char const * value() {return "%d";}
 	};
 
 	template<typename T>
-	struct literal<T, true>
+	struct literal<T, True>
 	{
 		GLM_FUNC_QUALIFIER static char const * value() {return "%f";}
 	};
 
 #	if GLM_MODEL == GLM_MODEL_32 && GLM_COMPILER && GLM_COMPILER_VC
 	template<>
-	struct literal<uint64_t, false>
+	struct literal<uint64_t, False>
 	{
 		GLM_FUNC_QUALIFIER static char const * value() {return "%lld";}
 	};
 
 	template<>
-	struct literal<int64_t, false>
+	struct literal<int64_t, False>
 	{
 		GLM_FUNC_QUALIFIER static char const * value() {return "%lld";}
 	};
@@ -88,7 +88,7 @@ namespace detail
 	};
 
 	template<>
-	struct prefix<bool>
+	struct prefix<Bool>
 	{
 		GLM_FUNC_QUALIFIER static char const * value() {return "b";}
 	};
@@ -146,9 +146,9 @@ namespace detail
 	{};
 
 	template<qualifier Q>
-	struct compute_to_string<vec<1, bool, Q> >
+	struct compute_to_string<vec<1, Bool, Q> >
 	{
-		GLM_FUNC_QUALIFIER static std::string call(vec<1, bool, Q> const& x)
+		GLM_FUNC_QUALIFIER static std::string call(vec<1, Bool, Q> const& x)
 		{
 			return detail::format("bvec1(%s)",
 				x[0] ? detail::LabelTrue : detail::LabelFalse);
@@ -156,9 +156,9 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_to_string<vec<2, bool, Q> >
+	struct compute_to_string<vec<2, Bool, Q> >
 	{
-		GLM_FUNC_QUALIFIER static std::string call(vec<2, bool, Q> const& x)
+		GLM_FUNC_QUALIFIER static std::string call(vec<2, Bool, Q> const& x)
 		{
 			return detail::format("bvec2(%s, %s)",
 				x[0] ? detail::LabelTrue : detail::LabelFalse,
@@ -167,9 +167,9 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_to_string<vec<3, bool, Q> >
+	struct compute_to_string<vec<3, Bool, Q> >
 	{
-		GLM_FUNC_QUALIFIER static std::string call(vec<3, bool, Q> const& x)
+		GLM_FUNC_QUALIFIER static std::string call(vec<3, Bool, Q> const& x)
 		{
 			return detail::format("bvec3(%s, %s, %s)",
 				x[0] ? detail::LabelTrue : detail::LabelFalse,
@@ -179,9 +179,9 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_to_string<vec<4, bool, Q> >
+	struct compute_to_string<vec<4, Bool, Q> >
 	{
-		GLM_FUNC_QUALIFIER static std::string call(vec<4, bool, Q> const& x)
+		GLM_FUNC_QUALIFIER static std::string call(vec<4, Bool, Q> const& x)
 		{
 			return detail::format("bvec4(%s, %s, %s, %s)",
 				x[0] ? detail::LabelTrue : detail::LabelFalse,

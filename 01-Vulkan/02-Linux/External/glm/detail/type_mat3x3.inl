@@ -484,12 +484,12 @@ namespace glm
 
 	namespace detail
 	{
-		template<typename T, qualifier Q, bool is_aligned>
+		template<typename T, qualifier Q, Bool is_aligned>
 		struct mul3x3 {};
 
 #if GLM_CONFIG_SIMD == GLM_ENABLE
 		template<typename T, qualifier Q>
-		struct mul3x3<T, Q, true>
+		struct mul3x3<T, Q, True>
 		{
 			GLM_FUNC_QUALIFIER static mat<3, 3, T, Q> call(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
 			{
@@ -510,7 +510,7 @@ namespace glm
 		};
 #endif
 		template<typename T, qualifier Q>
-		struct mul3x3<T, Q, false>
+		struct mul3x3<T, Q, False>
 		{
 			GLM_FUNC_QUALIFIER static mat<3, 3, T, Q> call(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
 			{
@@ -618,13 +618,13 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator==(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator==(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
 	{
 		return (m1[0] == m2[0]) && (m1[1] == m2[1]) && (m1[2] == m2[2]);
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator!=(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator!=(mat<3, 3, T, Q> const& m1, mat<3, 3, T, Q> const& m2)
 	{
 		return (m1[0] != m2[0]) || (m1[1] != m2[1]) || (m1[2] != m2[2]);
 	}

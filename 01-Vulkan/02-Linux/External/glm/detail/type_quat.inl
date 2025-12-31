@@ -13,7 +13,7 @@ namespace detail
 		static const genTypeEnum GENTYPE = GENTYPE_QUAT;
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_dot<qua<T, Q>, T, Aligned>
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static T call(qua<T, Q> const& a, qua<T, Q> const& b)
@@ -23,7 +23,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_quat_add
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static qua<T, Q> call(qua<T, Q> const& q, qua<T, Q> const& p)
@@ -32,7 +32,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_quat_sub
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static qua<T, Q> call(qua<T, Q> const& q, qua<T, Q> const& p)
@@ -41,7 +41,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_quat_mul_scalar
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static qua<T, Q> call(qua<T, Q> const& q, T s)
@@ -50,7 +50,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_quat_div_scalar
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static qua<T, Q> call(qua<T, Q> const& q, T s)
@@ -59,7 +59,7 @@ namespace detail
 		}
 	};
 
-	template<typename T, qualifier Q, bool Aligned>
+	template<typename T, qualifier Q, Bool Aligned>
 	struct compute_quat_mul_vec4
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<4, T, Q> call(qua<T, Q> const& q, vec<4, T, Q> const& v)
@@ -406,13 +406,13 @@ namespace detail
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator==(qua<T, Q> const& q1, qua<T, Q> const& q2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator==(qua<T, Q> const& q1, qua<T, Q> const& q2)
 	{
 		return q1.x == q2.x && q1.y == q2.y && q1.z == q2.z && q1.w == q2.w;
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator!=(qua<T, Q> const& q1, qua<T, Q> const& q2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator!=(qua<T, Q> const& q1, qua<T, Q> const& q2)
 	{
 		return q1.x != q2.x || q1.y != q2.y || q1.z != q2.z || q1.w != q2.w;
 	}

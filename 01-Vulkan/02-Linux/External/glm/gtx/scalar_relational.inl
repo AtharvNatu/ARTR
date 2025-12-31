@@ -3,7 +3,7 @@
 namespace glm
 {
 	template<typename T>
-	GLM_FUNC_QUALIFIER bool lessThan
+	GLM_FUNC_QUALIFIER Bool lessThan
 	(
 		T const& x,
 		T const& y
@@ -13,7 +13,7 @@ namespace glm
 	}
 
 	template<typename T>
-	GLM_FUNC_QUALIFIER bool lessThanEqual
+	GLM_FUNC_QUALIFIER Bool lessThanEqual
 	(
 		T const& x,
 		T const& y
@@ -23,7 +23,7 @@ namespace glm
 	}
 
 	template<typename T>
-	GLM_FUNC_QUALIFIER bool greaterThan
+	GLM_FUNC_QUALIFIER Bool greaterThan
 	(
 		T const& x,
 		T const& y
@@ -33,7 +33,7 @@ namespace glm
 	}
 
 	template<typename T>
-	GLM_FUNC_QUALIFIER bool greaterThanEqual
+	GLM_FUNC_QUALIFIER Bool greaterThanEqual
 	(
 		T const& x,
 		T const& y
@@ -43,7 +43,7 @@ namespace glm
 	}
 
 	template<typename T>
-	GLM_FUNC_QUALIFIER bool equal
+	GLM_FUNC_QUALIFIER Bool equal
 	(
 		T const& x,
 		T const& y
@@ -53,7 +53,7 @@ namespace glm
 	}
 
 	template<typename T>
-	GLM_FUNC_QUALIFIER bool notEqual
+	GLM_FUNC_QUALIFIER Bool notEqual
 	(
 		T const& x,
 		T const& y
@@ -62,25 +62,25 @@ namespace glm
 		return !detail::compute_equal<T, std::numeric_limits<T>::is_iec559>::call(x, y);
 	}
 
-	GLM_FUNC_QUALIFIER bool any
+	GLM_FUNC_QUALIFIER Bool any
 	(
-		bool const& x
+		Bool const& x
 	)
 	{
 		return x;
 	}
 
-	GLM_FUNC_QUALIFIER bool all
+	GLM_FUNC_QUALIFIER Bool all
 	(
-		bool const& x
+		Bool const& x
 	)
 	{
 		return x;
 	}
 
-	GLM_FUNC_QUALIFIER bool not_
+	GLM_FUNC_QUALIFIER Bool not_
 	(
-		bool const& x
+		Bool const& x
 	)
 	{
 		return !x;

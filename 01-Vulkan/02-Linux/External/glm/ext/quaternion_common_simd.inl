@@ -4,7 +4,7 @@ namespace glm{
 namespace detail
 {
 	template<qualifier Q>
-	struct compute_dot<qua<float, Q>, float, true>
+	struct compute_dot<qua<float, Q>, float, True>
 	{
 		static GLM_FUNC_QUALIFIER float call(qua<float, Q> const& x, qua<float, Q> const& y)
 		{

@@ -20,7 +20,7 @@ namespace detail
 		}
 #	endif
 
-	template<length_t L, typename T, qualifier Q, bool isFloat, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool isFloat, Bool Aligned>
 	struct compute_log2
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& v)
@@ -31,7 +31,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_sqrt
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -40,7 +40,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, typename T, qualifier Q, bool Aligned>
+	template<length_t L, typename T, qualifier Q, Bool Aligned>
 	struct compute_inversesqrt
 	{
 		GLM_FUNC_QUALIFIER static vec<L, T, Q> call(vec<L, T, Q> const& x)
@@ -49,7 +49,7 @@ namespace detail
 		}
 	};
 
-	template<length_t L, bool Aligned>
+	template<length_t L, Bool Aligned>
 	struct compute_inversesqrt<L, float, lowp, Aligned>
 	{
 		GLM_FUNC_QUALIFIER static vec<L, float, lowp> call(vec<L, float, lowp> const& x)

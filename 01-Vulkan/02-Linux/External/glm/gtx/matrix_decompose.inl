@@ -30,13 +30,13 @@ namespace detail
 	// Decomposes the mode matrix to translations,rotation scale components
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER bool decompose(mat<4, 4, T, Q> const& ModelMatrix, vec<3, T, Q> & Scale, qua<T, Q> & Orientation, vec<3, T, Q> & Translation, vec<3, T, Q> & Skew, vec<4, T, Q> & Perspective)
+	GLM_FUNC_QUALIFIER Bool decompose(mat<4, 4, T, Q> const& ModelMatrix, vec<3, T, Q> & Scale, qua<T, Q> & Orientation, vec<3, T, Q> & Translation, vec<3, T, Q> & Skew, vec<4, T, Q> & Perspective)
 	{
 		mat<4, 4, T, Q> LocalMatrix(ModelMatrix);
 
 		// Normalize the matrix.
 		if(epsilonEqual(LocalMatrix[3][3], static_cast<T>(0), epsilon<T>()))
-			return false;
+			return False;
 
 		for(length_t i = 0; i < 4; ++i)
 		for(length_t j = 0; j < 4; ++j)
@@ -52,7 +52,7 @@ namespace detail
 
 		/// TODO: Fixme!
 		if(epsilonEqual(determinant(PerspectiveMatrix), static_cast<T>(0), epsilon<T>()))
-			return false;
+			return False;
 
 		// First, isolate perspective.  This is the messiest.
 		if(
@@ -188,7 +188,7 @@ namespace detail
 			Orientation.w = root * (Row[j][k] - Row[k][j]);
 		} // End if <= 0
 
-		return true;
+		return True;
 	}
 
 	// Recomposes a model matrix from a previously-decomposed matrix

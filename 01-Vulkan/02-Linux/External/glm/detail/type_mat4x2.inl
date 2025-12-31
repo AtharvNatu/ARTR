@@ -542,13 +542,13 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator==(mat<4, 2, T, Q> const& m1, mat<4, 2, T, Q> const& m2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator==(mat<4, 2, T, Q> const& m1, mat<4, 2, T, Q> const& m2)
 	{
 		return (m1[0] == m2[0]) && (m1[1] == m2[1]) && (m1[2] == m2[2]) && (m1[3] == m2[3]);
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator!=(mat<4, 2, T, Q> const& m1, mat<4, 2, T, Q> const& m2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator!=(mat<4, 2, T, Q> const& m1, mat<4, 2, T, Q> const& m2)
 	{
 		return (m1[0] != m2[0]) || (m1[1] != m2[1]) || (m1[2] != m2[2]) || (m1[3] != m2[3]);
 	}

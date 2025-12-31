@@ -28,11 +28,11 @@ namespace glm
 	/// @addtogroup ext_scalar_integer
 	/// @{
 
-	/// Return true if the value is a power of two number.
+	/// Return True if the value is a power of two number.
 	///
 	/// @see ext_scalar_integer
 	template<typename genIUType>
-	GLM_FUNC_DECL bool isPowerOfTwo(genIUType v);
+	GLM_FUNC_DECL Bool isPowerOfTwo(genIUType v);
 
 	/// Return the power of two number which value is just higher the input value,
 	/// round up to a power of two.
@@ -48,11 +48,11 @@ namespace glm
 	template<typename genIUType>
 	GLM_FUNC_DECL genIUType prevPowerOfTwo(genIUType v);
 
-	/// Return true if the 'Value' is a multiple of 'Multiple'.
+	/// Return True if the 'Value' is a multiple of 'Multiple'.
 	///
 	/// @see ext_scalar_integer
 	template<typename genIUType>
-	GLM_FUNC_DECL bool isMultiple(genIUType v, genIUType Multiple);
+	GLM_FUNC_DECL Bool isMultiple(genIUType v, genIUType Multiple);
 
 	/// Higher multiple number of Source.
 	///

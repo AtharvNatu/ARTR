@@ -10,7 +10,7 @@ namespace detail
 {
 #	if GLM_CONFIG_ALIGNED_GENTYPES == GLM_ENABLE
 	template<qualifier Q>
-	struct compute_matrixCompMult<4, 4, float, Q, true>
+	struct compute_matrixCompMult<4, 4, float, Q, True>
 	{
 		GLM_STATIC_ASSERT(detail::is_aligned<Q>::value, "Specialization requires aligned");
 
@@ -27,7 +27,7 @@ namespace detail
 #	endif
 
 	template<qualifier Q>
-	struct compute_transpose<4, 4, float, Q, true>
+	struct compute_transpose<4, 4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static mat<4, 4, float, Q> call(mat<4, 4, float, Q> const& m)
 		{
@@ -38,7 +38,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_transpose<3, 3, float, Q, true>
+	struct compute_transpose<3, 3, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static mat<3, 3, float, Q> call(mat<3, 3, float, Q> const& m)
 		{
@@ -49,7 +49,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_determinant<4, 4, float, Q, true>
+	struct compute_determinant<4, 4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static float call(mat<4, 4, float, Q> const& m)
 		{
@@ -58,7 +58,7 @@ namespace detail
 	};
 
 	template<qualifier Q>
-	struct compute_inverse<4, 4, float, Q, true>
+	struct compute_inverse<4, 4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static mat<4, 4, float, Q> call(mat<4, 4, float, Q> const& m)
 		{
@@ -135,7 +135,7 @@ namespace glm {
 namespace detail
 {
 	template<qualifier Q>
-	struct compute_inverse<4, 4, float, Q, true>
+	struct compute_inverse<4, 4, float, Q, True>
 	{
 		GLM_FUNC_QUALIFIER static mat<4, 4, float, Q> call(mat<4, 4, float, Q> const& m)
 		{

@@ -996,27 +996,27 @@ namespace detail
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator==(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator==(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
 	{
 		return detail::compute_vec_equal<4, T, Q, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<Q>::value>::call(v1, v2);
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator!=(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator!=(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
 	{
 		return detail::compute_vec_nequal<4, T, Q, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<Q>::value>::call(v1, v2);
 	}
 
 	template<qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, bool, Q> operator&&(vec<4, bool, Q> const& v1, vec<4, bool, Q> const& v2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, Bool, Q> operator&&(vec<4, Bool, Q> const& v1, vec<4, Bool, Q> const& v2)
 	{
-		return vec<4, bool, Q>(v1.x && v2.x, v1.y && v2.y, v1.z && v2.z, v1.w && v2.w);
+		return vec<4, Bool, Q>(v1.x && v2.x, v1.y && v2.y, v1.z && v2.z, v1.w && v2.w);
 	}
 
 	template<qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, bool, Q> operator||(vec<4, bool, Q> const& v1, vec<4, bool, Q> const& v2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, Bool, Q> operator||(vec<4, Bool, Q> const& v1, vec<4, Bool, Q> const& v2)
 	{
-		return vec<4, bool, Q>(v1.x || v2.x, v1.y || v2.y, v1.z || v2.z, v1.w || v2.w);
+		return vec<4, Bool, Q>(v1.x || v2.x, v1.y || v2.y, v1.z || v2.z, v1.w || v2.w);
 	}
 }//namespace glm
 

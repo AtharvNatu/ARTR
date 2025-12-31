@@ -629,11 +629,11 @@ namespace glm
 
 	namespace detail
 	{
-		template<typename T, qualifier Q, bool is_aligned>
+		template<typename T, qualifier Q, Bool is_aligned>
 		struct mul4x4 {};
 
 		template<typename T, qualifier Q>
-		struct mul4x4<T, Q, true>
+		struct mul4x4<T, Q, True>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static mat<4, 4, T, Q> call(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
 			{
@@ -657,7 +657,7 @@ namespace glm
 		};
 
 		template<typename T, qualifier Q>
-		struct mul4x4<T, Q, false>
+		struct mul4x4<T, Q, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static mat<4, 4, T, Q> call(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
 			{
@@ -748,13 +748,13 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator==(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator==(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
 	{
 		return (m1[0] == m2[0]) && (m1[1] == m2[1]) && (m1[2] == m2[2]) && (m1[3] == m2[3]);
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR bool operator!=(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR Bool operator!=(mat<4, 4, T, Q> const& m1, mat<4, 4, T, Q> const& m2)
 	{
 		return (m1[0] != m2[0]) || (m1[1] != m2[1]) || (m1[2] != m2[2]) || (m1[3] != m2[3]);
 	}

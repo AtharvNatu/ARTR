@@ -6,50 +6,50 @@
 namespace glm {
 	namespace detail
 	{
-		template<length_t L, typename T, qualifier Q, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, Bool UseSimd>
 		struct compute_vec_add {};
 
-		template<length_t L, typename T, qualifier Q, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, Bool UseSimd>
 		struct compute_vec_sub {};
 
-		template<length_t L, typename T, qualifier Q, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, Bool UseSimd>
 		struct compute_vec_mul {};
 
-		template<length_t L, typename T, qualifier Q, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, Bool UseSimd>
 		struct compute_vec_div {};
 
-		template<length_t L, typename T, qualifier Q, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, Bool UseSimd>
 		struct compute_vec_mod {};
 
-		template<length_t L, typename T, qualifier Q, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, Bool UseSimd>
 		struct compute_splat {};
 
-		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, Bool UseSimd>
 		struct compute_vec_and {};
 
-		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, Bool UseSimd>
 		struct compute_vec_or {};
 
-		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, Bool UseSimd>
 		struct compute_vec_xor {};
 
-		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, Bool UseSimd>
 		struct compute_vec_shift_left {};
 
-		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, Bool UseSimd>
 		struct compute_vec_shift_right {};
 
-		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, Bool UseSimd>
 		struct compute_vec_equal {};
 
-		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, Bool UseSimd>
 		struct compute_vec_nequal {};
 
-		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, bool UseSimd>
+		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size, Bool UseSimd>
 		struct compute_vec_bitwise_not {};
 
 		template<length_t L, typename T, qualifier Q>
-		struct compute_vec_add<L, T, Q, false>
+		struct compute_vec_add<L, T, Q, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -58,7 +58,7 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q>
-		struct compute_vec_sub<L, T, Q, false>
+		struct compute_vec_sub<L, T, Q, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -67,7 +67,7 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q>
-		struct compute_vec_mul<L, T, Q, false>
+		struct compute_vec_mul<L, T, Q, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -76,7 +76,7 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q>
-		struct compute_vec_div<L, T, Q, false>
+		struct compute_vec_div<L, T, Q, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -85,7 +85,7 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q>
-		struct compute_vec_mod<L, T, Q, false>
+		struct compute_vec_mod<L, T, Q, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -94,7 +94,7 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size>
-		struct compute_vec_and<L, T, Q, IsInt, Size, false>
+		struct compute_vec_and<L, T, Q, IsInt, Size, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -106,7 +106,7 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size>
-		struct compute_vec_or<L, T, Q, IsInt, Size, false>
+		struct compute_vec_or<L, T, Q, IsInt, Size, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -118,7 +118,7 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size>
-		struct compute_vec_xor<L, T, Q, IsInt, Size, false>
+		struct compute_vec_xor<L, T, Q, IsInt, Size, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -130,7 +130,7 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size>
-		struct compute_vec_shift_left<L, T, Q, IsInt, Size, false>
+		struct compute_vec_shift_left<L, T, Q, IsInt, Size, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -142,7 +142,7 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size>
-		struct compute_vec_shift_right<L, T, Q, IsInt, Size, false>
+		struct compute_vec_shift_right<L, T, Q, IsInt, Size, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a, vec<L, T, Q> const& b)
 			{
@@ -154,11 +154,11 @@ namespace glm {
 		};
 		
 		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size>
-		struct compute_vec_equal<L, T, Q, IsInt, Size, false>
+		struct compute_vec_equal<L, T, Q, IsInt, Size, False>
 		{
-			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static bool call(vec<L, T, Q> const& v1, vec<L, T, Q> const& v2)
+			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static Bool call(vec<L, T, Q> const& v1, vec<L, T, Q> const& v2)
 			{
-				bool b = true;
+				Bool b = True;
 				for (length_t i = 0; b && i < L; ++i)
 					b = detail::compute_equal<T, std::numeric_limits<T>::is_iec559>::call(v1[i], v2[i]);
 				return b;
@@ -166,16 +166,16 @@ namespace glm {
 		};
 
 		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size>
-		struct compute_vec_nequal<L, T, Q, IsInt, Size, false>
+		struct compute_vec_nequal<L, T, Q, IsInt, Size, False>
 		{
-			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static bool call(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
+			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static Bool call(vec<4, T, Q> const& v1, vec<4, T, Q> const& v2)
 			{
 				return !compute_vec_equal<L, T, Q, detail::is_int<T>::value, sizeof(T) * 8, detail::is_aligned<Q>::value>::call(v1, v2);
 			}
 		};
 
 		template<length_t L, typename T, qualifier Q, int IsInt, std::size_t Size>
-		struct compute_vec_bitwise_not<L, T, Q, IsInt, Size, false>
+		struct compute_vec_bitwise_not<L, T, Q, IsInt, Size, False>
 		{
 			GLM_FUNC_QUALIFIER GLM_CONSTEXPR static vec<L, T, Q> call(vec<L, T, Q> const& a)
 			{

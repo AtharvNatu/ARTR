@@ -202,13 +202,13 @@ namespace glm
 	// -- Boolean operators --
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER bool operator==(tdualquat<T, Q> const& q1, tdualquat<T, Q> const& q2)
+	GLM_FUNC_QUALIFIER Bool operator==(tdualquat<T, Q> const& q1, tdualquat<T, Q> const& q2)
 	{
 		return (q1.real == q2.real) && (q1.dual == q2.dual);
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER bool operator!=(tdualquat<T, Q> const& q1, tdualquat<T, Q> const& q2)
+	GLM_FUNC_QUALIFIER Bool operator!=(tdualquat<T, Q> const& q1, tdualquat<T, Q> const& q2)
 	{
 		return (q1.real != q2.real) || (q1.dual != q2.dual);
 	}

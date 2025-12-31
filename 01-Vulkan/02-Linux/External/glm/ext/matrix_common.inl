@@ -16,7 +16,7 @@ namespace glm
 		return matrixCompMult(mat<C, R, U, Q>(x), static_cast<U>(1) - a) + matrixCompMult(mat<C, R, U, Q>(y), a);
 	}
 
-	template<length_t C, length_t R, typename T, qualifier Q, bool Aligned>
+	template<length_t C, length_t R, typename T, qualifier Q, Bool Aligned>
 	struct compute_abs_matrix
 	{
 		GLM_FUNC_QUALIFIER GLM_CONSTEXPR static mat<C, R, T, Q> call(mat<C, R, T, Q> const& x)

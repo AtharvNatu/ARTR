@@ -12,14 +12,14 @@ namespace glm
 		T const epsilon =
 		    std::numeric_limits<T>::epsilon() * static_cast<T>(1e2);
 
-        bool const nearSymmetrical =
+        Bool const nearSymmetrical =
             abs(m[1][0] - m[0][1]) < epsilon &&
             abs(m[2][0] - m[0][2]) < epsilon &&
             abs(m[2][1] - m[1][2]) < epsilon;
 
 		if(nearSymmetrical)
 		{
-            bool const nearIdentity =
+            Bool const nearIdentity =
                 abs(m[1][0] + m[0][1]) < epsilon &&
                 abs(m[2][0] + m[0][2]) < epsilon &&
                 abs(m[2][1] + m[1][2]) < epsilon &&

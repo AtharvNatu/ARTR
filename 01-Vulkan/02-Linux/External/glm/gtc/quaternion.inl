@@ -117,7 +117,7 @@ namespace glm
 		case 3:
 			return qua<T, Q>::wxyz((m[0][1] - m[1][0]) * mult, (m[2][0] + m[0][2]) * mult, (m[1][2] + m[2][1]) * mult, biggestVal);
 		default: // Silence a -Wswitch-default warning in GCC. Should never actually get here. Assert is just for sanity.
-			assert(false);
+			assert(False);
 			return qua<T, Q>::wxyz(1, 0, 0, 0);
 		}
 	}
@@ -129,36 +129,36 @@ namespace glm
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, bool, Q> lessThan(qua<T, Q> const& x, qua<T, Q> const& y)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, Bool, Q> lessThan(qua<T, Q> const& x, qua<T, Q> const& y)
 	{
-		vec<4, bool, Q> Result(false, false, false, false);
+		vec<4, Bool, Q> Result(False, False, False, False);
 		for(length_t i = 0; i < x.length(); ++i)
 			Result[i] = x[i] < y[i];
 		return Result;
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, bool, Q> lessThanEqual(qua<T, Q> const& x, qua<T, Q> const& y)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, Bool, Q> lessThanEqual(qua<T, Q> const& x, qua<T, Q> const& y)
 	{
-		vec<4, bool, Q> Result(false, false, false, false);
+		vec<4, Bool, Q> Result(False, False, False, False);
 		for(length_t i = 0; i < x.length(); ++i)
 			Result[i] = x[i] <= y[i];
 		return Result;
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, bool, Q> greaterThan(qua<T, Q> const& x, qua<T, Q> const& y)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, Bool, Q> greaterThan(qua<T, Q> const& x, qua<T, Q> const& y)
 	{
-		vec<4, bool, Q> Result(false, false, false, false);
+		vec<4, Bool, Q> Result(False, False, False, False);
 		for(length_t i = 0; i < x.length(); ++i)
 			Result[i] = x[i] > y[i];
 		return Result;
 	}
 
 	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, bool, Q> greaterThanEqual(qua<T, Q> const& x, qua<T, Q> const& y)
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR vec<4, Bool, Q> greaterThanEqual(qua<T, Q> const& x, qua<T, Q> const& y)
 	{
-		vec<4, bool, Q> Result(false, false, false, false);
+		vec<4, Bool, Q> Result(False, False, False, False);
 		for(length_t i = 0; i < x.length(); ++i)
 			Result[i] = x[i] >= y[i];
 		return Result;

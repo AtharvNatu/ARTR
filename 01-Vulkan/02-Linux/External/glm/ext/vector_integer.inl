@@ -3,7 +3,7 @@
 namespace glm
 {
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<L, bool, Q> isPowerOfTwo(vec<L, T, Q> const& Value)
+	GLM_FUNC_QUALIFIER vec<L, Bool, Q> isPowerOfTwo(vec<L, T, Q> const& Value)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<T>::is_integer, "'isPowerOfTwo' only accept integer inputs");
 
@@ -28,7 +28,7 @@ namespace glm
 	}
 
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<L, bool, Q> isMultiple(vec<L, T, Q> const& Value, T Multiple)
+	GLM_FUNC_QUALIFIER vec<L, Bool, Q> isMultiple(vec<L, T, Q> const& Value, T Multiple)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<T>::is_integer, "'isMultiple' only accept integer inputs");
 
@@ -36,7 +36,7 @@ namespace glm
 	}
 
 	template<length_t L, typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<L, bool, Q> isMultiple(vec<L, T, Q> const& Value, vec<L, T, Q> const& Multiple)
+	GLM_FUNC_QUALIFIER vec<L, Bool, Q> isMultiple(vec<L, T, Q> const& Value, vec<L, T, Q> const& Multiple)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<T>::is_integer, "'isMultiple' only accept integer inputs");
 

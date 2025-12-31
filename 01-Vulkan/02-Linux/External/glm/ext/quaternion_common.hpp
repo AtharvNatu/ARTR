@@ -105,9 +105,9 @@ namespace glm
 	template<typename T, qualifier Q>
 	GLM_FUNC_DECL GLM_CONSTEXPR qua<T, Q> inverse(qua<T, Q> const& q);
 
-	/// Returns true if x holds a NaN (not a number)
+	/// Returns True if x holds a NaN (not a number)
 	/// representation in the underlying implementation's set of
-	/// floating point representations. Returns false otherwise,
+	/// floating point representations. Returns False otherwise,
 	/// including for implementations with no NaN
 	/// representations.
 	///
@@ -116,18 +116,18 @@ namespace glm
 	/// @tparam T A floating-point scalar type
 	/// @tparam Q A value from qualifier enum
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL vec<4, bool, Q> isnan(qua<T, Q> const& x);
+	GLM_FUNC_DECL vec<4, Bool, Q> isnan(qua<T, Q> const& x);
 
-	/// Returns true if x holds a positive infinity or negative
+	/// Returns True if x holds a positive infinity or negative
 	/// infinity representation in the underlying implementation's
-	/// set of floating point representations. Returns false
+	/// set of floating point representations. Returns False
 	/// otherwise, including for implementations with no infinity
 	/// representations.
 	///
 	/// @tparam T A floating-point scalar type
 	/// @tparam Q A value from qualifier enum
 	template<typename T, qualifier Q>
-	GLM_FUNC_DECL vec<4, bool, Q> isinf(qua<T, Q> const& x);
+	GLM_FUNC_DECL vec<4, Bool, Q> isinf(qua<T, Q> const& x);
 
 	/// @}
 } //namespace glm

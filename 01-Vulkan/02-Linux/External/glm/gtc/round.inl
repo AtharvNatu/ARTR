@@ -6,11 +6,11 @@
 namespace glm{
 namespace detail
 {
-	template<bool is_float, bool is_signed>
+	template<Bool is_float, Bool is_signed>
 	struct compute_roundMultiple {};
 
 	template<>
-	struct compute_roundMultiple<true, true>
+	struct compute_roundMultiple<True, True>
 	{
 		template<typename genType>
 		GLM_FUNC_QUALIFIER static genType call(genType Source, genType Multiple)
@@ -26,7 +26,7 @@ namespace detail
 	};
 
 	template<>
-	struct compute_roundMultiple<false, false>
+	struct compute_roundMultiple<False, False>
 	{
 		template<typename genType>
 		GLM_FUNC_QUALIFIER static genType call(genType Source, genType Multiple)
@@ -42,7 +42,7 @@ namespace detail
 	};
 
 	template<>
-	struct compute_roundMultiple<false, true>
+	struct compute_roundMultiple<False, True>
 	{
 		template<typename genType>
 		GLM_FUNC_QUALIFIER static genType call(genType Source, genType Multiple)
