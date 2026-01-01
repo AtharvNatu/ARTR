@@ -4128,13 +4128,13 @@ VkResult createPipeline(void)
     //! CPU Position
     vkVertexInputAttributeDescription_array[0].binding = 0;
     vkVertexInputAttributeDescription_array[0].location = 0;
-    vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     vkVertexInputAttributeDescription_array[0].offset = 0;
     
     //! GPU Position
     vkVertexInputAttributeDescription_array[1].binding = 1;
     vkVertexInputAttributeDescription_array[1].location = 1;
-    vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     vkVertexInputAttributeDescription_array[1].offset = 0;
     
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
