@@ -288,7 +288,7 @@ VkResult initialize(void)
     // Code
     vkResult = createVulkanInstance();
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createVulkanInstance() Failed !!!\n", __func__);
+        fprintf(gpFile, "%s() => createVulkanInstance() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => createVulkanInstance() Succeeded\n", __func__);
 

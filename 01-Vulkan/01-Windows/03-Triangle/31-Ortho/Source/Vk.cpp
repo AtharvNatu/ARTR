@@ -1068,7 +1068,7 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet Successfully\n", __func__);
     }
 
-   //* Step - 5 of PipelineLayout
+    //* Step - 5 of PipelineLayout
     if (vkPipelineLayout)
     {
         vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, NULL);

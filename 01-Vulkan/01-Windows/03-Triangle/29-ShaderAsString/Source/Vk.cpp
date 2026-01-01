@@ -2594,7 +2594,6 @@ void initBuiltInResources(TBuiltInResource& Resources)
 	Resources.limits.generalConstantMatrixVectorIndexing = 1;
 }
 
-
 VkResult createDescriptorSetLayout(void)
 {
     // Variable Declarations
@@ -2615,7 +2614,6 @@ VkResult createDescriptorSetLayout(void)
         fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Succeeded\n", __func__);
-
 
     return vkResult;
 }

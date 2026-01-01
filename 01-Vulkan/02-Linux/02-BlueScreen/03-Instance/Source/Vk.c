@@ -26,7 +26,7 @@
 #define _ARRAYSIZE(x)       (sizeof(x) / sizeof((x)[0]))
 
 // Global Variable Declarations
-const char *gpszAppName = "ARTR";
+const char *gpSzAppName = "ARTR";
 Display *gpDisplay = NULL;
 XVisualInfo *gpXVisualInfo = NULL;
 Colormap colormap;
@@ -46,7 +46,13 @@ FILE* gpFile = NULL;
 
 //? Instance Extensions Related Variables
 uint32_t enabledInstanceExtensionCount = 0;
-const char *enabledInstanceExtensionNames_array[2];     //* VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_EXTENSION_NAME
+
+//* VK_KHR_SURFACE_EXTENSION_NAME
+//* VK_KHR_XLIB_SURFACE_EXTENSION_NAME
+const char *enabledInstanceExtensionNames_array[2];     
+
+//? Vulkan Instance
+VkInstance vkInstance = VK_NULL_HANDLE;
 
 // Entry Point Function
 int main(void)
@@ -153,7 +159,7 @@ int main(void)
     }
 
     //* Set Window Caption
-    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan");
+    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan Instance");
 
     //* Prepare Window to respond to Window Manager's Close Event
     windowManagerDeleteAtom = XInternAtom(gpDisplay, "WM_DELETE_WINDOW", True);
@@ -389,17 +395,17 @@ Bool isWindowMinimized(void)
 VkResult initialize(void)
 {
     // Function Declarations
-    VkResult fillInstanceExtensionNames(void);
+    VkResult createVulkanInstance(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    vkResult = fillInstanceExtensionNames();
+    vkResult = createVulkanInstance();
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => fillInstanceExtensionNames() Failed !!!\n", __func__);
+        fprintf(gpFile, "%s() => createVulkanInstance() Failed : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => fillInstanceExtensionNames() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => createVulkanInstance() Succeeded\n", __func__);
 
     return vkResult;
 }
@@ -455,6 +461,14 @@ void uninitialize(void)
         gpDisplay = NULL;
     }
 
+    //* Step - 5 of Instance Creation
+    if (vkInstance)
+    {
+        vkDestroyInstance(vkInstance, NULL);
+        vkInstance = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyInstance() Succeeded\n", __func__);
+    }
+
     if (gpFile)
     {
         fprintf(gpFile, "Program Terminated Successfully => uninitialize()\n");
@@ -465,6 +479,69 @@ void uninitialize(void)
 }
 
 //! Definition of Vulkan Related Functions
+VkResult createVulkanInstance(void)
+{
+    // Function Declarations
+    VkResult fillInstanceExtensionNames(void);
+
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+
+    //* Step - 1
+    vkResult = fillInstanceExtensionNames();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => fillInstanceExtensionNames() Failed : %d !!!\n", __func__, vkResult);
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }      
+    else
+        fprintf(gpFile, "%s() => fillInstanceExtensionNames() Succeeded\n", __func__);
+
+    //* Step - 2
+    VkApplicationInfo vkApplicationInfo;
+    memset((void*)&vkApplicationInfo, 0, sizeof(VkApplicationInfo));
+    vkApplicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    vkApplicationInfo.pNext = NULL;
+    vkApplicationInfo.pApplicationName = gpSzAppName;
+    vkApplicationInfo.applicationVersion = 1;
+    vkApplicationInfo.pEngineName = gpSzAppName;
+    vkApplicationInfo.engineVersion = 1;
+    vkApplicationInfo.apiVersion = VK_API_VERSION_1_4;
+
+    //* Step - 3
+    VkInstanceCreateInfo vkInstanceCreateInfo;
+    memset((void*)&vkInstanceCreateInfo, 0, sizeof(VkInstanceCreateInfo));
+    vkInstanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    vkInstanceCreateInfo.pNext = NULL;
+    vkInstanceCreateInfo.pApplicationInfo = &vkApplicationInfo;
+    vkInstanceCreateInfo.enabledExtensionCount = enabledInstanceExtensionCount;
+    vkInstanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensionNames_array;
+        
+    //* Step - 4
+    vkResult = vkCreateInstance(&vkInstanceCreateInfo, NULL, &vkInstance);
+    if (vkResult == VK_ERROR_INCOMPATIBLE_DRIVER)
+    {
+        fprintf(gpFile, "%s() => vkCreateInstance() Failed Due To Incompatible Driver : %d!!!\n", __func__, vkResult);
+        return vkResult;
+    } 
+    else if (vkResult == VK_ERROR_EXTENSION_NOT_PRESENT)
+    {
+        fprintf(gpFile, "%s() => vkCreateInstance() Failed Because Required Extension Is Not Present : %d!!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkCreateInstance() Failed : %d!!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else 
+        fprintf(gpFile, "%s() => vkCreateInstance() Succeeded\n", __func__);
+
+    return vkResult;
+}
+
 VkResult fillInstanceExtensionNames(void)
 {
     // Variable Declarations
@@ -479,4 +556,121 @@ VkResult fillInstanceExtensionNames(void)
         fprintf(gpFile, "%s() => Call 1 : vkEnumerateInstanceExtensionProperties() Failed !!!\n", __func__);
     else
         fprintf(gpFile, "%s() => Call 1 : vkEnumerateInstanceExtensionProperties() Succeeded\n", __func__);
+
+    //* Step - 2
+    VkExtensionProperties *vkExtensionProperties_array = NULL;
+    vkExtensionProperties_array = (VkExtensionProperties*)malloc(instanceExtensionCount * sizeof(VkExtensionProperties));
+    if (vkExtensionProperties_array == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For vkExtensionProperties_array !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    vkResult = vkEnumerateInstanceExtensionProperties(NULL, &instanceExtensionCount, vkExtensionProperties_array);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => Call 2 : vkEnumerateInstanceExtensionProperties() Failed !!!\n", __func__);
+    else
+        fprintf(gpFile, "%s() => Call 2 : vkEnumerateInstanceExtensionProperties() Succeeded\n", __func__);
+
+    //* Step - 3
+    char **instanceExtensionNames_array = NULL;
+    instanceExtensionNames_array = (char**)malloc(sizeof(char*) * instanceExtensionCount);
+    if (instanceExtensionNames_array == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For instanceExtensionNames_array !!!\n", __func__);
+        if (vkExtensionProperties_array)
+        {
+            free(vkExtensionProperties_array);
+            vkExtensionProperties_array = NULL;
+        }
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    for (uint32_t i = 0; i < instanceExtensionCount; i++)
+    {
+        instanceExtensionNames_array[i] = (char*)malloc(sizeof(char) * (strlen(vkExtensionProperties_array[i].extensionName) + 1));
+        if (instanceExtensionNames_array[i] == NULL)
+        {
+            fprintf(gpFile, "%s() => malloc() Failed For instanceExtensionNames_array[%d] !!!\n", __func__, i);
+            if (instanceExtensionNames_array)
+            {
+                free(instanceExtensionNames_array);
+                instanceExtensionNames_array = NULL;
+            }
+            if (vkExtensionProperties_array)
+            {
+                free(vkExtensionProperties_array);
+                vkExtensionProperties_array = NULL;
+            }
+            return VK_ERROR_OUT_OF_HOST_MEMORY;
+        }
+
+        memcpy(instanceExtensionNames_array[i], vkExtensionProperties_array[i].extensionName, strlen(vkExtensionProperties_array[i].extensionName) + 1);
+
+        fprintf(gpFile, "%s() => Vulkan Extension Name : %s\n", __func__, instanceExtensionNames_array[i]);
+    }
+
+    //* Step - 4
+    if (vkExtensionProperties_array)
+    {
+        free(vkExtensionProperties_array);
+        vkExtensionProperties_array = NULL;
+    }
+
+    //* Step - 5
+    VkBool32 vulkanSurfaceExtensionFound = VK_FALSE;
+    VkBool32 xlibSurfaceExtensionFound = VK_FALSE;
+
+    for (uint32_t i = 0; i < instanceExtensionCount; i++)
+    {
+        if (strcmp(instanceExtensionNames_array[i], VK_KHR_SURFACE_EXTENSION_NAME) == 0)
+        {
+            vulkanSurfaceExtensionFound = VK_TRUE;
+            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_SURFACE_EXTENSION_NAME;
+        }
+           
+        if (strcmp(instanceExtensionNames_array[i], VK_KHR_XLIB_SURFACE_EXTENSION_NAME) == 0)
+        {
+            xlibSurfaceExtensionFound = VK_TRUE;
+            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_XLIB_SURFACE_EXTENSION_NAME;
+        } 
+    }
+
+    //* Step - 6
+    if (instanceExtensionNames_array)
+    {
+        for (uint32_t i = 0; i < instanceExtensionCount; i++)
+        {
+            free(instanceExtensionNames_array[i]);
+            instanceExtensionNames_array[i] = NULL;
+        }
+        free(instanceExtensionNames_array);
+        instanceExtensionNames_array = NULL;
+    }
+    
+    //* Step - 7
+    if (vulkanSurfaceExtensionFound == VK_FALSE)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => VK_KHR_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => VK_KHR_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
+
+    if (xlibSurfaceExtensionFound == VK_FALSE)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => VK_KHR_XLIB_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => VK_KHR_XLIB_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
+
+    //* Step - 8
+    for (uint32_t i = 0; i < enabledInstanceExtensionCount; i++)
+        fprintf(gpFile, "%s() => Enabled Vulkan Instance Extension Name : %s\n", __func__, enabledInstanceExtensionNames_array[i]);
+
+    return vkResult;
 }
+

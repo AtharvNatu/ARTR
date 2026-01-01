@@ -7,7 +7,8 @@
                 "C:\\VulkanSDK\\Vulkan\\Include",
                 "C:\\VulkanSDK\\Vulkan\\Include\\glslang",
                 "C:\\VulkanSDK\\Vulkan\\Include\\glm",
-                "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\include"
+                "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\include",
+                "/usr/include/glslang"
             ],
             "defines": [
                 "_DEBUG",
@@ -25,6 +26,7 @@
             "includePath": [
                 "/home/atharv/Desktop/Workspace/ARTR/**",
                 "/home/atharv/VulkanSDK/Vulkan/x86_64/include",
+                "/home/atharv/VulkanSDK/Vulkan/x86_64/include/glslang",
                 "/home/atharv/Desktop/Workspace/ARTR/01-Vulkan/02-Linux/External/glm"
             ],
             "defines": [

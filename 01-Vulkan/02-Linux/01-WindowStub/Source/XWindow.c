@@ -15,7 +15,7 @@
 #define WIN_HEIGHT      600
 
 // Global Variable Declarations
-const char *gpszAppName = "ARTR";
+const char *gpSzAppName = "ARTR";
 Display *gpDisplay = NULL;
 XVisualInfo *gpXVisualInfo = NULL;
 Colormap colormap;
