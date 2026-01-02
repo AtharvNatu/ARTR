@@ -349,43 +349,48 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                 case 49:
                     meshWidth = 64;
                     meshHeight = 64;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 50:
                     meshWidth = 128;
                     meshHeight = 128;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 51:
                     meshWidth = 256;
                     meshHeight = 256;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 52:
                     meshWidth = 512;
                     meshHeight = 512;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 53:
                     meshWidth = 1024;
                     meshHeight = 1024;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 54:
                     meshWidth = 2048;
                     meshHeight = 2048;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 55:
                     meshWidth = 4096;
                     meshHeight = 4096;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 default:
                 break;
             }
-
-            meshArraySize = meshWidth * meshHeight * meshDepth;
 
         break;
 

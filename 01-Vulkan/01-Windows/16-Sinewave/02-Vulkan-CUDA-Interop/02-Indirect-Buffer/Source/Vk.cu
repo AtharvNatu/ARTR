@@ -386,43 +386,50 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                 case 49:
                     meshWidth = 64;
                     meshHeight = 64;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 50:
                     meshWidth = 128;
                     meshHeight = 128;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 51:
                     meshWidth = 256;
                     meshHeight = 256;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 52:
                     meshWidth = 512;
                     meshHeight = 512;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 53:
                     meshWidth = 1024;
                     meshHeight = 1024;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 54:
                     meshWidth = 2048;
                     meshHeight = 2048;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 case 55:
                     meshWidth = 4096;
                     meshHeight = 4096;
+                    meshArraySize = meshWidth * meshHeight * meshDepth;
                 break;
 
                 default:
                 break;
             }
 
-            meshArraySize = meshWidth * meshHeight * meshDepth;
+            
 
         break;
 
@@ -1588,7 +1595,6 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external.vkBuffer\n", __func__);
     }
 
-
     //* Step - 14 of Vertex Buffer
     if (vertexData_indirect_buffer.vkDeviceMemory)
     {
@@ -2591,11 +2597,11 @@ VkResult fillDeviceExtensionNames(void)
     if (vulkanExternalMemoryWin32ExtensionFound == VK_FALSE)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        fprintf(gpFile, "%s() => VK_KHR_external_memory_win32 Extension Not Found !!!\n", __func__);
+        fprintf(gpFile, "%s() => VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME Extension Not Found !!!\n", __func__);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => VK_KHR_external_memory_win32 Extension Found\n", __func__);
+        fprintf(gpFile, "%s() => VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME Extension Found\n", __func__);
 
 
     //* Step - 8

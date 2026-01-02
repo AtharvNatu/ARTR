@@ -355,40 +355,45 @@ int main(void)
                         case XK_1:
                             meshWidth = 64;
                             meshHeight = 64;
+                            meshArraySize = meshWidth * meshHeight * meshDepth;
                         break;
 
                         case XK_2:
                             meshWidth = 128;
                             meshHeight = 128;
+                            meshArraySize = meshWidth * meshHeight * meshDepth;
                         break;
 
                         case XK_3:
                             meshWidth = 256;
                             meshHeight = 256;
+                            meshArraySize = meshWidth * meshHeight * meshDepth;
                         break;
 
                         case XK_4:
                             meshWidth = 512;
                             meshHeight = 512;
+                            meshArraySize = meshWidth * meshHeight * meshDepth;
                         break;
 
                         case XK_5:
                             meshWidth = 1024;
                             meshHeight = 1024;
+                            meshArraySize = meshWidth * meshHeight * meshDepth;
                         break;
 
                         case XK_6:
                             meshWidth = 2048;
                             meshHeight = 2048;
+                            meshArraySize = meshWidth * meshHeight * meshDepth;
                         break;
 
                         case XK_7:
                             meshWidth = 4096;
                             meshHeight = 4096;
+                            meshArraySize = meshWidth * meshHeight * meshDepth;
                         break;
                     }
-
-                    meshArraySize = meshWidth * meshHeight * meshDepth;
 
                     XLookupString(&event.xkey, keys, sizeof(keys), NULL, NULL);
                     switch(keys[0])
