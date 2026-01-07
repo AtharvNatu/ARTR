@@ -7,6 +7,9 @@ set VULKAN_INCLUDE_PATH="C:\\VulkanSDK\\Vulkan\\Include"
 set VULKAN_LIB_PATH="C:\\VulkanSDK\Vulkan\\Lib"
 set VULKAN_BIN_PATH="C:\\VulkanSDK\\Vulkan\\Bin"
 
+set OPENCL_INCLUDE_PATH="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\include"
+set OPENCL_LIB_PATH="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\lib\\x64"
+
 set SOURCE_PATH=Source
 set INCLUDE_PATH=Include
 set IMAGES_PATH=Assets\Images
@@ -30,6 +33,7 @@ cl.exe  /c ^
         /EHsc ^
         /I %VULKAN_INCLUDE_PATH% ^
         /I %VULKAN_INCLUDE_PATH%\glm ^
+        /I %OPENCL_INCLUDE_PATH% ^
         /I %INCLUDE_PATH% ^
         %SOURCE_PATH%\Vk.cpp
 
@@ -85,6 +89,7 @@ link.exe ^
         %BIN_DIR%\*.obj ^
         %BIN_DIR%\Vk.res ^
         /LIBPATH:%VULKAN_LIB_PATH% ^
+        /LIBPATH:%OPENCL_LIB_PATH% ^
         user32.lib gdi32.lib^
         /SUBSYSTEM:WINDOWS
 

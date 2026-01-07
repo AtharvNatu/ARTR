@@ -3,9 +3,10 @@
 
 layout(location = 0) in vec4 vPosition;
 
-layout(binding = 0) uniform mvpData 
+layout(binding = 0) uniform uniformData 
 { 
     mat4 mvpMatrix;
+    vec4 color;
 } ubo;
 
 void main(void)

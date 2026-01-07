@@ -442,14 +442,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                     ToggleFullScreen();
                 break;
 
-                case 'I':
-                case 'i':
-                    onGPU = FALSE;
-                break;
-
-                case 'N':
-                case 'n':
-                    onGPU = TRUE;
+                case 'T':
+                case 't':
+                    onGPU = !onGPU;
                 break;
 
                 case 'O':
