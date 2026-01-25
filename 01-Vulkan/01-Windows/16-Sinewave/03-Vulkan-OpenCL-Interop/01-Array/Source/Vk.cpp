@@ -619,7 +619,8 @@ VkResult initialize(void)
 
     //! OpenCL Related Function Declarations
     cl_int initializeOpenCL(void);
-    // VkResult createExternalVertexBuffer(uint32_t, uint32_t, VertexData*);
+    const char* oclGetErrorString(cl_int error);
+    VkResult createExternalVertexBuffer(uint32_t, uint32_t, VertexData*);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -638,7 +639,7 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => getSupportedSurface() Succeeded\n", __func__);
 
-    //! Enumerate and Selected Required Physical Device and its Queue Family Index
+    //! Enumerate and Select Required Physical Device and its Queue Family Index
     vkResult = getPhysicalDevice();
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => getPhysicalDevice() Failed : %d !!!\n", __func__, vkResult);
@@ -666,7 +667,7 @@ VkResult initialize(void)
     oclResult = initializeOpenCL();
     if (oclResult != CL_SUCCESS)
     {
-        fprintf(gpFile, "%s() => initializeOpenCL() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => initializeOpenCL() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     } 
@@ -764,117 +765,117 @@ VkResult initialize(void)
     initializeSinewaveArrays(512, 512);
     initializeSinewaveArrays(1024, 1024);
 
-    // //! Create Vertex Buffers
-    // memset((void*)&vertexData_position_64x64_graphics, 0, sizeof(VertexData));
-    // vkResult = createVertexBuffer(64, 64, &vertexData_position_64x64_graphics);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_64x64_graphics : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_64x64_graphics\n", __func__);
+    //! Create Vertex Buffers
+    memset((void*)&vertexData_position_64x64_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(64, 64, &vertexData_position_64x64_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_64x64_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_64x64_graphics\n", __func__);
 
-    // memset((void*)&vertexData_position_128x128_graphics, 0, sizeof(VertexData));
-    // vkResult = createVertexBuffer(128, 128, &vertexData_position_128x128_graphics);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_128x128_graphics : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_128x128_graphics\n", __func__);
+    memset((void*)&vertexData_position_128x128_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(128, 128, &vertexData_position_128x128_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_128x128_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_128x128_graphics\n", __func__);
     
-    // memset((void*)&vertexData_position_256x256_graphics, 0, sizeof(VertexData));
-    // vkResult = createVertexBuffer(256, 256, &vertexData_position_256x256_graphics);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_256x256_graphics : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_256x256_graphics\n", __func__);
+    memset((void*)&vertexData_position_256x256_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(256, 256, &vertexData_position_256x256_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_256x256_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_256x256_graphics\n", __func__);
     
-    // memset((void*)&vertexData_position_512x512_graphics, 0, sizeof(VertexData));
-    // vkResult = createVertexBuffer(512, 512, &vertexData_position_512x512_graphics);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_512x512_graphics : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_512x512_graphics\n", __func__);
+    memset((void*)&vertexData_position_512x512_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(512, 512, &vertexData_position_512x512_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_512x512_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_512x512_graphics\n", __func__);
     
-    // memset((void*)&vertexData_position_1024x1024_graphics, 0, sizeof(VertexData));
-    // vkResult = createVertexBuffer(1024, 1024, &vertexData_position_1024x1024_graphics);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_1024x1024_graphics : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_1024x1024_graphics\n", __func__);
+    memset((void*)&vertexData_position_1024x1024_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(1024, 1024, &vertexData_position_1024x1024_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createVertexBuffer() Failed For vertexData_position_1024x1024_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createVertexBuffer() Succeeded For vertexData_position_1024x1024_graphics\n", __func__);
 
-    // //! Create External Vertex Buffers
-    // memset((void*)&vertexData_external_64x64, 0, sizeof(VertexData));
-    // vkResult = createExternalVertexBuffer(64, 64, &vertexData_external_64x64);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_64x64 : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_64x64\n", __func__);
+    //! Create External Vertex Buffers
+    memset((void*)&vertexData_external_64x64, 0, sizeof(VertexData));
+    vkResult = createExternalVertexBuffer(64, 64, &vertexData_external_64x64);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_64x64 : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_64x64\n", __func__);
 
-    // memset((void*)&vertexData_external_128x128, 0, sizeof(VertexData));
-    // vkResult = createExternalVertexBuffer(128, 128, &vertexData_external_128x128);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_128x128 : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_128x128\n", __func__);
+    memset((void*)&vertexData_external_128x128, 0, sizeof(VertexData));
+    vkResult = createExternalVertexBuffer(128, 128, &vertexData_external_128x128);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_128x128 : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_128x128\n", __func__);
 
-    // memset((void*)&vertexData_external_256x256, 0, sizeof(VertexData));
-    // vkResult = createExternalVertexBuffer(256, 256, &vertexData_external_256x256);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_256x256 : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_256x256\n", __func__);
+    memset((void*)&vertexData_external_256x256, 0, sizeof(VertexData));
+    vkResult = createExternalVertexBuffer(256, 256, &vertexData_external_256x256);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_256x256 : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_256x256\n", __func__);
 
-    // memset((void*)&vertexData_external_512x512, 0, sizeof(VertexData));
-    // vkResult = createExternalVertexBuffer(512, 512, &vertexData_external_512x512);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_512x512 : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_512x512\n", __func__);
+    memset((void*)&vertexData_external_512x512, 0, sizeof(VertexData));
+    vkResult = createExternalVertexBuffer(512, 512, &vertexData_external_512x512);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_512x512 : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_512x512\n", __func__);
 
-    // memset((void*)&vertexData_external_1024x1024, 0, sizeof(VertexData));
-    // vkResult = createExternalVertexBuffer(1024, 1024, &vertexData_external_1024x1024);
-    // if (vkResult != VK_SUCCESS)
-    // {
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_1024x1024 : %d !!!\n", __func__, vkResult);
-    //     vkResult = VK_ERROR_INITIALIZATION_FAILED;
-    //     return vkResult;
-    // }
-    // else
-    //     fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_1024x1024\n", __func__);
+    memset((void*)&vertexData_external_1024x1024, 0, sizeof(VertexData));
+    vkResult = createExternalVertexBuffer(1024, 1024, &vertexData_external_1024x1024);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed For vertexData_external_1024x1024 : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded For vertexData_external_1024x1024\n", __func__);
 
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
@@ -1030,12 +1031,14 @@ cl_int initializeOpenCL(void)
 {
     // Function Declarations
     BOOL openCLPlatformSupportsRequiredExtensions(cl_platform_id);
+    const char* oclGetErrorString(cl_int);
 
     // Variable Declarations
     cl_uint platformCount;
     cl_platform_id* oclPlatformIDs = NULL;
     cl_device_id* oclDeviceIDs = NULL;
     cl_uint deviceCount;
+    BOOL bSupportsExtensions = FALSE;
     
     //* Code
 
@@ -1043,7 +1046,7 @@ cl_int initializeOpenCL(void)
     oclResult = clGetPlatformIDs(0, NULL, &platformCount);
     if (oclResult != CL_SUCCESS)
     {
-        fprintf(gpFile, "%s() => OpenCL Error : Call 1 : clGetPlatformIDs() Failed : %d !!!\n", __func__, oclResult);
+        fprintf(gpFile, "%s() => OpenCL Error : Call 1 : clGetPlatformIDs() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
         return oclResult;
     }
     else if (platformCount == 0)
@@ -1063,7 +1066,7 @@ cl_int initializeOpenCL(void)
     oclResult = clGetPlatformIDs(platformCount, oclPlatformIDs, NULL);
     if (oclResult != CL_SUCCESS)
     {
-        fprintf(gpFile, "%s() => OpenCL Error : Call 2 : clGetPlatformIDs() Failed : %d !!!\n", __func__, oclResult);
+        fprintf(gpFile, "%s() => OpenCL Error : Call 2 : clGetPlatformIDs() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
         return oclResult;
     }
 
@@ -1083,6 +1086,8 @@ cl_int initializeOpenCL(void)
         //*     2) cl_khr_external_memory
         if (openCLPlatformSupportsRequiredExtensions(oclPlatformIDs[i]) == FALSE)
             continue;
+        else
+            bSupportsExtensions = TRUE;
 
         //* Required Platform Found
         //* --------------------------------------------------------------------------------------------------------
@@ -1101,6 +1106,7 @@ cl_int initializeOpenCL(void)
         }
 
         clGetPlatformInfo(oclPlatformId, CL_PLATFORM_NAME, infoSize, oclPlatformInfo, NULL);
+        fprintf(gpFile, "*******************************************************************************\n");
         fprintf(gpFile, "Selected OpenCL Platform : %s\n", oclPlatformInfo);
 
         free(oclPlatformInfo);
@@ -1132,7 +1138,7 @@ cl_int initializeOpenCL(void)
     oclResult = clGetDeviceIDs(oclPlatformId, CL_DEVICE_TYPE_GPU, deviceCount, oclDeviceIDs, NULL);
     if (oclResult != CL_SUCCESS)
     {
-        fprintf(gpFile, "%s() => OpenCL Error : clGetDeviceIDs() Failed : %d !!!\n", __func__, oclResult);
+        fprintf(gpFile, "%s() => OpenCL Error : clGetDeviceIDs() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
         return oclResult;
     }
 
@@ -1159,7 +1165,7 @@ cl_int initializeOpenCL(void)
         oclResult = clGetDeviceInfo(oclDeviceIDs[i], CL_DEVICE_UUID_KHR, CL_UUID_SIZE_KHR, &cl_uuid, NULL);
         if (oclResult != CL_SUCCESS)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clGetDeviceInfo() Failed For Index : %d, Reason : %d !!!\n", __func__, i, oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clGetDeviceInfo() Failed For Index : %d, Reason : %s !!!\n", __func__, i, oclGetErrorString(oclResult));
             return oclResult;
         }
 
@@ -1196,6 +1202,10 @@ cl_int initializeOpenCL(void)
 
         clGetDeviceInfo(oclDeviceId, CL_DEVICE_NAME, infoSize, oclDeviceInfo, NULL);
         fprintf(gpFile, "Selected OpenCL Device : %s\n", oclDeviceInfo);
+        if (bSupportsExtensions)
+            fprintf(gpFile, "Supported Extensions For Interop : cl_khr_device_uuid, cl_khr_external_memory\n");
+
+        fprintf(gpFile, "*******************************************************************************\n\n");
 
         free(oclDeviceInfo);
         oclDeviceInfo = NULL;
@@ -1218,7 +1228,7 @@ cl_int initializeOpenCL(void)
     oclContext = clCreateContext(NULL, 1, &oclDeviceId, NULL, NULL, &oclResult);
     if (oclResult != CL_SUCCESS)
     {
-        fprintf(gpFile, "%s() => OpenCL Error : clCreateContext() Failed : %d !!!\n", __func__, oclResult);
+        fprintf(gpFile, "%s() => OpenCL Error : clCreateContext() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
         return oclResult;
     }
 
@@ -1226,7 +1236,7 @@ cl_int initializeOpenCL(void)
     oclCommandQueue = clCreateCommandQueueWithProperties(oclContext, oclDeviceId, 0, &oclResult);
     if (oclResult != CL_SUCCESS)
     {
-        fprintf(gpFile, "%s() => OpenCL Error : clCreateCommandQueueWithProperties() Failed : %d !!!\n", __func__, oclResult);
+        fprintf(gpFile, "%s() => OpenCL Error : clCreateCommandQueueWithProperties() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
         return oclResult;
     }
 
@@ -1256,7 +1266,7 @@ cl_int initializeOpenCL(void)
     oclProgram = clCreateProgramWithSource(oclContext, 1, (const char**)&oclKernelSourceCode, NULL, &oclResult);
     if (oclResult != CL_SUCCESS)
     {
-        fprintf(gpFile, "%s() => OpenCL Error : clCreateProgramWithSource() Failed : %d !!!\n", __func__, oclResult);
+        fprintf(gpFile, "%s() => OpenCL Error : clCreateProgramWithSource() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
         return oclResult;
     }
 
@@ -1264,7 +1274,7 @@ cl_int initializeOpenCL(void)
     oclResult = clBuildProgram(oclProgram, 0, NULL, "-cl-fast-relaxed-math", NULL, NULL);
     if (oclResult != CL_SUCCESS)
     {
-        fprintf(gpFile, "%s() => OpenCL Error : clBuildProgram() Failed : %d !!!\n", __func__, oclResult);
+        fprintf(gpFile, "%s() => OpenCL Error : clBuildProgram() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
 
         size_t length;
 		char buffer[1024];
@@ -1280,7 +1290,7 @@ cl_int initializeOpenCL(void)
     oclKernel = clCreateKernel(oclProgram, "sineWaveKernel", &oclResult);
     if (oclResult != CL_SUCCESS)
     {
-        fprintf(gpFile, "%s() => OpenCL Error : clCreateKernel() Failed : %d !!!\n", __func__, oclResult);
+        fprintf(gpFile, "%s() => OpenCL Error : clCreateKernel() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
         return oclResult;
     }
 
@@ -1405,14 +1415,10 @@ BOOL openCLPlatformSupportsRequiredExtensions(cl_platform_id ocl_platform_id)
         //* For cl_khr_device_uuid Extension
         if (strcmp(clExtensions_array[i], "cl_khr_device_uuid") == 0)
             bDeviceUuidExtensionFound = TRUE;
-        else
-            bDeviceUuidExtensionFound = FALSE;
 
         //* For cl_khr_external_memory Extension
         if (strcmp(clExtensions_array[i], "cl_khr_external_memory") == 0)
             bExternalMemoryExtensionFound = TRUE;
-        else
-            bExternalMemoryExtensionFound = FALSE;
     }
 
     //! Free Memory
@@ -1435,11 +1441,7 @@ BOOL openCLPlatformSupportsRequiredExtensions(cl_platform_id ocl_platform_id)
     oclPlatformExtensions = NULL;
 
     if (bDeviceUuidExtensionFound == TRUE && bExternalMemoryExtensionFound == TRUE)
-    {
-        fprintf(gpFile, "\nSelected OpenCL Platform Supports Both Extensions\n");
-        
         return TRUE;
-    }
     
     return FALSE;
 }
@@ -1725,6 +1727,7 @@ VkResult display(void)
     VkResult updateUniformBuffer(void);
     VkResult buildCommandBuffers(void);
     VkResult prepareSineWaveForCPU(uint32_t, uint32_t, float);
+    const char* oclGetErrorString(cl_int error);
 
     // Variable Declarations
     VkCommandBuffer* vkCommandBuffer_array = NULL;
@@ -1757,7 +1760,7 @@ VkResult display(void)
         oclResult = clSetKernelArg(oclKernel, 0, sizeof(cl_mem), (void*)&pPosition);
         if (oclResult != CL_SUCCESS)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 0th Argument : %d !!!\n", oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 0th Argument : %s !!!\n", __func__, oclGetErrorString(oclResult));
             return VK_ERROR_INITIALIZATION_FAILED;
         }
 
@@ -1765,7 +1768,7 @@ VkResult display(void)
         oclResult = clSetKernelArg(oclKernel, 1, sizeof(unsigned int), (void*)&mesh_width);
         if (oclResult != CL_SUCCESS)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 1st Argument : %d !!!\n", oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 1st Argument : %s !!!\n", __func__, oclGetErrorString(oclResult));
             return VK_ERROR_INITIALIZATION_FAILED;
         }
 
@@ -1773,7 +1776,7 @@ VkResult display(void)
         oclResult = clSetKernelArg(oclKernel, 2, sizeof(unsigned int), (void*)&mesh_height);
         if (oclResult != CL_SUCCESS)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 2nd Argument : %d !!!\n", oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 2nd Argument : %s !!!\n", __func__, oclGetErrorString(oclResult));
             return VK_ERROR_INITIALIZATION_FAILED;
         }
 
@@ -1781,7 +1784,7 @@ VkResult display(void)
         oclResult = clSetKernelArg(oclKernel, 3, sizeof(float), (void*)&fAnimationSpeed);
         if (oclResult != CL_SUCCESS)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 3rd Argument : %d !!!\n", oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 3rd Argument : %s !!!\n", __func__, oclGetErrorString(oclResult));
             return VK_ERROR_INITIALIZATION_FAILED;
         }
 
@@ -1790,13 +1793,13 @@ VkResult display(void)
         clEnqueueAcquireExternalMemObjectsKHR = (clEnqueueAcquireExternalMemObjectsKHR_fn)clGetExtensionFunctionAddressForPlatform(oclPlatformId, "clEnqueueAcquireExternalMemObjectsKHR");
         if (clEnqueueAcquireExternalMemObjectsKHR == NULL)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clGetExtensionFunctionAddressForPlatform() Failed For clEnqueueAcquireExternalMemObjectsKHR : %d !!!\n", oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clGetExtensionFunctionAddressForPlatform() Failed For clEnqueueAcquireExternalMemObjectsKHR : %s !!!\n", __func__, oclGetErrorString(oclResult));
             return VK_ERROR_INITIALIZATION_FAILED;
         }
         oclResult = clEnqueueAcquireExternalMemObjectsKHR(oclCommandQueue, 1, &pPosition, 0, NULL, NULL);
         if (oclResult != CL_SUCCESS)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clEnqueueAcquireExternalMemObjectsKHR() Failed  : %d !!!\n", oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clEnqueueAcquireExternalMemObjectsKHR() Failed  : %s !!!\n", __func__, oclGetErrorString(oclResult));
             return VK_ERROR_INITIALIZATION_FAILED;
         }
 
@@ -1808,7 +1811,7 @@ VkResult display(void)
         oclResult = clEnqueueNDRangeKernel(oclCommandQueue, oclKernel, 2, NULL, globalWorkSize, NULL, NULL, NULL, NULL);
         if (oclResult != CL_SUCCESS)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clEnqueueNDRangeKernel() Failed : %d !!!\n", oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clEnqueueNDRangeKernel() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
             return VK_ERROR_INITIALIZATION_FAILED;
         }
 
@@ -1817,13 +1820,13 @@ VkResult display(void)
         clEnqueueReleaseExternalMemObjectsKHR = (clEnqueueReleaseExternalMemObjectsKHR_fn)clGetExtensionFunctionAddressForPlatform(oclPlatformId, "clEnqueueReleaseExternalMemObjectsKHR");
         if (clEnqueueReleaseExternalMemObjectsKHR == NULL)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clGetExtensionFunctionAddressForPlatform() Failed For clEnqueueReleaseExternalMemObjectsKHR : %d !!!\n", oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clGetExtensionFunctionAddressForPlatform() Failed For clEnqueueReleaseExternalMemObjectsKHR : %s !!!\n", __func__, oclGetErrorString(oclResult));
             return VK_ERROR_INITIALIZATION_FAILED;
         }
         oclResult = clEnqueueReleaseExternalMemObjectsKHR(oclCommandQueue, 1, &pPosition, 0, NULL, NULL);
         if (oclResult != CL_SUCCESS)
         {
-            fprintf(gpFile, "%s() => OpenCL Error : clEnqueueReleaseExternalMemObjectsKHR() Failed  : %d !!!\n", oclResult);
+            fprintf(gpFile, "%s() => OpenCL Error : clEnqueueReleaseExternalMemObjectsKHR() Failed  : %s !!!\n", __func__, oclGetErrorString(oclResult));
             return VK_ERROR_INITIALIZATION_FAILED;
         }
 
@@ -1998,6 +2001,7 @@ void uninitialize(void)
 {
     // Function Declarations
     void ToggleFullScreen(void);
+    void uninitializeOpenCL(void);
 
     // Code
     if (gbFullScreen)
@@ -2125,6 +2129,80 @@ void uninitialize(void)
         vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
         uniformData.vkBuffer = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
+    }
+
+    //* Uninitialize OpenCL
+    uninitializeOpenCL();
+
+    //* External Buffer
+    if (vertexData_external_1024x1024.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_external_1024x1024.vkDeviceMemory, NULL);
+        vertexData_external_1024x1024.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_1024x1024.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_external_1024x1024.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_external_1024x1024.vkBuffer, NULL);
+        vertexData_external_1024x1024.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_1024x1024.vkBuffer\n", __func__);
+    }
+
+    if (vertexData_external_512x512.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_external_512x512.vkDeviceMemory, NULL);
+        vertexData_external_512x512.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_512x512.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_external_512x512.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_external_512x512.vkBuffer, NULL);
+        vertexData_external_512x512.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_512x512.vkBuffer\n", __func__);
+    }
+
+    if (vertexData_external_256x256.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_external_256x256.vkDeviceMemory, NULL);
+        vertexData_external_256x256.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_256x256.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_external_256x256.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_external_256x256.vkBuffer, NULL);
+        vertexData_external_256x256.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_256x256.vkBuffer\n", __func__);
+    }
+
+    if (vertexData_external_128x128.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_external_128x128.vkDeviceMemory, NULL);
+        vertexData_external_128x128.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_128x128.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_external_128x128.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_external_128x128.vkBuffer, NULL);
+        vertexData_external_128x128.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_128x128.vkBuffer\n", __func__);
+    }
+
+    if (vertexData_external_64x64.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_external_64x64.vkDeviceMemory, NULL);
+        vertexData_external_64x64.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external_64x64.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_external_64x64.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_external_64x64.vkBuffer, NULL);
+        vertexData_external_64x64.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external_64x64.vkBuffer\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer
@@ -2348,6 +2426,59 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => Program Terminated Successfully\n", __func__);
         fclose(gpFile);
         gpFile = NULL;
+    }
+}
+
+void uninitializeOpenCL(void)
+{
+    // Code
+    if (ocl_position_1024x1024)
+    {
+        clReleaseMemObject(ocl_position_1024x1024);
+        ocl_position_1024x1024 = NULL;
+    }
+
+    if (ocl_position_512x512)
+    {
+        clReleaseMemObject(ocl_position_512x512);
+        ocl_position_512x512 = NULL;
+    }
+
+    if (ocl_position_256x256)
+    {
+        clReleaseMemObject(ocl_position_256x256);
+        ocl_position_256x256 = NULL;
+    }
+
+    if (ocl_position_128x128)
+    {
+        clReleaseMemObject(ocl_position_128x128);
+        ocl_position_128x128 = NULL;
+    }
+
+    if (oclKernel)
+    {
+        clReleaseKernel(oclKernel);
+        oclKernel = NULL;
+    }
+
+    if (oclProgram)
+    {
+        clReleaseProgram(oclProgram);
+        oclProgram = NULL;
+    }
+
+    if (oclCommandQueue)
+    {
+        clFlush(oclCommandQueue);
+        clReleaseCommandQueue(oclCommandQueue);
+        oclCommandQueue = NULL;
+    }
+
+    if (oclContext)
+    {
+        clReleaseContext(oclContext);
+        oclContext = NULL;
     }
 }
 
@@ -2983,11 +3114,14 @@ VkResult printVkInfo(void)
 
     // Code
     fprintf(gpFile, "\nVULKAN INFORMATION\n");
-    fprintf(gpFile, "------------------------------------------------------------------------------------------------\n");
+    fprintf(gpFile, "------------------------------------------------------------------------------------------------");
     
     //* Step - 3.1
     for (uint32_t i = 0; i < physicalDeviceCount; i++)
     {
+        fprintf(gpFile, "\nDevice Number : %d\n", i);
+        fprintf(gpFile, "*******************************************************\n");
+        
         //* Step - 3.2
         VkPhysicalDeviceProperties vkPhysicalDeviceProperties;
         memset((void*)&vkPhysicalDeviceProperties, 0, sizeof(VkPhysicalDeviceProperties));
@@ -3031,10 +3165,97 @@ VkResult printVkInfo(void)
         }
 
         //* Step - 3.6
-        fprintf(gpFile, "Vendor ID : 0x%4x\n", vkPhysicalDeviceProperties.vendorID);
+        fprintf(gpFile, "Device ID : 0x%4x\n", vkPhysicalDeviceProperties.deviceID);
 
         //* Step - 3.7
-        fprintf(gpFile, "Device ID : 0x%4x\n", vkPhysicalDeviceProperties.deviceID);
+        fprintf(gpFile, "Vendor ID : 0x%4x\n", vkPhysicalDeviceProperties.vendorID);
+
+        switch(vkPhysicalDeviceProperties.vendorID)
+        {
+            case 0x10DE: fprintf(gpFile, "Vendor Name : NVIDIA\n"); break;
+            case 0x1002: fprintf(gpFile, "Vendor Name : AMD\n"); break;
+            case 0x8086: fprintf(gpFile, "Vendor Name : Intel\n"); break;
+            default: fprintf(gpFile, "Vendor Name : Unknown (0x%4x)\n", vkPhysicalDeviceProperties.vendorID);
+        }
+
+        //* Additional Properties
+        uint32_t queueCount = UINT32_MAX;
+        vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice_array[i], &queueCount, NULL);
+        fprintf(gpFile, "\nNo. of Queue Families: %d\n", queueCount);
+
+        VkQueueFamilyProperties* vkQueueFamilyProperties_array = NULL;
+        vkQueueFamilyProperties_array = (VkQueueFamilyProperties*)malloc(queueCount * sizeof(VkQueueFamilyProperties));
+        if (vkQueueFamilyProperties_array == NULL)
+        {
+            fprintf(gpFile, "%s() => malloc() Failed For vkQueueFamilyProperties_array !!!\n", __func__);
+            return VK_ERROR_OUT_OF_HOST_MEMORY;
+        }
+
+        vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice_array[i], &queueCount, vkQueueFamilyProperties_array);
+
+        VkBool32* isQueueSurfaceSupported_array = NULL;
+        isQueueSurfaceSupported_array = (VkBool32*)malloc(queueCount * sizeof(VkBool32));
+        if (isQueueSurfaceSupported_array == NULL)
+        {
+            fprintf(gpFile, "%s() => malloc() Failed For isQueueSurfaceSupported_array\n", __func__);
+            return VK_ERROR_OUT_OF_HOST_MEMORY;
+        }
+
+        for (uint32_t j = 0; j < queueCount; j++)
+            vkGetPhysicalDeviceSurfaceSupportKHR(vkPhysicalDevice_array[i], j, vkSurfaceKHR, &isQueueSurfaceSupported_array[j]);
+
+        for (uint32_t j = 0; j < queueCount; j++)
+        {
+
+            fprintf(gpFile, "\nQueue Family : %d\n", j);
+            fprintf(gpFile, "****************************************\n");
+
+            if (vkQueueFamilyProperties_array[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                fprintf(gpFile, "Supports Graphics : Yes\n");
+            else
+                fprintf(gpFile, "Supports Graphics : No\n");
+
+            if (vkQueueFamilyProperties_array[j].queueFlags & VK_QUEUE_COMPUTE_BIT)
+                fprintf(gpFile, "Supports Compute : Yes\n");
+            else
+                fprintf(gpFile, "Supports Compute : No\n");
+
+            if (vkQueueFamilyProperties_array[j].queueFlags & VK_QUEUE_TRANSFER_BIT)
+                fprintf(gpFile, "Supports Transfer Operations : Yes\n");
+            else
+                fprintf(gpFile, "Supports Transfer Operations : No\n");
+
+            if (vkQueueFamilyProperties_array[j].queueFlags & VK_QUEUE_VIDEO_ENCODE_BIT_KHR)
+                fprintf(gpFile, "Supports Video Encoding : Yes\n");
+            else
+                fprintf(gpFile, "Supports Video Encoding : No\n");
+
+            if (vkQueueFamilyProperties_array[j].queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR)
+                fprintf(gpFile, "Supports Video Decoding : Yes\n");
+            else
+                fprintf(gpFile, "Supports Video Decoding : No\n");
+
+            if (isQueueSurfaceSupported_array[j] == VK_TRUE)
+                fprintf(gpFile, "Supports Presentation : Yes\n");
+            else
+                fprintf(gpFile, "Supports Presentation : No\n");
+                
+            fprintf(gpFile, "****************************************\n\n");
+        }
+
+        if (isQueueSurfaceSupported_array)
+        {
+            free(isQueueSurfaceSupported_array);
+            isQueueSurfaceSupported_array = NULL;
+        }
+
+        if (vkQueueFamilyProperties_array)
+        {
+            free(vkQueueFamilyProperties_array);
+            vkQueueFamilyProperties_array = NULL;
+        }
+
+        fprintf(gpFile, "*******************************************************\n");
     }
 
     fprintf(gpFile, "------------------------------------------------------------------------------------------------\n\n");
@@ -3046,7 +3267,6 @@ VkResult printVkInfo(void)
         fprintf(gpFile, "%s() => free() Succeeded For vkPhysicalDevice_array\n", __func__);
         vkPhysicalDevice_array = NULL;
     }
-
     return vkResult;
 }
 
@@ -3873,6 +4093,220 @@ VkResult createVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData*
 
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
     //! -------------------------------------------------------------------------------------------------------------------------------------
+    
+    *pVertexData = vertexData_position;
+
+    return vkResult;
+}
+
+VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData* pVertexData)
+{
+    // Function Declarations
+    const char* oclGetErrorString(cl_int);
+
+    // Variable Declarations
+    VertexData vertexData_position;
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    size_t bufferSize = meshWidth * meshHeight * 4 * sizeof(float);
+
+    memset((void*)&vertexData_position, 0, sizeof(VertexData));
+
+    //* Initialize External Memory Buffer
+    VkExternalMemoryBufferCreateInfo vkExternalMemoryBufferCreateInfo;
+    memset((void*)&vkExternalMemoryBufferCreateInfo, 0, sizeof(VkExternalMemoryBufferCreateInfo));
+    vkExternalMemoryBufferCreateInfo.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO;
+    vkExternalMemoryBufferCreateInfo.pNext = NULL;
+    vkExternalMemoryBufferCreateInfo.handleTypes = vkExternalMemoryHandleTypeFlagBits;
+    
+    //* Step - 5
+    VkBufferCreateInfo vkBufferCreateInfo;
+    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
+    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
+    vkBufferCreateInfo.size = bufferSize;
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    vkBufferCreateInfo.pNext = &vkExternalMemoryBufferCreateInfo;
+    
+    //* Step - 6
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For External Vertex Buffer  : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For External Vertex Buffer\n", __func__);
+    
+    //* Step - 7
+    VkMemoryRequirements vkMemoryRequirements;
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_position.vkBuffer, &vkMemoryRequirements);
+
+    //* Initialize Exportable Memory Allocation
+    VkExportMemoryAllocateInfoKHR vkExportMemoryAllocateInfoKHR;
+    memset((void*)&vkExportMemoryAllocateInfoKHR, 0, sizeof(VkExportMemoryAllocateInfoKHR));
+    vkExportMemoryAllocateInfoKHR.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
+    vkExportMemoryAllocateInfoKHR.handleTypes = vkExternalMemoryHandleTypeFlagBits;
+    
+    //* Step - 8
+    VkMemoryAllocateInfo vkMemoryAllocateInfo;
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    vkMemoryAllocateInfo.pNext = &vkExportMemoryAllocateInfoKHR;
+    
+    //* Step - 8.1
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Step - 9
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For External Vertex Buffer\n", __func__);
+
+    //* Step - 10
+    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_position.vkBuffer, vertexData_position.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For External Vertex Buffer\n", __func__);
+
+    VkMemoryGetWin32HandleInfoKHR vkMemoryGetWin32HandleInfoKHR;
+    memset((void*)&vkMemoryGetWin32HandleInfoKHR, 0, sizeof(VkMemoryGetWin32HandleInfoKHR));
+    vkMemoryGetWin32HandleInfoKHR.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+    vkMemoryGetWin32HandleInfoKHR.pNext = NULL;
+    vkMemoryGetWin32HandleInfoKHR.memory = vertexData_position.vkDeviceMemory;
+    vkMemoryGetWin32HandleInfoKHR.handleType = vkExternalMemoryHandleTypeFlagBits;
+    
+    PFN_vkGetMemoryWin32HandleKHR vkGetMemoryWin32HandleKHR = NULL;
+    vkGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(vkDevice, "vkGetMemoryWin32HandleKHR");
+    if (vkGetMemoryWin32HandleKHR == NULL)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => vkGetDeviceProcAddr() Failed To Get Function Pointer For vkGetMemoryWin32HandleKHR !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkGetDeviceProcAddr() Succeeded To Get Function Pointer For vkGetMemoryWin32HandleKHR\n", __func__);
+
+    HANDLE hMemoryWin32Handle = NULL;
+    vkResult = vkGetMemoryWin32HandleKHR(vkDevice, &vkMemoryGetWin32HandleInfoKHR, &hMemoryWin32Handle);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkGetMemoryWin32HandleKHR() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    } 
+    else
+        fprintf(gpFile, "%s() => vkGetMemoryWin32HandleKHR() Succeeded For External Vertex Buffer\n", __func__);
+
+    cl_mem_properties externalMemoryProperties[] = 
+    {
+        (cl_mem_properties) CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR,
+        (cl_mem_properties) hMemoryWin32Handle,
+        (cl_mem_properties) CL_MEM_DEVICE_HANDLE_LIST_KHR,
+        (cl_mem_properties) oclDeviceId,
+        (cl_mem_properties) CL_MEM_DEVICE_HANDLE_LIST_END_KHR,
+        0
+    };
+
+    if (meshWidth == 64 && meshHeight == 64)
+    {
+        ocl_position_64x64 = clCreateBufferWithProperties(
+            oclContext,
+            externalMemoryProperties,
+            CL_MEM_READ_WRITE,
+            (size_t)vkMemoryRequirements.size,
+            NULL,
+            &oclResult
+        );  
+        if (oclResult != CL_SUCCESS)
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+        else
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+
+    }
+    else if (meshWidth == 128 && meshHeight == 128)
+    {
+        ocl_position_128x128 = clCreateBufferWithProperties(
+            oclContext,
+            externalMemoryProperties,
+            CL_MEM_READ_WRITE,
+            (size_t)vkMemoryRequirements.size,
+            NULL,
+            &oclResult
+        );  
+        if (oclResult != CL_SUCCESS)
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+        else
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+    }
+    else if (meshWidth == 256 && meshHeight == 256)
+    {
+        ocl_position_256x256 = clCreateBufferWithProperties(
+            oclContext,
+            externalMemoryProperties,
+            CL_MEM_READ_WRITE,
+            (size_t)vkMemoryRequirements.size,
+            NULL,
+            &oclResult
+        );  
+        if (oclResult != CL_SUCCESS)
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+        else
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+    }
+    else if (meshWidth == 512 && meshHeight == 512)
+    {
+        ocl_position_512x512 = clCreateBufferWithProperties(
+            oclContext,
+            externalMemoryProperties,
+            CL_MEM_READ_WRITE,
+            (size_t)vkMemoryRequirements.size,
+            NULL,
+            &oclResult
+        );  
+        if (oclResult != CL_SUCCESS)
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+        else
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+    }
+    else if (meshWidth == 1024 && meshHeight == 1024)
+    {
+        ocl_position_1024x1024 = clCreateBufferWithProperties(
+            oclContext,
+            externalMemoryProperties,
+            CL_MEM_READ_WRITE,
+            (size_t)vkMemoryRequirements.size,
+            NULL,
+            &oclResult
+        );  
+        if (oclResult != CL_SUCCESS)
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+        else
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+    } 
+
+    CloseHandle(hMemoryWin32Handle);
+    hMemoryWin32Handle = NULL;
     
     *pVertexData = vertexData_position;
 
@@ -4820,71 +5254,22 @@ VkResult createFences(void)
 
 VkResult buildCommandBuffers(void)
 {
-    // Function Declarations
-    VkResult prepareSineWaveForCPU(uint32_t, uint32_t, float);
-
     // Variable Declarations
     VkCommandBuffer *vkCommandBuffer_array = NULL;
     VkResult vkResult = VK_SUCCESS;
 
     // Code
     if (bMesh64Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(64, 64, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 64x64 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
-    }
     else if (bMesh128Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(128, 128, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 128x128 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
-    }
     else if (bMesh256Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(256, 256, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 256x256 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_256x256_graphics_array;
-    }   
     else if (bMesh512Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(512, 512, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 512x512 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_512x512_graphics_array;
-    }
     else if (bMesh1024Chosen)
-    {
-        vkResult = prepareSineWaveForCPU(1024, 1024, fAnimationSpeed);
-        if (vkResult != VK_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => prepareSineWaveForCPU() Failed For 1024x1024 : %d\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
         vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
-    }
-        
-
+ 
     //! Loop per swapchain image
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
@@ -4958,87 +5343,176 @@ VkResult buildCommandBuffers(void)
                 NULL
             );
 
-            if (bMesh64Chosen)
+            if (onGPU)
             {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_64x64_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
+                if (bMesh64Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_external_64x64.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
 
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 64 * 64, 1, 0, 0);
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 64 * 64, 1, 0, 0);
+                }
+                else if (bMesh128Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_external_128x128.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 128 * 128, 1, 0, 0);
+                }
+                else if (bMesh256Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_external_256x256.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 256 * 256, 1, 0, 0);
+                }
+                else if (bMesh512Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_external_512x512.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 512 * 512, 1, 0, 0);
+                }
+                else if (bMesh1024Chosen)
+                {
+                     
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_external_1024x1024.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 1024 * 1024, 1, 0, 0);
+                }
             }
-            else if (bMesh128Chosen)
+            else
             {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_128x128_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
+                if (bMesh64Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_64x64_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
 
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 128 * 128, 1, 0, 0);
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 64 * 64, 1, 0, 0);
+                }
+                else if (bMesh128Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_128x128_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 128 * 128, 1, 0, 0);
+                }
+                else if (bMesh256Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_256x256_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 256 * 256, 1, 0, 0);
+                }
+                else if (bMesh512Chosen)
+                {
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_512x512_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 512 * 512, 1, 0, 0);
+                }
+                else if (bMesh1024Chosen)
+                {
+                     
+                    //! Bind with Vertex Position Buffer
+                    VkDeviceSize vkDeviceSize_offset_position[1];
+                    memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_1024x1024_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+
+                    //! Vulkan Drawing Function
+                    vkCmdDraw(vkCommandBuffer_array[i], 1024 * 1024, 1, 0, 0);
+                }
             }
-            else if (bMesh256Chosen)
-            {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_256x256_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
 
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 256 * 256, 1, 0, 0);
-            }
-            else if (bMesh512Chosen)
-            {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_512x512_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
-
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 512 * 512, 1, 0, 0);
-            }
-            else if (bMesh1024Chosen)
-            {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_1024x1024_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
-
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 1024 * 1024, 1, 0, 0);
             
-            }
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
@@ -5235,4 +5709,84 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     return VK_FALSE;
 }
 
+//! OpenCL Helper Function
+const char* oclGetErrorString(cl_int error)
+{
+    // Code
+    switch (error)
+    {
+        // Run-time and JIT Errors
+        case 0: return "CL_SUCCESS";
+        case -1: return "CL_DEVICE_NOT_FOUND";
+        case -2: return "CL_DEVICE_NOT_AVAILABLE";
+        case -3: return "CL_COMPILER_NOT_AVAILABLE";
+        case -4: return "CL_MEM_OBJECT_ALLOCATION_FAILURE";
+        case -5: return "CL_OUT_OF_RESOURCES";
+        case -6: return "CL_OUT_OF_HOST_MEMORY";
+        case -7: return "CL_PROFILING_INFO_NOT_AVAILABLE";
+        case -8: return "CL_MEM_COPY_OVERLAP";
+        case -9: return "CL_IMAGE_FORMAT_MISMATCH";
+        case -10: return "CL_IMAGE_FORMAT_NOT_SUPPORTED";
+        case -11: return "CL_BUILD_PROGRAM_FAILURE";
+        case -12: return "CL_MAP_FAILURE";
+        case -13: return "CL_MISALIGNED_SUB_BUFFER_OFFSET";
+        case -14: return "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST";
+        case -15: return "CL_COMPILE_PROGRAM_FAILURE";
+        case -16: return "CL_LINKER_NOT_AVAILABLE";
+        case -17: return "CL_LINK_PROGRAM_FAILURE";
+        case -18: return "CL_DEVICE_PARTITION_FAILED";
+        case -19: return "CL_KERNEL_ARG_INFO_NOT_AVAILABLE";
 
+        // Compile-time errors
+        case -30: return "CL_INVALID_VALUE";
+        case -31: return "CL_INVALID_DEVICE_TYPE";
+        case -32: return "CL_INVALID_PLATFORM";
+        case -33: return "CL_INVALID_DEVICE";
+        case -34: return "CL_INVALID_CONTEXT";
+        case -35: return "CL_INVALID_QUEUE_PROPERTIES";
+        case -36: return "CL_INVALID_COMMAND_QUEUE";
+        case -37: return "CL_INVALID_hostPtr";
+        case -38: return "CL_INVALID_MEM_OBJECT";
+        case -39: return "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
+        case -40: return "CL_INVALID_IMAGE_SIZE";
+        case -41: return "CL_INVALID_SAMPLER";
+        case -42: return "CL_INVALID_BINARY";
+        case -43: return "CL_INVALID_BUILD_OPTIONS";
+        case -44: return "CL_INVALID_PROGRAM";
+        case -45: return "CL_INVALID_PROGRAM_EXECUTABLE";
+        case -46: return "CL_INVALID_KERNEL_NAME";
+        case -47: return "CL_INVALID_KERNEL_DEFINITION";
+        case -48: return "CL_INVALID_KERNEL";
+        case -49: return "CL_INVALID_ARG_INDEX";
+        case -50: return "CL_INVALID_ARG_VALUE";
+        case -51: return "CL_INVALID_ARG_SIZE";
+        case -52: return "CL_INVALID_KERNEL_ARGS";
+        case -53: return "CL_INVALID_WORK_DIMENSION";
+        case -54: return "CL_INVALID_WORK_GROUP_SIZE";
+        case -55: return "CL_INVALID_WORK_ITEM_SIZE";
+        case -56: return "CL_INVALID_GLOBAL_OFFSET";
+        case -57: return "CL_INVALID_EVENT_WAIT_LIST";
+        case -58: return "CL_INVALID_EVENT";
+        case -59: return "CL_INVALID_OPERATION";
+        case -60: return "CL_INVALID_GL_OBJECT";
+        case -61: return "CL_INVALID_BUFFER_SIZE";
+        case -62: return "CL_INVALID_MIP_LEVEL";
+        case -63: return "CL_INVALID_GLOBAL_WORK_SIZE";
+        case -64: return "CL_INVALID_PROPERTY";
+        case -65: return "CL_INVALID_IMAGE_DESCRIPTOR";
+        case -66: return "CL_INVALID_COMPILER_OPTIONS";
+        case -67: return "CL_INVALID_LINKER_OPTIONS";
+        case -68: return "CL_INVALID_DEVICE_PARTITION_COUNT";
+
+        // Extension Errors
+        case -1000: return "CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR";
+        case -1001: return "CL_PLATFORM_NOT_FOUND_KHR";
+        case -1002: return "CL_INVALID_D3D10_DEVICE_KHR";
+        case -1003: return "CL_INVALID_D3D10_RESOURCE_KHR";
+        case -1004: return "CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR";
+        case -1005: return "CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR";
+
+        default:
+            return "Unknown OpenCL error !!!";
+    }
+}

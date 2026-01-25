@@ -309,7 +309,7 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => getSupportedSurface() Succeeded\n", __func__);
 
-    //! Enumerate and Selected Required Physical Device and its Queue Family Index
+    //! Enumerate and Select Required Physical Device and its Queue Family Index
     vkResult = getPhysicalDevice();
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => getPhysicalDevice() Failed : %d !!!\n", __func__, vkResult);
