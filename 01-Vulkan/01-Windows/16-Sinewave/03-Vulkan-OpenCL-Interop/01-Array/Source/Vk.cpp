@@ -1402,8 +1402,6 @@ BOOL openCLPlatformSupportsRequiredExtensions(cl_platform_id ocl_platform_id)
         fprintf(gpFile, "%s\n", clExtensions_array[i]);
     fprintf(gpFile, "-------------------------------------------------------------------------------\n");
 
-    fflush(gpFile);
-
     //* Check whether the following extensions are present
         //*     1) cl_khr_device_uuid
         //*     2) cl_khr_external_memory
@@ -2001,7 +1999,8 @@ void uninitialize(void)
 {
     // Function Declarations
     void ToggleFullScreen(void);
-    void uninitializeOpenCL(void);
+    cl_int uninitializeOpenCL(void);
+    const char* oclGetErrorString(cl_int result);
 
     // Code
     if (gbFullScreen)
@@ -2022,13 +2021,14 @@ void uninitialize(void)
     }
 
     //* Step - 7 of Fences and Semaphores
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
-    {
-        vkDestroyFence(vkDevice, vkFence_array[i], NULL);
-        fprintf(gpFile, "%s() => vkDestroyFence() Succeeded For Index : %d\n", __func__, i);
-    }
     if (vkFence_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+        {
+            vkDestroyFence(vkDevice, vkFence_array[i], NULL);
+            fprintf(gpFile, "%s() => vkDestroyFence() Succeeded For Index : %d\n", __func__, i);
+        }
+
         free(vkFence_array);
         vkFence_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkFence_array\n", __func__);
@@ -2049,13 +2049,14 @@ void uninitialize(void)
     }
 
     //* Step - 5 of Frame Buffer
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
-    {
-        vkDestroyFramebuffer(vkDevice, vkFramebuffer_array[i], NULL);
-        fprintf(gpFile, "%s() => vkDestroyFramebuffer() Succeeded For Index : %d\n", __func__, i);
-    }
     if (vkFramebuffer_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+        {
+            vkDestroyFramebuffer(vkDevice, vkFramebuffer_array[i], NULL);
+            fprintf(gpFile, "%s() => vkDestroyFramebuffer() Succeeded For Index : %d\n", __func__, i);
+        }
+
         free(vkFramebuffer_array);
         vkFramebuffer_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkFramebuffer_array\n", __func__);
@@ -2132,7 +2133,11 @@ void uninitialize(void)
     }
 
     //* Uninitialize OpenCL
-    uninitializeOpenCL();
+    oclResult = uninitializeOpenCL();
+    if (oclResult != CL_SUCCESS)
+        fprintf(gpFile, "%s() => uninitializeOpenCL() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
+    else
+        fprintf(gpFile, "%s() => uninitializeOpenCL() Succedded\n", __func__);
 
     //* External Buffer
     if (vertexData_external_1024x1024.vkDeviceMemory)
@@ -2277,18 +2282,11 @@ void uninitialize(void)
     }
 
     //* Step - 5 of Command Buffer
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
-    {
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_1024x1024_graphics_array[i]);
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_512x512_graphics_array[i]);
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_256x256_graphics_array[i]);
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_128x128_graphics_array[i]);
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_64x64_graphics_array[i]);
-        fprintf(gpFile, "%s() => vkFreeCommandBuffers() Succeeded For Index : %d\n", __func__, i);
-    }
-
     if (vkCommandBuffer_1024x1024_graphics_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_1024x1024_graphics_array[i]);
+
         free(vkCommandBuffer_1024x1024_graphics_array);
         vkCommandBuffer_1024x1024_graphics_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_1024x1024_graphics_array\n", __func__);
@@ -2296,6 +2294,9 @@ void uninitialize(void)
 
     if (vkCommandBuffer_512x512_graphics_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_512x512_graphics_array[i]);
+
         free(vkCommandBuffer_512x512_graphics_array);
         vkCommandBuffer_512x512_graphics_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_512x512_graphics_array\n", __func__);
@@ -2303,6 +2304,9 @@ void uninitialize(void)
 
     if (vkCommandBuffer_256x256_graphics_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_256x256_graphics_array[i]);
+
         free(vkCommandBuffer_256x256_graphics_array);
         vkCommandBuffer_256x256_graphics_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_256x256_graphics_array\n", __func__);
@@ -2310,6 +2314,9 @@ void uninitialize(void)
 
     if (vkCommandBuffer_128x128_graphics_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_128x128_graphics_array[i]);
+
         free(vkCommandBuffer_128x128_graphics_array);
         vkCommandBuffer_128x128_graphics_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_128x128_graphics_array\n", __func__);
@@ -2317,6 +2324,9 @@ void uninitialize(void)
 
     if (vkCommandBuffer_64x64_graphics_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_64x64_graphics_array[i]);
+
         free(vkCommandBuffer_64x64_graphics_array);
         vkCommandBuffer_64x64_graphics_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkCommandBuffer_64x64_graphics_array\n", __func__);
@@ -2352,14 +2362,13 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vkDeviceMemory_depth\n", __func__);
     }
 
-    //* Step - 7 of Swapchain Image and Image Views
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
-        vkDestroyImageView(vkDevice, swapchainImageView_array[i], NULL);
-    fprintf(gpFile, "%s() => vkDestroyImageView() Succeeded\n", __func__);
-
-    //* Step - 8 of Swapchain Image and Image Views
+    //* Step - 7, 8 of Swapchain Image and Image Views
     if (swapchainImageView_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkDestroyImageView(vkDevice, swapchainImageView_array[i], NULL);
+        fprintf(gpFile, "%s() => vkDestroyImageView() Succeeded\n", __func__);
+
         free(swapchainImageView_array);
         swapchainImageView_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For swapchainImageView_array\n", __func__);
@@ -2429,57 +2438,101 @@ void uninitialize(void)
     }
 }
 
-void uninitializeOpenCL(void)
+cl_int uninitializeOpenCL(void)
 {
+    // Function Declarations
+    const char* oclGetErrorString(cl_int result);
+
     // Code
     if (ocl_position_1024x1024)
     {
-        clReleaseMemObject(ocl_position_1024x1024);
+        oclResult = clReleaseMemObject(ocl_position_1024x1024);
+        if (oclResult != CL_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => clReleaseMemObject() Failed For ocl_position_1024x1024 : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            return oclResult;
+        }
         ocl_position_1024x1024 = NULL;
     }
 
     if (ocl_position_512x512)
     {
-        clReleaseMemObject(ocl_position_512x512);
+        oclResult = clReleaseMemObject(ocl_position_512x512);
+        if (oclResult != CL_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => clReleaseMemObject() Failed For ocl_position_512x512 : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            return oclResult;
+        }
         ocl_position_512x512 = NULL;
     }
 
     if (ocl_position_256x256)
     {
-        clReleaseMemObject(ocl_position_256x256);
+        oclResult = clReleaseMemObject(ocl_position_256x256);
+        if (oclResult != CL_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => clReleaseMemObject() Failed For ocl_position_256x256 : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            return oclResult;
+        }
         ocl_position_256x256 = NULL;
     }
 
     if (ocl_position_128x128)
     {
-        clReleaseMemObject(ocl_position_128x128);
+        oclResult = clReleaseMemObject(ocl_position_128x128);
+        if (oclResult != CL_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => clReleaseMemObject() Failed For ocl_position_128x128 : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            return oclResult;
+        }
         ocl_position_128x128 = NULL;
     }
 
     if (oclKernel)
     {
-        clReleaseKernel(oclKernel);
+        oclResult = clReleaseKernel(oclKernel);
+        if (oclResult != CL_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => clReleaseKernel() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            return oclResult;
+        }
         oclKernel = NULL;
     }
 
     if (oclProgram)
     {
-        clReleaseProgram(oclProgram);
+        oclResult = clReleaseProgram(oclProgram);
+        if (oclResult != CL_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => clReleaseProgram() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            return oclResult;
+        }
         oclProgram = NULL;
     }
 
     if (oclCommandQueue)
     {
-        clFlush(oclCommandQueue);
-        clReleaseCommandQueue(oclCommandQueue);
+        oclResult = clReleaseCommandQueue(oclCommandQueue);
+        if (oclResult != CL_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => clReleaseCommandQueue() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            return oclResult;
+        }
         oclCommandQueue = NULL;
     }
 
     if (oclContext)
     {
-        clReleaseContext(oclContext);
+        oclResult = clReleaseContext(oclContext);
+        if (oclResult != CL_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => clReleaseContext() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            return oclResult;
+        }
         oclContext = NULL;
     }
+
+    return oclResult;
 }
 
 //! Definition of Vulkan Related Functions
@@ -4220,14 +4273,14 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
 
     cl_mem_properties externalMemoryProperties[] = 
     {
-        (cl_mem_properties) CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR,
-        (cl_mem_properties) hMemoryWin32Handle,
-        (cl_mem_properties) CL_MEM_DEVICE_HANDLE_LIST_KHR,
-        (cl_mem_properties) oclDeviceId,
-        (cl_mem_properties) CL_MEM_DEVICE_HANDLE_LIST_END_KHR,
+        CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR, (cl_mem_properties)hMemoryWin32Handle,
+        CL_MEM_DEVICE_HANDLE_LIST_KHR,              
+            (cl_mem_properties)oclDeviceId,
+        CL_MEM_DEVICE_HANDLE_LIST_END_KHR,          
         0
     };
 
+    //* Create OpenCL compatible external buffers
     if (meshWidth == 64 && meshHeight == 64)
     {
         ocl_position_64x64 = clCreateBufferWithProperties(
@@ -4239,9 +4292,9 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
             &oclResult
         );  
         if (oclResult != CL_SUCCESS)
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For ocl_position_64x64 : %s !!!\n", __func__, oclGetErrorString(oclResult));
         else
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For ocl_position_64x64\n", __func__);
 
     }
     else if (meshWidth == 128 && meshHeight == 128)
@@ -4255,9 +4308,9 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
             &oclResult
         );  
         if (oclResult != CL_SUCCESS)
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For ocl_position_128x128 : %s !!!\n", __func__, oclGetErrorString(oclResult));
         else
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For ocl_position_128x128\n", __func__);
     }
     else if (meshWidth == 256 && meshHeight == 256)
     {
@@ -4270,9 +4323,9 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
             &oclResult
         );  
         if (oclResult != CL_SUCCESS)
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For ocl_position_256x256 : %s !!!\n", __func__, oclGetErrorString(oclResult));
         else
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For ocl_position_256x256\n", __func__);
     }
     else if (meshWidth == 512 && meshHeight == 512)
     {
@@ -4285,9 +4338,9 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
             &oclResult
         );  
         if (oclResult != CL_SUCCESS)
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For ocl_position_512x512 : %s !!!\n", __func__, oclGetErrorString(oclResult));
         else
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For ocl_position_512x512\n", __func__);
     }
     else if (meshWidth == 1024 && meshHeight == 1024)
     {
@@ -4300,9 +4353,9 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
             &oclResult
         );  
         if (oclResult != CL_SUCCESS)
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For External Vertex Buffer : %s !!!\n", __func__, oclGetErrorString(oclResult));
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For ocl_position_1024x1024 : %s !!!\n", __func__, oclGetErrorString(oclResult));
         else
-            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For External Vertex Buffer\n", __func__);
+            fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For ocl_position_1024x1024\n", __func__);
     } 
 
     CloseHandle(hMemoryWin32Handle);

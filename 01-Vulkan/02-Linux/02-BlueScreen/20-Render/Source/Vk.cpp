@@ -764,13 +764,14 @@ void uninitialize(void)
     }
 
     //* Step - 7 of Fences and Semaphores
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
-    {
-        vkDestroyFence(vkDevice, vkFence_array[i], NULL);
-        fprintf(gpFile, "%s() => vkDestroyFence() Succeeded For Index : %d\n", __func__, i);
-    }
     if (vkFence_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+        {
+            vkDestroyFence(vkDevice, vkFence_array[i], NULL);
+            fprintf(gpFile, "%s() => vkDestroyFence() Succeeded For Index : %d\n", __func__, i);
+        }
+
         free(vkFence_array);
         vkFence_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkFence_array\n", __func__);
@@ -791,13 +792,14 @@ void uninitialize(void)
     }
 
     //* Step - 5 of Frame Buffer
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
-    {
-        vkDestroyFramebuffer(vkDevice, vkFramebuffer_array[i], NULL);
-        fprintf(gpFile, "%s() => vkDestroyFramebuffer() Succeeded For Index : %d\n", __func__, i);
-    }
     if (vkFramebuffer_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+        {
+            vkDestroyFramebuffer(vkDevice, vkFramebuffer_array[i], NULL);
+            fprintf(gpFile, "%s() => vkDestroyFramebuffer() Succeeded For Index : %d\n", __func__, i);
+        }
+
         free(vkFramebuffer_array);
         vkFramebuffer_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For vkFramebuffer_array\n", __func__);
@@ -832,14 +834,13 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyCommandPool() Succeeded\n", __func__);
     }
 
-    //* Step - 7 of Swapchain Image and Image Views
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
-        vkDestroyImageView(vkDevice, swapchainImageView_array[i], NULL);
-    fprintf(gpFile, "%s() => vkDestroyImageView() Succeeded\n", __func__);
-
-    //* Step - 8 of Swapchain Image and Image Views
+    //* Step - 7, 8 of Swapchain Image and Image Views
     if (swapchainImageView_array)
     {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkDestroyImageView(vkDevice, swapchainImageView_array[i], NULL);
+        fprintf(gpFile, "%s() => vkDestroyImageView() Succeeded\n", __func__);
+
         free(swapchainImageView_array);
         swapchainImageView_array = NULL;
         fprintf(gpFile, "%s() => free() Succeeded For swapchainImageView_array\n", __func__);
