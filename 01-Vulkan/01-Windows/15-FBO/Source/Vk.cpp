@@ -1627,7 +1627,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
         uniformData.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData.vkBuffer\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer
@@ -4855,7 +4855,7 @@ void uninitialize_fbo(void)
     {
         vkDestroyBuffer(vkDevice, uniformData_fbo.vkBuffer, NULL);
         uniformData_fbo.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_fbo.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData_fbo.vkBuffer\n", __func__);
     }
 
     //* Texture Related

@@ -471,14 +471,9 @@ int main(void)
                             }
                         break;
 
-                        case 'I':
-                        case 'i':
-                            onGPU = False;
-                        break;
-
-                        case 'N':
-                        case 'n':
-                            onGPU = True;
+                        case 'T':
+                        case 't':
+                            onGPU = !onGPU;
                         break;
 
                         case 'O':
@@ -1842,7 +1837,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
         uniformData.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData.vkBuffer\n", __func__);
     }
 
     //* Uninitialize CUDA
@@ -4072,7 +4067,7 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
         }
         else
             fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Succeeded For External Vertex Buffer\n", __func__);
-    } 
+    }
     
     *pVertexData = vertexData_position;
 

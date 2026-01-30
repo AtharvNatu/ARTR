@@ -2129,7 +2129,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
         uniformData.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData.vkBuffer\n", __func__);
     }
 
     //* Uninitialize OpenCL
@@ -2137,7 +2137,7 @@ void uninitialize(void)
     if (oclResult != CL_SUCCESS)
         fprintf(gpFile, "%s() => uninitializeOpenCL() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
     else
-        fprintf(gpFile, "%s() => uninitializeOpenCL() Succedded\n", __func__);
+        fprintf(gpFile, "%s() => uninitializeOpenCL() Succeeded\n", __func__);
 
     //* External Buffer
     if (vertexData_external_1024x1024.vkDeviceMemory)

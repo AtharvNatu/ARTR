@@ -195,7 +195,7 @@ VertexData vertexData_indirect_buffer;
 char selectedColor = 'O';
 float fAnimationSpeed = 0.0f;
 
-//* CUDA Related Variables
+//* OpenCL Related Variables
 cl_int oclResult;
 cl_platform_id oclPlatformId;
 cl_device_id oclDeviceId;
@@ -1902,7 +1902,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
         uniformData.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData.vkBuffer\n", __func__);
     }
 
     //! Free Position Array
@@ -1917,7 +1917,7 @@ void uninitialize(void)
     if (oclResult != CL_SUCCESS)
         fprintf(gpFile, "%s() => uninitializeOpenCL() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
     else
-        fprintf(gpFile, "%s() => uninitializeOpenCL() Succedded\n", __func__);
+        fprintf(gpFile, "%s() => uninitializeOpenCL() Succeeded\n", __func__);
 
     //* External Buffer
     if (vertexData_external.vkDeviceMemory)

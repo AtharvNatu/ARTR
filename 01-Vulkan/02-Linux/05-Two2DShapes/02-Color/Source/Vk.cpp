@@ -1211,7 +1211,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData_rectangle.vkBuffer, NULL);
         uniformData_rectangle.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_rectangle.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData_rectangle.vkBuffer\n", __func__);
     }
 
     if (uniformData_triangle.vkDeviceMemory)
@@ -1225,7 +1225,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData_triangle.vkBuffer, NULL);
         uniformData_triangle.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_triangle.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData_triangle.vkBuffer\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer

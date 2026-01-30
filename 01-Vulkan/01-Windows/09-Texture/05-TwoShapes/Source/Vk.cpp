@@ -1196,7 +1196,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData_cube.vkBuffer, NULL);
         uniformData_cube.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_cube.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData_cube.vkBuffer\n", __func__);
     }
 
     //* Texture Related
@@ -1270,7 +1270,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData_pyramid.vkBuffer, NULL);
         uniformData_pyramid.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_pyramid.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData_pyramid.vkBuffer\n", __func__);
     }
 
     //* Texture Related

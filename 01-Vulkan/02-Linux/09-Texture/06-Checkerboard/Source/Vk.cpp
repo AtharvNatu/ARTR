@@ -1264,7 +1264,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData_oblique.vkBuffer, NULL);
         uniformData_oblique.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_oblique.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData_oblique.vkBuffer\n", __func__);
     }
 
     if (uniformData_straight.vkDeviceMemory)
@@ -1278,7 +1278,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData_straight.vkBuffer, NULL);
         uniformData_straight.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData_straight.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData_straight.vkBuffer\n", __func__);
     }
 
     //* Texture Related

@@ -27,7 +27,8 @@
                 "/home/atharv/VulkanSDK/Vulkan/x86_64/include",
                 "/home/atharv/VulkanSDK/Vulkan/x86_64/include/glslang",
                 "/home/atharv/Desktop/Workspace/ARTR/01-Vulkan/02-Linux/External/glm",
-                "/usr/include/glslang"
+                "/usr/include/glslang",
+                "/opt/cuda/include"
             ],
             "defines": [
                 "_DEBUG",

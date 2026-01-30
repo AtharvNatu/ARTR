@@ -449,16 +449,11 @@ int main(void)
                             }
                         break;
 
-                        case 'I':
-                        case 'i':
-                            onGPU = False;
+                        case 'T':
+                        case 't':
+                            onGPU = !onGPU;
                         break;
-
-                        case 'N':
-                        case 'n':
-                            onGPU = True;
-                        break;
-
+                        
                         case 'O':
                         case 'o':
                             selectedColor = 'O';
@@ -1380,63 +1375,12 @@ VkResult display(void)
 
     if (onGPU)
     {   
-        if (meshWidth == 64 && meshHeight == 64)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(64 / block.x, 64 / block.y, 1);
+        // Run CUDA Kernel
+        dim3 block(8, 8, 1);
+        dim3 grid(meshWidth / block.x, meshHeight / block.y, 1);
 
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 64, 64, fAnimationSpeed);
-        }
-        else if (meshWidth == 128 && meshHeight == 128)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(128 / block.x, 128 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 128, 128, fAnimationSpeed);
-        }
-        else if (meshWidth == 256 && meshHeight == 256)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(256 / block.x, 256 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 256, 256, fAnimationSpeed);
-        }
-        else if (meshWidth == 512 && meshHeight == 512)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(512 / block.x, 512 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 512, 512, fAnimationSpeed);
-        }
-        else if (meshWidth == 1024 && meshHeight == 1024)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(1024 / block.x, 1024 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 1024, 1024, fAnimationSpeed);
-        }
-        else if (meshWidth == 2048 && meshHeight == 2048)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(2048 / block.x, 2048 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 2048, 2048, fAnimationSpeed);
-        }
-        else if (meshWidth == 4096 && meshHeight == 4096)
-        {
-            // Run CUDA Kernel
-            dim3 block(8, 8, 1);
-            dim3 grid(4096 / block.x, 4096 / block.y, 1);
-
-            sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, 4096, 4096, fAnimationSpeed);
-        }
-
+        sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, meshWidth, meshHeight, fAnimationSpeed);
+        
         cudaResult = cudaGetLastError();
         if (cudaResult != cudaSuccess)
         {
@@ -1652,7 +1596,7 @@ void uninitialize(void)
     {
         vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
         uniformData.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succedded For uniformData.vkBuffer\n", __func__);
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For uniformData.vkBuffer\n", __func__);
     }
 
     //! Free Position Array
