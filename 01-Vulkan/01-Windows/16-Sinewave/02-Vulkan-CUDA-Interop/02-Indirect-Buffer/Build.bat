@@ -71,6 +71,7 @@ nvcc.exe -w -o %BIN_DIR%/Vk.exe ^
         -I%VULKAN_INCLUDE_PATH%\glm ^
         -L%VULKAN_LIB_PATH% ^
         -Xcompiler="/EHsc" ^
+        -allow-unsupported-compiler ^
         -Wno-deprecated-gpu-targets ^
         gdi32.lib user32.lib ^
         %BIN_DIR%\Vk.res ^

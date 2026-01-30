@@ -4295,7 +4295,6 @@ VkResult createExternalVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, Ver
             fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For ocl_position_64x64 : %s !!!\n", __func__, oclGetErrorString(oclResult));
         else
             fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For ocl_position_64x64\n", __func__);
-
     }
     else if (meshWidth == 128 && meshHeight == 128)
     {
