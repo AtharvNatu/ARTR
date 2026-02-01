@@ -1250,10 +1250,8 @@ VkResult resize(int width, int height)
         }
 
         //* Destroy Framebuffer
-        for (uint32_t i = 0; i < swapchainImageCount; i++) {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
             vkDestroyFramebuffer(vkDevice, vkFramebuffer_array[i], NULL);
-            fprintf(gpFile, "LOOP  vkDestroyFramebuffer() 1 !!!\n", __func__);
-        }
             
         if (vkFramebuffer_array)
         {
