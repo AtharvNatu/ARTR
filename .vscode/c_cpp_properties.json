@@ -7,7 +7,10 @@
                 "C:\\VulkanSDK\\Vulkan\\Include",
                 "C:\\VulkanSDK\\Vulkan\\Include\\glslang",
                 "C:\\VulkanSDK\\Vulkan\\Include\\glm",
-                "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1\\include"
+                "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1\\include",
+                "C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\toolchains\\llvm\\prebuilt\\windows-x86_64\\sysroot\\usr\\include",
+                "C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\toolchains\\llvm\\prebuilt\\windows-x86_64\\sysroot\\usr\\include\\aarch64-linux-android",
+                "C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\sources\\android\\native_app_glue"
             ],
             "defines": [
                 "_DEBUG",
