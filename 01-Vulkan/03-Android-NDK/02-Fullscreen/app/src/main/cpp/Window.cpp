@@ -18,6 +18,21 @@ int32_t engine_handle_input(struct android_app*, AInputEvent*);
 void android_main(struct android_app* state)
 {
     // Code
+    JavaVM *vm = state->activity->vm;
+    JNIEnv *env = NULL;
+
+    vm->AttachCurrentThread(&env, 0);
+
+    jobject activityObject = state->activity->clazz;
+    jclass activityClass = env->GetObjectClass(activityObject);
+
+    jclass windowClass = env->FindClass("android/view/Window");
+    jclass viewClass = env->FindClass("android/view/View");
+
+    // Get Window Methods
+    jmethodID getWindowMethod = env->GetMethodID(activityClass, "getWindow", "()Landroid/view/Window;");
+
+
     Engine engine;
     memset((void*)&engine, 0, sizeof(Engine));
 
