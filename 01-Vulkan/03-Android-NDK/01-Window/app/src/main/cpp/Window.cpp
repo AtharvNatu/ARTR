@@ -65,10 +65,10 @@ void engine_handle_cmd(struct android_app* app, int32_t cmd)
             {
                 androidNativeWindow = engine->app->window;
                 __android_log_print(ANDROID_LOG_INFO, "ADN:", "Window Created");
+                engine->bActive = true;
             }
             else
-                androidNativeWindow = NULL;
-            engine->bActive = true;
+                androidNativeWindow = NULL; 
         break;
 
         case APP_CMD_TERM_WINDOW:
