@@ -2,7 +2,7 @@
 #include <android/log.h>                    // For android_log_print()
 
 #include <memory.h>                         // For memset()
-#include <math.h>
+#include <math.h>                           // For sqrtf()
 
 typedef struct 
 {
@@ -18,6 +18,8 @@ bool bDragging = false;
 bool bLongPressDetected = false;
 bool bDoubleTapDetected = false;
 bool bPendingSingleTap = false;
+float touchStartX = 0.0f, touchStartY = 0.0f;
+float lastTapX = 0.0f, lastTapY = 0.0f;
 
 // Global Callback Function Declarations
 void engine_handle_cmd(struct android_app*, int32_t);
@@ -69,6 +71,20 @@ void android_main(struct android_app* state)
         flag_SYSTEM_UI_FLAG_LOW_PROFILE |
         flag_SYSTEM_UI_FLAG_IMMERSIVE_STICKY
     );
+
+    //* Notch Fix For Fullscreen
+    jclass layoutParamsClass = env->FindClass("android/view/WindowManager$LayoutParams");
+
+    jmethodID getAttributesMethod = env->GetMethodID(windowClass, "getAttributes", "()Landroid/view/WindowManager$LayoutParams;");
+    jobject layoutParams = env->CallObjectMethod(windowObject, getAttributesMethod);
+
+    jfieldID layoutInDisplayCutoutModeField = env->GetFieldID(layoutParamsClass, "layoutInDisplayCutoutMode", "I");
+    jfieldID shortEdgesField = env->GetStaticFieldID(layoutParamsClass, "LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES", "I");
+    jint shortEdges = env->GetStaticIntField(layoutParamsClass, shortEdgesField);
+    env->SetIntField(layoutParams, layoutInDisplayCutoutModeField, shortEdges);
+
+    jmethodID setAttributesMethod = env->GetMethodID(windowClass, "setAttributes", "(Landroid/view/WindowManager$LayoutParams;)V");
+    env->CallVoidMethod(windowObject, setAttributesMethod, layoutParams);
 
     //* Change To Landscape Mode
     jclass activityInfoClass = env->FindClass("android/content/pm/ActivityInfo");
@@ -208,6 +224,112 @@ void engine_handle_cmd(struct android_app* app, int32_t cmd)
 int32_t engine_handle_input(struct android_app* app, AInputEvent* event)
 {
     // Code
+    Engine *engine = (Engine*)app->userData;
+
+    int32_t eventType = AInputEvent_getType(event);
+    switch(eventType)
+    {
+        case AINPUT_EVENT_TYPE_MOTION:
+        {
+            int32_t action = AMotionEvent_getAction(event) & AMOTION_EVENT_ACTION_MASK;
+            switch(action)
+            {
+                case AMOTION_EVENT_ACTION_DOWN:
+                {
+                    touchStartX = AMotionEvent_getX(event, 0);
+                    touchStartY = AMotionEvent_getY(event, 0);
+
+                    struct timespec ts;
+                    memset((void*)&ts, 0, sizeof(timespec));
+                    clock_gettime(CLOCK_MONOTONIC, &ts);
+                    touchStartTime = (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
+
+                    bTouchDown = true;
+                    bDragging = false;
+                    bLongPressDetected = false;
+                    bDoubleTapDetected = false;
+
+                    //* Check whether the down action is for second tap of the double tap
+                    if (bPendingSingleTap)
+                    {
+                        long timeSinceLastTap = touchStartTime - pendingSingleTapTime;
+                        float dx = touchStartX - lastTapX;
+                        float dy = touchStartY - lastTapY;
+                        float distance = sqrtf(dx * dx + dy * dy);
+                        if (timeSinceLastTap < 300 && distance < 100.0f)
+                        {
+                            //* Double Tap Detected
+                            bDoubleTapDetected = true;
+                            __android_log_print(ANDROID_LOG_INFO, "ADN:", "Double Tap Event");
+                        }
+                        else
+                        {
+                            //* Not a double tap - maybe fling | long tap | single tap  
+                        }
+                    }
+
+                    bPendingSingleTap = false;
+                    break;
+                }
+                
+
+                case AMOTION_EVENT_ACTION_MOVE:
+                {
+                    float currentX = AMotionEvent_getX(event, 0);
+                    float currentY = AMotionEvent_getY(event, 0);
+                    float dx = currentX - touchStartX;
+                    float dy = currentY - touchStartY;
+                    float distance = sqrtf(dx * dx + dy * dy);
+                    if (distance > 50.0f)
+                        bDragging = true;
+                    break;
+                }
+                
+
+                case AMOTION_EVENT_ACTION_UP:
+                {
+                    struct timespec ts;
+                    memset((void*)&ts, 0, sizeof(timespec));
+                    clock_gettime(CLOCK_MONOTONIC, &ts);
+                    long currentTime = (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
+                    long duration = currentTime - touchStartTime;
+                    float endX = AMotionEvent_getX(event, 0);
+                    float endY = AMotionEvent_getY(event, 0);
+                    float dx = endX - touchStartX;
+                    float dy = endY - touchStartY;
+                    float distance = sqrtf(dx * dx + dy * dy);
+                    bTouchDown = false;
+                    if (bDoubleTapDetected)
+                    {
+                        //* This up belongs to second tap of double tap
+                    }
+                    else if (bLongPressDetected)
+                    {
+                        //* This up belongs to long press (already handled) 
+                    }
+                    else if (bDragging && distance > 150.0f)
+                    {
+                        __android_log_print(ANDROID_LOG_INFO, "ADN:", "Swipe Event");
+                        ANativeActivity_finish(engine->app->activity);
+                    }
+                    else if (duration < 300.0f && distance < 50.0f)
+                    {
+                        //* Short tap is detected and second tap may be pending (this may be up of single tap - already handled in main loop)
+                        bPendingSingleTap = true;
+                        pendingSingleTapTime = currentTime;
+                        lastTapX = endX;
+                        lastTapY = endY;
+                    }
+                    bDragging = false;
+                    break;
+                }
+                
+            }
+            break;
+        }
+        
+    }
+
     return 0;
 }
 
