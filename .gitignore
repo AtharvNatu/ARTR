@@ -7,6 +7,5 @@
 *.res
 *.wav
 *.exp
-*.txt
 *.o
 *.directory
