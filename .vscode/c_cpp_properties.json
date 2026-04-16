@@ -27,18 +27,21 @@
                 "C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\sources\\android\\native_app_glue",
                 "C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\toolchains\\llvm\\prebuilt\\windows-x86_64\\sysroot\\usr\\include",
                 "C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\toolchains\\llvm\\prebuilt\\windows-x86_64\\sysroot\\usr\\include\\aarch64-linux-android",
-                "C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\toolchains\\llvm\\prebuilt\\windows-x86_64\\sysroot\\usr\\include\\c++\\v1",
-                "F:\\ARTR\\01-Vulkan\\03-Android-NDK\\External"
+                "C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\toolchains\\llvm\\prebuilt\\windows-x86_64\\sysroot\\usr\\include\\c++\\v1"
             ],
             "defines": [
-                "__ANDROID__",
                 "GLM_FORCE_RADIANS",
                 "GLM_FORCE_DEPTH_ZERO_TO_ONE"
+            ],
+            "compilerArgs": [
+                "-std=c++17",
+                "-D__ANDROID__",
+                "--target=aarch64-linux-android29"
             ],
             "compilerPath": "C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "linux-clang-arm64"
+            "intelliSenseMode": "windows-clang-x64"
         },
         {
             "name": "Linux",
