@@ -2816,7 +2816,7 @@ VkResult createVertexBuffer(void)
     
     //* Step - 7
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, vertexData_position_triangle.vkBuffer, &vkMemoryRequirements);
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_color_triangle.vkBuffer, &vkMemoryRequirements);
 
     //* Step - 8
     memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
@@ -3507,7 +3507,7 @@ VkResult createDescriptorPool(void)
     VkDescriptorPoolSize vkDescriptorPoolSize;
     memset((void*)&vkDescriptorPoolSize, 0, sizeof(VkDescriptorPoolSize));
     vkDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorPoolSize.descriptorCount = 1;
+    vkDescriptorPoolSize.descriptorCount = 2;
    
     //* Create the pool
     VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo;

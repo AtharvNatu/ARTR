@@ -2497,7 +2497,7 @@ VkResult createRenderPass(void)
     vkSubpassDescription.pResolveAttachments = NULL;
 
     //* Step - 4
-     VkRenderPassCreateInfo vkRenderPassCreateInfo;
+    VkRenderPassCreateInfo vkRenderPassCreateInfo;
     memset((void*)&vkRenderPassCreateInfo, 0, sizeof(VkRenderPassCreateInfo));
     vkRenderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     vkRenderPassCreateInfo.pNext = NULL;
@@ -2523,25 +2523,8 @@ VkResult createFramebuffers(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
-
+    
     //* Step - 1
-    VkImageView vkImageView_attachments_array[1];
-    memset((void*)vkImageView_attachments_array, 0, sizeof(VkImageView) * _ARRAYSIZE(vkImageView_attachments_array));
-
-    //* Step - 2
-    VkFramebufferCreateInfo vkFramebufferCreateInfo;
-    memset((void*)&vkFramebufferCreateInfo, 0, sizeof(VkFramebufferCreateInfo));
-    vkFramebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    vkFramebufferCreateInfo.flags = 0;
-    vkFramebufferCreateInfo.pNext = NULL;
-    vkFramebufferCreateInfo.attachmentCount = _ARRAYSIZE(vkImageView_attachments_array);
-    vkFramebufferCreateInfo.pAttachments = vkImageView_attachments_array;
-    vkFramebufferCreateInfo.renderPass = vkRenderPass;
-    vkFramebufferCreateInfo.width = vkExtent2D_swapchain.width;
-    vkFramebufferCreateInfo.height = vkExtent2D_swapchain.height;
-    vkFramebufferCreateInfo.layers = 1;
-
-    //* Step - 3
     vkFramebuffer_array = (VkFramebuffer*)malloc(sizeof(VkFramebuffer) * swapchainImageCount);
     if (vkFramebuffer_array == NULL)
     {
@@ -2549,14 +2532,14 @@ VkResult createFramebuffers(void)
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 
-    //* Step - 4
+    //* Step - 2
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
-        //* Step - 1
+        //* Step - 3
         VkImageView vkImageView_attachments_array[2];
         memset((void*)vkImageView_attachments_array, 0, sizeof(VkImageView) * _ARRAYSIZE(vkImageView_attachments_array));
 
-        //* Step - 2
+        //* Step - 4
         VkFramebufferCreateInfo vkFramebufferCreateInfo;
         memset((void*)&vkFramebufferCreateInfo, 0, sizeof(VkFramebufferCreateInfo));
         vkFramebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

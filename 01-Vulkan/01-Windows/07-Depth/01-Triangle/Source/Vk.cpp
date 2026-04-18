@@ -1102,7 +1102,7 @@ void uninitialize(void)
         fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet Successfully\n", __func__);
     }
 
-   //* Step - 5 of PipelineLayout
+    //* Step - 5 of PipelineLayout
     if (vkPipelineLayout)
     {
         vkDestroyPipelineLayout(vkDevice, vkPipelineLayout, NULL);
@@ -3588,7 +3588,7 @@ VkResult createFramebuffers(void)
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
 
-    //* Step - 3
+    //* Step - 1
     vkFramebuffer_array = (VkFramebuffer*)malloc(sizeof(VkFramebuffer) * swapchainImageCount);
     if (vkFramebuffer_array == NULL)
     {
@@ -3596,14 +3596,14 @@ VkResult createFramebuffers(void)
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 
-    //* Step - 4
+    //* Step - 2
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
-        //* Step - 1
+        //* Step - 3
         VkImageView vkImageView_attachments_array[2];
         memset((void*)vkImageView_attachments_array, 0, sizeof(VkImageView) * _ARRAYSIZE(vkImageView_attachments_array));
 
-        //* Step - 2
+        //* Step - 4
         VkFramebufferCreateInfo vkFramebufferCreateInfo;
         memset((void*)&vkFramebufferCreateInfo, 0, sizeof(VkFramebufferCreateInfo));
         vkFramebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

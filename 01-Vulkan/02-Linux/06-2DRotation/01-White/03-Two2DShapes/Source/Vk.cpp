@@ -3402,7 +3402,7 @@ VkResult createDescriptorPool(void)
     VkDescriptorPoolSize vkDescriptorPoolSize;
     memset((void*)&vkDescriptorPoolSize, 0, sizeof(VkDescriptorPoolSize));
     vkDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorPoolSize.descriptorCount = 1;
+    vkDescriptorPoolSize.descriptorCount = 2;
    
     //* Create the pool
     VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo;
