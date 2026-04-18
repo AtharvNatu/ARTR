@@ -677,7 +677,7 @@ VkResult initialize(void)
     memset((void*)&vkClearColorValue, 0, sizeof(VkClearColorValue));
     vkClearColorValue.float32[0] = 0.0f;    //* R
     vkClearColorValue.float32[1] = 0.0f;    //* G
-    vkClearColorValue.float32[2] = 1.0f;    //* B
+    vkClearColorValue.float32[2] = 0.0f;    //* B
     vkClearColorValue.float32[3] = 1.0f;    //* A
 
     //! Set Default Clear Depth and Stencil Values
