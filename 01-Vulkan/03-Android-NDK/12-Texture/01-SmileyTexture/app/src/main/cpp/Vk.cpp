@@ -4243,7 +4243,6 @@ VkResult createTexture(const char* textureFileName)
     return vkResult;
 }
 
-
 VkResult createUniformBuffer(void)
 {
     // Function Declarations

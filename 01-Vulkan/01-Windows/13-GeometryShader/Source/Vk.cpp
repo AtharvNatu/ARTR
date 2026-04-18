@@ -2249,7 +2249,6 @@ VkResult createVulkanDevice(void)
         return VK_ERROR_INITIALIZATION_FAILED;
     }
 
-
     //* Deprecated in Vulkan Spec
     vkDeviceCreateInfo.enabledLayerCount = 0;
     vkDeviceCreateInfo.ppEnabledLayerNames = NULL;
