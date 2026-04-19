@@ -29,9 +29,10 @@ echo ---------------------------------------------------------------------------
 echo Compiling Shader Files To SPIR-V Binaries ...
 echo ----------------------------------------------------------------------------------------------------------------
 
-%VULKAN_BIN_PATH%\glslc.exe -fshader-stage=vertex --target-env=vulkan1.1 -o %ASSETS_PATH%\Shader.vert.spv %ASSETS_PATH%\Shader.vert        
-%VULKAN_BIN_PATH%\glslc.exe -fshader-stage=geom --target-env=vulkan1.1 -o %ASSETS_PATH%\Shader.geom.spv %ASSETS_PATH%\Shader.geom        
-%VULKAN_BIN_PATH%\glslc.exe -fshader-stage=fragment --target-env=vulkan1.1 -o %ASSETS_PATH%\Shader.frag.spv %ASSETS_PATH%\Shader.frag
+%VULKAN_BIN_PATH%\glslc.exe -fshader-stage=vertex --target-env=vulkan1.1 -o %ASSETS_PATH%\Cube.vert.spv %ASSETS_PATH%\Cube.vert        
+%VULKAN_BIN_PATH%\glslc.exe -fshader-stage=fragment --target-env=vulkan1.1 -o %ASSETS_PATH%\Cube.frag.spv %ASSETS_PATH%\Cube.frag
+%VULKAN_BIN_PATH%\glslc.exe -fshader-stage=vertex --target-env=vulkan1.1 -o %ASSETS_PATH%\Teapot.vert.spv %ASSETS_PATH%\Teapot.vert        
+%VULKAN_BIN_PATH%\glslc.exe -fshader-stage=fragment --target-env=vulkan1.1 -o %ASSETS_PATH%\Teapot.frag.spv %ASSETS_PATH%\Teapot.frag
 
 if errorlevel 1 (
         @echo:
@@ -67,6 +68,14 @@ if errorlevel 1 (
         echo APK Deployment Failed !!!
         exit /b 1
 )
+
+
+echo ----------------------------------------------------------------------------------------------------------------
+echo Performing Cleanup ...
+echo ----------------------------------------------------------------------------------------------------------------
+
+if exist %BUILD_DIR_1% rmdir /s /q %BUILD_DIR_1%
+if exist %BUILD_DIR_2% rmdir /s /q %BUILD_DIR_2%
 
 
 

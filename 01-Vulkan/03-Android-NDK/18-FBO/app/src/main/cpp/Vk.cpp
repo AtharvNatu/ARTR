@@ -209,7 +209,7 @@ const char* gpSzAppName = "ARTR";
 int winWidth = 0, winHeight = 0;
 
 //* Cube Animation Related
-const float fAnimationSpeed = 0.15f;
+const float fAnimationSpeed = 0.2f;
 float fAngle = 0.0f;
 
 //! FBO Related Variable Declarations

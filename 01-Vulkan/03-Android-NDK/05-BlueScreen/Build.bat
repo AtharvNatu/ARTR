@@ -1,5 +1,15 @@
 @echo off
 
+set VULKAN_BIN_PATH="C:\\Users\\Atharv\\AppData\\Local\\Android\\Sdk\\ndk\\29.0.14206865\\shader-tools\\windows-x86_64"
+set ASSETS_PATH="%CD%\\app\\src\\main\\assets"
+set DEPLOY=1
+
+set BUILD_DIR_1="%CD%\\app\\build"
+set BUILD_DIR_2="%CD%\\app\\.cxx"
+
+if exist %BUILD_DIR_1% rmdir /s /q %BUILD_DIR_1%
+if exist %BUILD_DIR_2% rmdir /s /q %BUILD_DIR_2%
+
 cls
 
 echo ----------------------------------------------------------------------------------------------------------------
@@ -13,6 +23,23 @@ if errorlevel 1 (
         echo Clean Failed !!!
         exit /b 1
 )
+
+@echo:
+echo ----------------------------------------------------------------------------------------------------------------
+echo Compiling Shader Files To SPIR-V Binaries ...
+echo ----------------------------------------------------------------------------------------------------------------
+
+%VULKAN_BIN_PATH%\glslc.exe -fshader-stage=vertex --target-env=vulkan1.1 -o %ASSETS_PATH%\Shader.vert.spv %ASSETS_PATH%\Shader.vert        
+%VULKAN_BIN_PATH%\glslc.exe -fshader-stage=fragment --target-env=vulkan1.1 -o %ASSETS_PATH%\Shader.frag.spv %ASSETS_PATH%\Shader.frag
+
+if errorlevel 1 (
+        @echo:
+        echo Shader Compilation Failed !!!
+        exit /b 1
+)
+
+@echo:
+echo Shader Files Compiled Successfully using glslc.exe from Android NDK ...
 
 @echo:
 echo ----------------------------------------------------------------------------------------------------------------
@@ -39,6 +66,13 @@ if errorlevel 1 (
         echo APK Deployment Failed !!!
         exit /b 1
 )
+
+echo ----------------------------------------------------------------------------------------------------------------
+echo Performing Cleanup ...
+echo ----------------------------------------------------------------------------------------------------------------
+
+if exist %BUILD_DIR_1% rmdir /s /q %BUILD_DIR_1%
+if exist %BUILD_DIR_2% rmdir /s /q %BUILD_DIR_2%
 
 
 

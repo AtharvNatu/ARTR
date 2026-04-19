@@ -67,6 +67,13 @@ if errorlevel 1 (
         exit /b 1
 )
 
+echo ----------------------------------------------------------------------------------------------------------------
+echo Performing Cleanup ...
+echo ----------------------------------------------------------------------------------------------------------------
+
+if exist %BUILD_DIR_1% rmdir /s /q %BUILD_DIR_1%
+if exist %BUILD_DIR_2% rmdir /s /q %BUILD_DIR_2%
+
 
 
 @REM adb logcat | findstr /i "ADN:"
