@@ -267,6 +267,10 @@ typedef struct
     glm::vec4 materialSpecular;
     float materialShininess;
 
+    // Texture and Light
+    int bTextureEnabled;
+    int bLightEnabled;
+
 } Host_UniformData_FBO;
 
 UniformData uniformData_fbo;
@@ -6996,6 +7000,16 @@ VkResult updateUniformBuffer_fbo(void)
     host_UniformData_fbo.materialDiffuse = glm::vec4(0.9f, 0.5f, 0.3f, 1.0f);
     host_UniformData_fbo.materialSpecular = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
     host_UniformData_fbo.materialShininess = 128.0f;
+
+    if (bTexture)
+        host_UniformData_fbo.bTextureEnabled = 1;
+    else
+        host_UniformData_fbo.bTextureEnabled = 0;
+
+    if (bLight)
+        host_UniformData_fbo.bLightEnabled = 1;
+    else
+        host_UniformData_fbo.bLightEnabled = 0;
 
     //! Map Uniform Buffer
     void* data = NULL;

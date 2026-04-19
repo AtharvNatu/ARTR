@@ -26,6 +26,10 @@ layout(binding = 0) uniform uniformData
     vec4 materialDiffuse;
     vec4 materialSpecular;
     float materialShininess;
+    
+    // Texture and Light
+    int bTextureEnabled;
+    int bLightEnabled;
 
 } ubo;
 
@@ -45,5 +49,12 @@ void main(void)
 
     vec3 phong_ads_light = vec3(ambient) + vec3(diffuse) + vec3(specular);
 
-    FragColor = vec4(phong_ads_light * vec3(texture(utextureSampler, out_texcoords)), 1.0);
+    if (ubo.bTextureEnabled == 1 && ubo.bLightEnabled == 1)
+        FragColor = vec4(phong_ads_light * vec3(texture(utextureSampler, out_texcoords)), 1.0);
+    else if (ubo.bTextureEnabled == 0 && ubo.bLightEnabled == 1)
+        FragColor = vec4(phong_ads_light, 1.0);
+    else if (ubo.bTextureEnabled == 1 && ubo.bLightEnabled == 0)
+        FragColor = vec4(vec3(texture(utextureSampler, out_texcoords)), 1.0);
+    else
+        FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }

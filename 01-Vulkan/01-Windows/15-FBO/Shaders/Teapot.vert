@@ -28,6 +28,10 @@ layout(binding = 0) uniform uniformData
     vec4 materialDiffuse;
     vec4 materialSpecular;
     float materialShininess;
+
+    // Texture and Light
+    int bTextureEnabled;
+    int bLightEnabled;
     
 } ubo;
 

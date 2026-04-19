@@ -208,9 +208,8 @@ bool bDone = false;
 const char* gpSzAppName = "ARTR";
 int winWidth = 0, winHeight = 0;
 
-
 //* Cube Animation Related
-const float fAnimationSpeed = 0.8f;
+const float fAnimationSpeed = 0.15f;
 float fAngle = 0.0f;
 
 //! FBO Related Variable Declarations
@@ -290,6 +289,10 @@ typedef struct
     glm::vec4 materialDiffuse;
     glm::vec4 materialSpecular;
     float materialShininess;
+
+    // Texture and Light
+    int bTextureEnabled;
+    int bLightEnabled;
 
 } Host_UniformData_FBO;
 
@@ -460,17 +463,18 @@ void android_main(struct android_app* state)
                 bPendingSingleTap = false;
 
                 singleTap++;
-                if (singleTap > 3)
-                    singleTap = 0;
+                switch(singleTap)
+                {
+                    case 1: bAnimate = true;    break;
+                    case 2: bLight = true;      break;
+                    case 3: bTexture = true;    break;
+                    case 4: bTexture = false;   break;
+                    case 5: bLight = false;     break;
+                    case 6: bAnimate = false;   break;
 
-                if (singleTap == 1)
-                    bAnimate = !bAnimate;
-                else if (singleTap == 1)
-                    bLight = !bLight;
-                else if (singleTap == 1)
-                    bTexture = !bTexture;
-            }
-                
+                    default: singleTap = 0;
+                }
+            }     
         }
 
         //! Game Loop
@@ -1457,12 +1461,12 @@ VkResult display(void)
 
     //! Acquire next image index
     vkResult = vkAcquireNextImageKHR(vkDevice, vkSwapchainKHR, UINT64_MAX, vkSemaphore_backBuffer, VK_NULL_HANDLE, &currentImageIndex);
-    if (vkResult != VK_SUCCESS)
+    if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
     {
-        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
+        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
         {
             resize(winWidth, winHeight);
-            resize_fbo(fboWidth, fboHeight);
+            resize_fbo(fboWidth, fboHeight);        
         }
         else
         {
@@ -1552,12 +1556,12 @@ VkResult display(void)
 
     //! Present the queue
     vkResult = vkQueuePresentKHR(vkQueue, &vkPresentInfoKHR);
-    if (vkResult != VK_SUCCESS)
+    if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
     {
-        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
+        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
         {
             resize(winWidth, winHeight);
-            resize_fbo(fboWidth, fboHeight);
+            resize_fbo(fboWidth, fboHeight);        
         }
         else
         {
@@ -7014,6 +7018,16 @@ VkResult updateUniformBuffer_fbo(void)
     host_UniformData_fbo.materialDiffuse = glm::vec4(0.9f, 0.5f, 0.3f, 1.0f);
     host_UniformData_fbo.materialSpecular = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
     host_UniformData_fbo.materialShininess = 128.0f;
+
+    if (bTexture)
+        host_UniformData_fbo.bTextureEnabled = 1;
+    else
+        host_UniformData_fbo.bTextureEnabled = 0;
+
+    if (bLight)
+        host_UniformData_fbo.bLightEnabled = 1;
+    else
+        host_UniformData_fbo.bLightEnabled = 0;
 
     //! Map Uniform Buffer
     void* data = NULL;
