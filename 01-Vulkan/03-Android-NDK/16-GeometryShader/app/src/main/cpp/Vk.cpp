@@ -2286,7 +2286,6 @@ VkResult createVulkanDevice(void)
     vkDeviceCreateInfo.ppEnabledExtensionNames = enabledDeviceExtensionNames_array;
     vkDeviceCreateInfo.queueCreateInfoCount = 1;
     vkDeviceCreateInfo.pQueueCreateInfos = &vkDeviceQueueCreateInfo;
-    vkDeviceCreateInfo.pEnabledFeatures = NULL;
 
     if (vkPhysicalDeviceFeatures.geometryShader == VK_TRUE)
         vkDeviceCreateInfo.pEnabledFeatures = &vkPhysicalDeviceFeatures;
