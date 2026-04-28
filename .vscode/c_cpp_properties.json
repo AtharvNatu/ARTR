@@ -58,10 +58,10 @@
                 "UNICODE",
                 "_UNICODE"
             ],
-            "compilerPath": "/usr/bin/clang++",
+            "compilerPath": "/usr/bin/g++",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "macos-clang-arm64",
+            "intelliSenseMode": "linux-gcc-x64",
             "mergeConfigurations": false,
             "recursiveIncludes": {},
             "browse": {
