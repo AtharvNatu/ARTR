@@ -13,7 +13,7 @@
 
 //! GLM Related Macros and Header Files
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -87,6 +87,7 @@ VkPresentModeKHR vkPresentModeKHR = VK_PRESENT_MODE_FIFO_KHR;
 //? Swapchain
 VkSwapchainKHR vkSwapchainKHR = VK_NULL_HANDLE;
 VkExtent2D vkExtent2D_swapchain;
+VkSurfaceTransformFlagBitsKHR vkSurfaceTrasformFlagBits_preTransform;
 
 //? Swapchain Images and Image Views
 uint32_t swapchainImageCount = UINT32_MAX;
@@ -315,7 +316,7 @@ void android_main(struct android_app* state)
             vkResult = display();
             if (vkResult != VK_FALSE && vkResult != VK_SUCCESS && vkResult != VK_ERROR_OUT_OF_DATE_KHR && vkResult != VK_SUBOPTIMAL_KHR)
             {
-                __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => display() Failed : %d !!!\n", __func__, vkResult);
+                __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => display() Failed : %s !!!\n", __func__, getVkResultString(vkResult));
                 bDone = true;
             }
 
@@ -358,7 +359,7 @@ void engine_handle_cmd(struct android_app* app, int32_t cmd)
                     vkResult = initialize();
                     if (vkResult != VK_SUCCESS)
                     {
-                        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => initialize() Failed : %d !!!\n", __func__, vkResult);
+                        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => initialize() Failed : %s !!!\n", __func__, getVkResultString(vkResult));
                     }
                     else
                         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => initialize() Succeeded\n", __func__);
@@ -374,7 +375,7 @@ void engine_handle_cmd(struct android_app* app, int32_t cmd)
             vkResult = uninitialize();
             if (vkResult != VK_SUCCESS)
             {
-                __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => uninitialize() Failed : %d !!!\n", __func__, vkResult);
+                __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => uninitialize() Failed : %s !!!\n", __func__, getVkResultString(vkResult));
             }
             else
                 __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => uninitialize() Succeeded\n", __func__);
@@ -499,6 +500,69 @@ int32_t engine_handle_input(struct android_app* app, AInputEvent* event)
 
     return 0;
 }
+
+const char* getVkResultString(VkResult vkResult)
+{
+    switch(vkResult)
+    {
+        case 0:                 return "VK_SUCCESS";
+        case 1:                 return "VK_NOT_READY";
+        case 2:                 return "VK_TIMEOUT";
+        case 3:                 return "VK_EVENT_SET";
+        case 4:                 return "VK_EVENT_RESET";
+        case 5:                 return "VK_INCOMPLETE";
+        
+        case -1:                return "VK_ERROR_OUT_OF_HOST_MEMORY";
+        case -2:                return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+        case -3:                return "VK_ERROR_INITIALIZATION_FAILED";
+        case -4:                return "VK_ERROR_DEVICE_LOST";
+        case -5:                return "VK_ERROR_MEMORY_MAP_FAILED";
+        case -6:                return "VK_ERROR_LAYER_NOT_PRESENT";
+        case -7:                return "VK_ERROR_EXTENSION_NOT_PRESENT";
+        case -8:                return "VK_ERROR_FEATURE_NOT_PRESENT";
+        case -9:                return "VK_ERROR_INCOMPATIBLE_DRIVER";
+        case -10:               return "VK_ERROR_TOO_MANY_OBJECTS";
+        case -11:               return "VK_ERROR_FORMAT_NOT_SUPPORTED";
+        case -12:               return "VK_ERROR_FRAGMENTED_POOL";
+        case -13:               return "VK_ERROR_UNKNOWN";
+
+        case -1000011001:       return "VK_ERROR_VALIDATION_FAILED";
+        case -1000069000:       return "VK_ERROR_OUT_OF_POOL_MEMORY";
+        case -1000072003:       return "VK_ERROR_INVALID_EXTERNAL_HANDLE";
+        case -1000257000:       return "VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS";
+        case -1000161000:       return "VK_ERROR_FRAGMENTATION";
+        case 1000297000:        return "VK_PIPELINE_COMPILE_REQUIRED";
+        case -1000174001:       return "VK_ERROR_NOT_PERMITTED";
+        case -1000000000:       return "VK_ERROR_SURFACE_LOST_KHR";
+        case -1000000001:       return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
+        case 1000001003:        return "VK_SUBOPTIMAL_KHR";
+        case -1000001004:       return "VK_ERROR_OUT_OF_DATE_KHR";
+        case -1000003001:       return "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
+        case -1000012000:       return "VK_ERROR_INVALID_SHADER_NV";
+        case -1000023000:       return "VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR";
+        case -1000023001:       return "VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR";
+        case -1000023002:       return "VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR";
+        case -1000023003:       return "VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR";
+        case -1000023004:       return "VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR";
+        case -1000023005:       return "VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR";
+        case -1000158000:       return "VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
+        case -1000208000:       return "VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT";
+        case -1000255000:       return "VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT";
+        case 1000268000:        return "VK_THREAD_IDLE_KHR";
+        case 1000268001:        return "VK_THREAD_DONE_KHR";
+        case 1000268002:        return "VK_OPERATION_DEFERRED_KHR";
+        case 1000268003:        return "VK_OPERATION_NOT_DEFERRED_KHR";
+        case -1000299000:       return "VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR";
+        case -1000338000:       return "VK_ERROR_COMPRESSION_EXHAUSTED_EXT";
+        case 1000482000:        return "VK_INCOMPATIBLE_SHADER_BINARY_EXT";
+        case 1000483000:        return "VK_ERROR_NOT_ENOUGH_SPACE_KHR";
+        
+        default:                return "UNKNOWN ERROR CODE";
+    }
+
+    return NULL;
+}
+
 
 VkResult initialize(void)
 {
@@ -1001,13 +1065,13 @@ VkResult display(void)
 
     //! Acquire next image index
     vkResult = vkAcquireNextImageKHR(vkDevice, vkSwapchainKHR, UINT64_MAX, vkSemaphore_backBuffer, VK_NULL_HANDLE, &currentImageIndex);
-    if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
+    if (vkResult != VK_SUCCESS)
     {
-        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
+        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
             resize(winWidth, winHeight);
         else
         {
-            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkAcquireNextImageKHR() Failed : %d\n", __func__, vkResult);
+            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkAcquireNextImageKHR() Failed : %s\n", __func__, getVkResultString(vkResult));
             return vkResult;
         }
     }
@@ -1065,13 +1129,13 @@ VkResult display(void)
 
     //! Present the queue
     vkResult = vkQueuePresentKHR(vkQueue, &vkPresentInfoKHR);
-    if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
+    if (vkResult != VK_SUCCESS)
     {
-        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
+        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
             resize(winWidth, winHeight);
         else
         {
-            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkQueuePresentKHR() Failed : %d\n", __func__, vkResult);
+            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkQueuePresentKHR() Failed : %s\n", __func__, getVkResultString(vkResult));
             return vkResult;
         }
     }
@@ -2540,11 +2604,13 @@ VkResult createSwapchain(VkBool32 vsync)
     VkImageUsageFlags vkImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     //* Step - 6
-    VkSurfaceTransformFlagBitsKHR vkSurfaceTransformFlagBitsKHR;
-    if (vkSurfaceCapabilitiesKHR.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) //* Check For Identity Matrix
-        vkSurfaceTransformFlagBitsKHR = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    else
-        vkSurfaceTransformFlagBitsKHR = vkSurfaceCapabilitiesKHR.currentTransform;
+    // VkSurfaceTransformFlagBitsKHR vkSurfaceTransformFlagBitsKHR;
+    // if (vkSurfaceCapabilitiesKHR.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) //* Check For Identity Matrix
+    //     vkSurfaceTransformFlagBitsKHR = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    // else
+    //     vkSurfaceTransformFlagBitsKHR = vkSurfaceCapabilitiesKHR.currentTransform;
+
+    vkSurfaceTrasformFlagBits_preTransform = vkSurfaceCapabilitiesKHR.currentTransform;
 
     //* Step - 7
     vkResult = getPhysicalDevicePresentMode();
@@ -2566,7 +2632,7 @@ VkResult createSwapchain(VkBool32 vsync)
     vkSwapchainCreateInfoKHR.imageExtent.width = vkExtent2D_swapchain.width;
     vkSwapchainCreateInfoKHR.imageExtent.height = vkExtent2D_swapchain.height;
     vkSwapchainCreateInfoKHR.imageUsage = vkImageUsageFlags;
-    vkSwapchainCreateInfoKHR.preTransform = vkSurfaceTransformFlagBitsKHR;
+    vkSwapchainCreateInfoKHR.preTransform = vkSurfaceTrasformFlagBits_preTransform;
     vkSwapchainCreateInfoKHR.imageArrayLayers = 1;
     vkSwapchainCreateInfoKHR.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     vkSwapchainCreateInfoKHR.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
@@ -3062,24 +3128,46 @@ VkResult updateUniformBuffer(void)
     // Code
     MVP_UniformData mvp_UniformData;
 
+    //* Pre-Rotation
+    glm::mat4 preRotateMatrix = glm::mat4(1.0f);
+    if (vkSurfaceTrasformFlagBits_preTransform & VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR)
+        preRotateMatrix = glm::rotate(preRotateMatrix, glm::radians(90.0f), glm::vec3(0, 0, -1));
+    else if (vkSurfaceTrasformFlagBits_preTransform & VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR)
+        preRotateMatrix = glm::rotate(preRotateMatrix, glm::radians(270.0f), glm::vec3(0, 0, -1));
+    else if (vkSurfaceTrasformFlagBits_preTransform & VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR)
+        preRotateMatrix = glm::rotate(preRotateMatrix, glm::radians(180.0f), glm::vec3(0, 0, -1));
+
+    //* Aspect Ratio
+    float width = (float)winWidth;
+    float height = (float)winHeight;
+
+    if (vkSurfaceTrasformFlagBits_preTransform & VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR || 
+        vkSurfaceTrasformFlagBits_preTransform & VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR)
+    {
+        // Swap Width and Height
+        float temp = width;
+        width = height;
+        height = temp;
+    }
+
+    glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
+    perspectiveProjectionMatrix = glm::perspective(
+        glm::radians(45.0f),
+        width / height,
+        0.1f,
+        100.0f
+    );
+    //! 2D Matrix with Column Major (Like OpenGL)
+    perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
+
     //! Triangle
     //! -------------------------------------------------------------------------------------------------------------------------------------
     memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
 
     //! Update Matrices
     mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, -6.0f));
     mvp_UniformData.viewMatrix = glm::mat4(1.0f);
-    
-    glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
-    perspectiveProjectionMatrix = glm::perspective(
-        glm::radians(45.0f),
-        (float)winWidth / (float)winHeight,
-        0.1f,
-        100.0f
-    );
-    //! 2D Matrix with Column Major (Like OpenGL)
-    perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
+    mvp_UniformData.modelMatrix = preRotateMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, -9.0f));
     mvp_UniformData.projectionMatrix = perspectiveProjectionMatrix;
 
     //! Map Uniform Buffer
@@ -3104,18 +3192,8 @@ VkResult updateUniformBuffer(void)
 
     //! Update Matrices
     mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, -6.0f));
     mvp_UniformData.viewMatrix = glm::mat4(1.0f);
-    
-    perspectiveProjectionMatrix = glm::mat4(1.0f);
-    perspectiveProjectionMatrix = glm::perspective(
-        glm::radians(45.0f),
-        (float)winWidth / (float)winHeight,
-        0.1f,
-        100.0f
-    );
-    //! 2D Matrix with Column Major (Like OpenGL)
-    perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
+    mvp_UniformData.modelMatrix = preRotateMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, -9.0f));
     mvp_UniformData.projectionMatrix = perspectiveProjectionMatrix;
 
     //! Map Uniform Buffer
@@ -3429,7 +3507,7 @@ VkResult createDescriptorSet(void)
     vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet_rectangle);
     if (vkResult != VK_SUCCESS)
     {
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkAllocateDescriptorSets() Failed For Rectangle: %d !!!\n", __func__, vkResult);
+        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkAllocateDescriptorSets() Failed For Rectangle: %s !!!\n", __func__, getVkResultString(vkResult));
         return vkResult;
     }  
     else
@@ -3573,7 +3651,7 @@ VkResult createPipeline(VkPipeline* pPipeline, VkPrimitiveTopology topology)
     vkPipelineRasterizationStateCreateInfo.pNext = NULL;
     vkPipelineRasterizationStateCreateInfo.flags = 0;
     vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
     vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
@@ -3961,7 +4039,6 @@ VkResult buildCommandBuffers(void)
 
     return vkResult;
 }
-
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     VkDebugReportFlagsEXT vkDebugReportFlagsEXT,

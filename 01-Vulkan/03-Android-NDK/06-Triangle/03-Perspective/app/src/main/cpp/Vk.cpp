@@ -972,11 +972,11 @@ VkResult display(void)
 
     //! Acquire next image index
     vkResult = vkAcquireNextImageKHR(vkDevice, vkSwapchainKHR, UINT64_MAX, vkSemaphore_backBuffer, VK_NULL_HANDLE, &currentImageIndex);
-    if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
+    if (vkResult != VK_SUCCESS)
     {
         if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
             resize(winWidth, winHeight);
-        else
+        else if (vkResult != VK_SUBOPTIMAL_KHR)
         {
             __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkAcquireNextImageKHR() Failed : %d\n", __func__, vkResult);
             return vkResult;
@@ -1036,11 +1036,11 @@ VkResult display(void)
 
     //! Present the queue
     vkResult = vkQueuePresentKHR(vkQueue, &vkPresentInfoKHR);
-    if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
+    if (vkResult != VK_SUCCESS)
     {
         if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
             resize(winWidth, winHeight);
-        else
+        else if (vkResult != VK_SUBOPTIMAL_KHR)
         {
             __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkQueuePresentKHR() Failed : %d\n", __func__, vkResult);
             return vkResult;
