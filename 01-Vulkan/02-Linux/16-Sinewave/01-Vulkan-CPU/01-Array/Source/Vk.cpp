@@ -352,9 +352,12 @@ int main(void)
                 break;
 
                 case ConfigureNotify:
-                    winWidth = event.xconfigure.width;
-                    winHeight = event.xconfigure.height;
-                    resize(winWidth, winHeight);
+                    if (event.xconfigure.width != winWidth || event.xconfigure.height != winHeight)
+                    {
+                        winWidth = event.xconfigure.width;
+                        winHeight = event.xconfigure.height;
+                        resize(winWidth, winHeight);
+                    }
                 break;
 
                 case KeyPress:
