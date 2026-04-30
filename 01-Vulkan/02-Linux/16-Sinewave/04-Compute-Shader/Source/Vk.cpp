@@ -2,6 +2,7 @@
 #include <stdio.h>          // For Standard I/O
 #include <stdlib.h>         // For exit()
 #include <memory.h>         // For memset()
+#include <time.h>           // For FPS
 
 // X11 Headers
 #include <X11/Xlib.h>       // For XClient APIs
@@ -225,6 +226,7 @@ int main(void)
     void uninitialize(void);
     void toggleFullScreen(void);
     Bool isWindowMinimized(void);
+    void generateSineWaveData(void);
 
     // Variable Declarations
     XVisualInfo xVisualInfo;
@@ -319,7 +321,7 @@ int main(void)
     }
 
     //* Set Window Caption
-    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan Sine Wave Using Indirect Drawing");
+    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan Sine Wave Using Compute Shader");
 
     //* Prepare Window to respond to Window Manager's Close Event
     windowManagerDeleteAtom = XInternAtom(gpDisplay, "WM_DELETE_WINDOW", True);
@@ -386,42 +388,49 @@ int main(void)
                             meshWidth = 64;
                             meshHeight = 64;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
+                            generateSineWaveData();
                         break;
 
                         case XK_2:
                             meshWidth = 128;
                             meshHeight = 128;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
+                            generateSineWaveData();
                         break;
 
                         case XK_3:
                             meshWidth = 256;
                             meshHeight = 256;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
+                            generateSineWaveData();
                         break;
 
                         case XK_4:
                             meshWidth = 512;
                             meshHeight = 512;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
+                            generateSineWaveData();
                         break;
 
                         case XK_5:
                             meshWidth = 1024;
                             meshHeight = 1024;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
+                            generateSineWaveData();
                         break;
 
                         case XK_6:
                             meshWidth = 2048;
                             meshHeight = 2048;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
+                            generateSineWaveData();
                         break;
 
                         case XK_7:
                             meshWidth = 4096;
                             meshHeight = 4096;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
+                            generateSineWaveData();
                         break;
                     }
 
@@ -645,6 +654,109 @@ Bool isWindowMinimized(void)
 
     return windowMinimized;
 
+}
+
+void generateSineWaveData()
+{
+    //! Free Position Array
+    if (pPosition)
+    {
+        free(pPosition);
+        pPosition = NULL;
+    }
+
+    //! Reallocate Position Array
+    pPosition = (float*)malloc(meshArraySize * sizeof(float));
+}
+
+
+//* FPS Related Code
+int getFPS(void)
+{
+    // Static variables persist across calls
+    static double lastTime = 0.0;
+    static double smoothedFPS = 0.0;
+    const double smoothing = 0.9; // 0.0 → no smoothing, 0.9 → very smooth
+
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    double currentTime = ts.tv_sec + ts.tv_nsec / 1e9;
+
+    // First call initialization
+    if (lastTime == 0.0)
+    {
+        lastTime = currentTime;
+        return 0;
+    }
+
+    double deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+
+    if (deltaTime <= 0.0)
+        return (int)smoothedFPS;
+
+    double currentFPS = 1.0 / deltaTime;
+
+    // Exponential smoothing
+    smoothedFPS = smoothing * smoothedFPS + (1.0 - smoothing) * currentFPS;
+
+    return (int)(smoothedFPS + 0.5); // round to nearest int
+}
+
+
+//* Device Name Code
+const char* getCPUName(void)
+{
+    static char cpu[256] = "Unknown CPU";
+
+    FILE *fp = popen("fastfetch", "r");
+    if (!fp)
+        return cpu;
+
+    char line[512];
+
+    while (fgets(line, sizeof(line), fp))
+    {
+        if (strstr(line, "CPU:"))
+        {
+            char *start = strstr(line, "CPU:") + 4;
+            while (*start == ' ') start++;
+
+            strncpy(cpu, start, sizeof(cpu));
+            cpu[strcspn(cpu, "\n")] = '\0';
+            break;
+        }
+    }
+
+    pclose(fp);
+    return cpu;
+}
+
+const char* getGPUName(void)
+{
+    static char gpu[256] = "Unknown GPU";
+
+    FILE *fp = popen("fastfetch", "r");
+    if (!fp)
+        return gpu;
+
+    char line[512];
+
+    while (fgets(line, sizeof(line), fp))
+    {
+        if (strstr(line, "GPU:"))
+        {
+            char *start = strstr(line, "GPU:") + 4;
+            while (*start == ' ') start++;
+
+            strncpy(gpu, start, sizeof(gpu));
+            gpu[strcspn(gpu, "\n")] = '\0';
+            break;
+        }
+    }
+
+    pclose(fp);
+    return gpu;
 }
 
 const char* getVkResultString(VkResult vkResult)
@@ -1351,25 +1463,16 @@ VkResult display(void)
         }
     }
 
-    //! Free Position Array
-    if (pPosition)
+    if (!bUseCompute)
     {
-        free(pPosition);
-        pPosition = NULL;
+        //! Create Sinewave
+        sinewave(meshWidth, meshHeight, fAnimationSpeed);
+        
+        //! Update Vertex Buffer
+        vkResult = updateVertexBuffer();
+        if (vkResult != VK_SUCCESS)
+            fprintf(gpFile, "%s() => updateVertexBuffer() Failed : %d\n", __func__, vkResult);
     }
-
-    //! Reallocate Position Array
-    pPosition = (float*)malloc(meshArraySize * sizeof(float));
-    if (pPosition == NULL)
-        fprintf(gpFile, "%s() => malloc() Failed For pPosition: %d\n", __func__, vkResult);
-
-    //! Create Sinewave
-    sinewave(meshWidth, meshHeight, fAnimationSpeed);
-
-    //! Update Vertex Buffer
-    vkResult = updateVertexBuffer();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => updateVertexBuffer() Failed : %d\n", __func__, vkResult);
 
     //! Update Indirect Buffer
     vkResult = updateIndirectBuffer();
@@ -1382,7 +1485,20 @@ VkResult display(void)
 
 
     vkDeviceWaitIdle(vkDevice);
-
+    
+    if (bUseCompute)
+    {
+        char str[255];
+        sprintf(str, "Atharv Natu : Vulkan Sine Wave Using Compute Shader | Device = %s | Mesh Size = %d x %d | FPS = %d", getGPUName(), meshWidth, meshHeight, getFPS());
+        XStoreName(gpDisplay, window, str);
+    }
+    else
+    {
+        char str[255];
+        sprintf(str, "Atharv Natu : Vulkan Sine Wave Using Compute Shader | Device = %s | Mesh Size = %d x %d | FPS = %d", getCPUName(), meshWidth, meshHeight, getFPS());
+        XStoreName(gpDisplay, window, str);
+    }
+    
     return vkResult;
 }
 
@@ -3322,11 +3438,6 @@ VkResult updateVertexBuffer(void)
     void* data = NULL;
 
     // Code
-
-    //* Do not copy data if compute shader is used
-    if (bUseCompute)
-        return VK_SUCCESS;
-
     vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, meshArraySize * sizeof(float), 0, &data);
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position : %d\n", __func__, vkResult);
