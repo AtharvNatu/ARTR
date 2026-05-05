@@ -662,6 +662,96 @@ Bool isWindowMinimized(void)
 
 }
 
+
+//* FPS Related Code
+int getFPS(void)
+{
+    // Static variables persist across calls
+    static double lastTime = 0.0;
+    static double smoothedFPS = 0.0;
+    const double smoothing = 0.9; // 0.0 → no smoothing, 0.9 → very smooth
+
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    double currentTime = ts.tv_sec + ts.tv_nsec / 1e9;
+
+    // First call initialization
+    if (lastTime == 0.0)
+    {
+        lastTime = currentTime;
+        return 0;
+    }
+
+    double deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+
+    if (deltaTime <= 0.0)
+        return (int)smoothedFPS;
+
+    double currentFPS = 1.0 / deltaTime;
+
+    // Exponential smoothing
+    smoothedFPS = smoothing * smoothedFPS + (1.0 - smoothing) * currentFPS;
+
+    return (int)(smoothedFPS + 0.5); // round to nearest int
+}
+
+
+//* Device Name Code
+const char* getCPUName(void)
+{
+    static char cpu[256] = "Unknown CPU";
+
+    FILE *fp = popen("fastfetch", "r");
+    if (!fp)
+        return cpu;
+
+    char line[512];
+
+    while (fgets(line, sizeof(line), fp))
+    {
+        if (strstr(line, "CPU:"))
+        {
+            char *start = strstr(line, "CPU:") + 4;
+            while (*start == ' ') start++;
+
+            strncpy(cpu, start, sizeof(cpu));
+            cpu[strcspn(cpu, "\n")] = '\0';
+            break;
+        }
+    }
+
+    pclose(fp);
+    return cpu;
+}
+
+const char* getGPUName(void)
+{
+    static char gpu[256] = "Unknown GPU";
+
+    FILE *fp = popen("fastfetch", "r");
+    if (!fp)
+        return gpu;
+
+    char line[512];
+
+    while (fgets(line, sizeof(line), fp))
+    {
+        if (strstr(line, "GPU:"))
+        {
+            char *start = strstr(line, "GPU:") + 4;
+            while (*start == ' ') start++;
+
+            strncpy(gpu, start, sizeof(gpu));
+            gpu[strcspn(gpu, "\n")] = '\0';
+            break;
+        }
+    }
+
+    pclose(fp);
+    return gpu;
+}
+
 VkResult initialize(void)
 {
     // Function Declarations
@@ -992,7 +1082,6 @@ VkResult initialize(void)
     
     return vkResult;
 }
-
 
 cudaError initializeCuda(void)
 {
@@ -1432,6 +1521,18 @@ VkResult display(void)
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
 
+    if (onGPU)
+    {
+        char str[255];
+        sprintf(str, "Atharv Natu : Vulkan-CUDA Interop [Indirect Drawing] | Device = %s | Mesh Size = %d x %d | FPS = %d", getGPUName(), meshWidth, meshHeight, getFPS());
+        XStoreName(gpDisplay, window, str);
+    }
+    else
+    {
+        char str[255];
+        sprintf(str, "Atharv Natu : Vulkan-CUDA Interop [Indirect Drawing] | Device = %s | Mesh Size = %d x %d | FPS = %d", getCPUName(), meshWidth, meshHeight, getFPS());
+        XStoreName(gpDisplay, window, str);
+    }
 
     vkDeviceWaitIdle(vkDevice);
 
@@ -3368,7 +3469,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
     vkBufferCreateInfo.size = bufferSize;
-    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     
     //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
@@ -3581,7 +3682,7 @@ VkResult createExternalVertexBuffer(void)
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.size = bufferSize;
-    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     vkBufferCreateInfo.pNext = &vkExternalMemoryBufferCreateInfo;
     
@@ -3813,7 +3914,7 @@ VkResult updateUniformBuffer(void)
     glm::mat4 modelViewMatrix = glm::mat4(1.0f);
     glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
 
-    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
     modelViewMatrix = translationMatrix;
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
@@ -4036,13 +4137,29 @@ VkResult createDescriptorSetLayout(void)
     VkResult vkResult = VK_SUCCESS;
 
     //! Initialize VkDescriptorSetLayoutBinding
-    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding;
-    memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(VkDescriptorSetLayoutBinding));
-    vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
-    vkDescriptorSetLayoutBinding.descriptorCount = 1;
-    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
+    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding_array[3];
+    memset((void*)vkDescriptorSetLayoutBinding_array, 0, sizeof(VkDescriptorSetLayoutBinding) * _ARRAYSIZE(vkDescriptorSetLayoutBinding_array));
+
+    //* UBO
+    vkDescriptorSetLayoutBinding_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorSetLayoutBinding_array[0].binding = 0;
+    vkDescriptorSetLayoutBinding_array[0].descriptorCount = 1;
+    vkDescriptorSetLayoutBinding_array[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    vkDescriptorSetLayoutBinding_array[0].pImmutableSamplers = NULL;
+
+    //* CPU SSBO
+    vkDescriptorSetLayoutBinding_array[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkDescriptorSetLayoutBinding_array[1].binding = 1;
+    vkDescriptorSetLayoutBinding_array[1].descriptorCount = 1;
+    vkDescriptorSetLayoutBinding_array[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding_array[1].pImmutableSamplers = NULL;
+
+    //* GPU SSBO
+    vkDescriptorSetLayoutBinding_array[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkDescriptorSetLayoutBinding_array[2].binding = 2;
+    vkDescriptorSetLayoutBinding_array[2].descriptorCount = 1;
+    vkDescriptorSetLayoutBinding_array[2].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding_array[2].pImmutableSamplers = NULL;
 
     //* Step - 3
     VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo;
@@ -4050,8 +4167,8 @@ VkResult createDescriptorSetLayout(void)
     vkDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     vkDescriptorSetLayoutCreateInfo.pNext = NULL;
     vkDescriptorSetLayoutCreateInfo.flags = 0;
-    vkDescriptorSetLayoutCreateInfo.bindingCount = 1;   //! An integer value where you want to bind descriptor set
-    vkDescriptorSetLayoutCreateInfo.pBindings = &vkDescriptorSetLayoutBinding;
+    vkDescriptorSetLayoutCreateInfo.bindingCount = _ARRAYSIZE(vkDescriptorSetLayoutBinding_array);
+    vkDescriptorSetLayoutCreateInfo.pBindings = vkDescriptorSetLayoutBinding_array;
 
     //* Step - 4
     vkResult = vkCreateDescriptorSetLayout(vkDevice, &vkDescriptorSetLayoutCreateInfo, NULL, &vkDescriptorSetLayout);
@@ -4097,10 +4214,20 @@ VkResult createDescriptorPool(void)
     // Code
 
     //* Vulkan expects decriptor pool size before creating actual descriptor pool
-    VkDescriptorPoolSize vkDescriptorPoolSize;
-    memset((void*)&vkDescriptorPoolSize, 0, sizeof(VkDescriptorPoolSize));
-    vkDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorPoolSize.descriptorCount = 1;
+    VkDescriptorPoolSize vkDescriptorPoolSize_array[3];
+    memset((void*)vkDescriptorPoolSize_array, 0, sizeof(VkDescriptorPoolSize) * _ARRAYSIZE(vkDescriptorPoolSize_array));
+
+    //! UBO
+    vkDescriptorPoolSize_array[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorPoolSize_array[0].descriptorCount = 1;
+
+    //! CPU SSBO
+    vkDescriptorPoolSize_array[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkDescriptorPoolSize_array[1].descriptorCount = 1;
+
+    //! GPU SSBO
+    vkDescriptorPoolSize_array[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkDescriptorPoolSize_array[2].descriptorCount = 1;
    
     //* Create the pool
     VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo;
@@ -4108,8 +4235,8 @@ VkResult createDescriptorPool(void)
     vkDescriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     vkDescriptorPoolCreateInfo.pNext = NULL;
     vkDescriptorPoolCreateInfo.flags = 0;
-    vkDescriptorPoolCreateInfo.poolSizeCount = 1;
-    vkDescriptorPoolCreateInfo.pPoolSizes = &vkDescriptorPoolSize;
+    vkDescriptorPoolCreateInfo.poolSizeCount = _ARRAYSIZE(vkDescriptorPoolSize_array);
+    vkDescriptorPoolCreateInfo.pPoolSizes = vkDescriptorPoolSize_array;
     vkDescriptorPoolCreateInfo.maxSets = 1;
 
     vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
@@ -4147,31 +4274,69 @@ VkResult createDescriptorSet(void)
         fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded\n", __func__);
     
     //* Describe whether we want buffer as uniform or image as uniform
-    VkDescriptorBufferInfo vkDescriptorBufferInfo;
-    memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
-    vkDescriptorBufferInfo.buffer = uniformData.vkBuffer;
-    vkDescriptorBufferInfo.offset = 0;
-    vkDescriptorBufferInfo.range = sizeof(Host_UniformData);
+    VkDescriptorBufferInfo vkDescriptorBufferInfo_array[3];
+    memset((void*)vkDescriptorBufferInfo_array, 0, sizeof(VkDescriptorBufferInfo) * _ARRAYSIZE(vkDescriptorBufferInfo_array));
+
+    //* UBO
+    vkDescriptorBufferInfo_array[0].buffer = uniformData.vkBuffer;
+    vkDescriptorBufferInfo_array[0].offset = 0;
+    vkDescriptorBufferInfo_array[0].range = sizeof(Host_UniformData);
+
+    //* CPU SSBO
+    vkDescriptorBufferInfo_array[1].buffer = vertexData_position.vkBuffer;
+    vkDescriptorBufferInfo_array[1].offset = 0;
+    vkDescriptorBufferInfo_array[1].range = sizeof(VertexData);
+
+    //* GPU SSBO
+    vkDescriptorBufferInfo_array[2].buffer = vertexData_external.vkBuffer;
+    vkDescriptorBufferInfo_array[2].offset = 0;
+    vkDescriptorBufferInfo_array[2].range = sizeof(VertexData);
 
     /* Update above descriptor set directly to the shader
     There are 2 ways :-
         1) Writing directly to the shader
         2) Copying from one shader to another shader
     */
-    VkWriteDescriptorSet vkWriteDescriptorSet;
-    memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
-    vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    vkWriteDescriptorSet.pNext = NULL;
-    vkWriteDescriptorSet.dstSet = vkDescriptorSet;
-    vkWriteDescriptorSet.dstArrayElement = 0;
-    vkWriteDescriptorSet.descriptorCount = 1;
-    vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
-    vkWriteDescriptorSet.pImageInfo = NULL;
-    vkWriteDescriptorSet.pTexelBufferView = NULL;
-    vkWriteDescriptorSet.dstBinding = 0;
+    VkWriteDescriptorSet vkWriteDescriptorSet_array[3];
+    memset((void*)vkWriteDescriptorSet_array, 0, sizeof(VkWriteDescriptorSet) * _ARRAYSIZE(vkWriteDescriptorSet_array));
 
-    vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
+    //! UBO
+    vkWriteDescriptorSet_array[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet_array[0].pNext = NULL;
+    vkWriteDescriptorSet_array[0].dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet_array[0].dstArrayElement = 0;
+    vkWriteDescriptorSet_array[0].dstBinding = 0;
+    vkWriteDescriptorSet_array[0].descriptorCount = 1;
+    vkWriteDescriptorSet_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkWriteDescriptorSet_array[0].pBufferInfo = &vkDescriptorBufferInfo_array[0];
+    vkWriteDescriptorSet_array[0].pImageInfo = NULL;
+    vkWriteDescriptorSet_array[0].pTexelBufferView = NULL;
+
+    //! CPU SSBO
+    vkWriteDescriptorSet_array[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet_array[1].pNext = NULL;
+    vkWriteDescriptorSet_array[1].dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet_array[1].dstArrayElement = 0;
+    vkWriteDescriptorSet_array[1].dstBinding = 1;
+    vkWriteDescriptorSet_array[1].descriptorCount = 1;
+    vkWriteDescriptorSet_array[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkWriteDescriptorSet_array[1].pBufferInfo = &vkDescriptorBufferInfo_array[1];
+    vkWriteDescriptorSet_array[1].pImageInfo = NULL;
+    vkWriteDescriptorSet_array[1].pTexelBufferView = NULL;
+
+    //! GPU SSBO
+    vkWriteDescriptorSet_array[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet_array[2].pNext = NULL;
+    vkWriteDescriptorSet_array[2].dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet_array[2].dstArrayElement = 0;
+    vkWriteDescriptorSet_array[2].dstBinding = 2;
+    vkWriteDescriptorSet_array[2].descriptorCount = 1;
+    vkWriteDescriptorSet_array[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkWriteDescriptorSet_array[2].pBufferInfo = &vkDescriptorBufferInfo_array[2];
+    vkWriteDescriptorSet_array[2].pImageInfo = NULL;
+    vkWriteDescriptorSet_array[2].pTexelBufferView = NULL;
+
+    vkUpdateDescriptorSets(vkDevice, _ARRAYSIZE(vkWriteDescriptorSet_array), vkWriteDescriptorSet_array, 0, NULL);
 
     return vkResult;
 }
@@ -4263,44 +4428,16 @@ VkResult createPipeline(void)
 
     //* Code
 
-    //! Vertex Input State
-    VkVertexInputBindingDescription vkVertexInputBindingDescription_array[2];
-    memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
-
-    //! CPU Position
-    vkVertexInputBindingDescription_array[0].binding = 0;
-    vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 4; 
-    vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    //! GPU Position
-    vkVertexInputBindingDescription_array[1].binding = 1;
-    vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 4; 
-    vkVertexInputBindingDescription_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[2];
-    memset((void*)vkVertexInputAttributeDescription_array, 0, sizeof(VkVertexInputAttributeDescription) * _ARRAYSIZE(vkVertexInputAttributeDescription_array));
-    
-    //! CPU Position
-    vkVertexInputAttributeDescription_array[0].binding = 0;
-    vkVertexInputAttributeDescription_array[0].location = 0;
-    vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    vkVertexInputAttributeDescription_array[0].offset = 0;
-    
-    //! GPU Position
-    vkVertexInputAttributeDescription_array[1].binding = 1;
-    vkVertexInputAttributeDescription_array[1].location = 1;
-    vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    vkVertexInputAttributeDescription_array[1].offset = 0;
-    
+    //! Emtpy Vertex Input State -> Replaced with SSBOs used for Vertex Pulling
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
     memset((void*)&vkPipelineVertexInputStateCreateInfo, 0, sizeof(VkPipelineVertexInputStateCreateInfo));
     vkPipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vkPipelineVertexInputStateCreateInfo.pNext = NULL;
     vkPipelineVertexInputStateCreateInfo.flags = 0;
-    vkPipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = _ARRAYSIZE(vkVertexInputBindingDescription_array);
-    vkPipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = vkVertexInputBindingDescription_array;
-    vkPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = _ARRAYSIZE(vkVertexInputAttributeDescription_array);
-    vkPipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = vkVertexInputAttributeDescription_array;
+    vkPipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
+    vkPipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = NULL;
+    vkPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
+    vkPipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = NULL;
     
     //! Input Assembly State
     VkPipelineInputAssemblyStateCreateInfo vkPipelineInputAssemblyStateCreateInfo;

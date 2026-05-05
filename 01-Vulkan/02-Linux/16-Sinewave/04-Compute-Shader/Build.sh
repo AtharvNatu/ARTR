@@ -27,7 +27,6 @@ echo "Compiling X11 and $API Source Code ..."
 echo "--------------------------------------------------------------------------------"
 g++ -c \
     -o Vk.o \
-    -fsanitize=address -fno-omit-frame-pointer -g \
     -I"$VULKAN_INCLUDE_PATH" \
     -I"$GLM_INCLUDE_PATH" \
     -I"$INCLUDE_PATH" \
@@ -64,8 +63,7 @@ echo "--------------------------------------------------------------------------
 echo "Linking Object Files and Creating Binary ..."
 echo "--------------------------------------------------------------------------------"
 
-g++ -fsanitize=address -fno-omit-frame-pointer -g \
-    "$BIN_DIR"/Vk.o -o "$BIN_DIR"/Vk \
+g++ "$BIN_DIR"/Vk.o -o "$BIN_DIR"/Vk \
     -lX11 \
     -lm \
     -L"$VULKAN_LIB_PATH" \

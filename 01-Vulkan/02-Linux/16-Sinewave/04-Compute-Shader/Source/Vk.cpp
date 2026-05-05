@@ -214,7 +214,6 @@ VkPipeline vkPipeline_compute = VK_NULL_HANDLE;                         // Compu
 ComputeData computeBuffer;
 Bool bUseCompute = False;
 
-
 // Entry Point Function
 int main(void)
 {
@@ -3365,7 +3364,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
     vkBufferCreateInfo.size = bufferSize;
-    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     
     //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
@@ -3380,31 +3379,31 @@ VkResult createVertexBuffer(void)
     vkGetBufferMemoryRequirements(vkDevice, vertexData_position.vkBuffer, &vkMemoryRequirements);
 
     //* Step - 8
+    
+    //! RESIZABLE BAR
+    int resizeBarMemoryIndex = -1;
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++) 
+    {
+        VkMemoryPropertyFlags flags = vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags;
+        if ((flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+        {
+            //* Check the heap which it belogs to is large (> 256 MB)
+            uint32_t heapIndex = vkPhysicalDeviceMemoryProperties.memoryTypes[i].heapIndex;
+            if (vkPhysicalDeviceMemoryProperties.memoryHeaps[heapIndex].size > 256 * 1024 * 1024) 
+            {
+                resizeBarMemoryIndex = i;
+                break;
+            }
+        }
+    }
+
+    //* Step - 8.1
     VkMemoryAllocateInfo vkMemoryAllocateInfo;
     memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
     vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     vkMemoryAllocateInfo.pNext = NULL;
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-    vkMemoryAllocateInfo.memoryTypeIndex = 0;
-    
-    //* Step - 8.1
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-    {
-        //* Step - 8.2
-        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
-        {
-            //* Step - 8.3
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-            {
-                //* Step - 8.4
-                vkMemoryAllocateInfo.memoryTypeIndex = i;
-                break;
-            }
-        }
-
-        //* Step - 8.5
-        vkMemoryRequirements.memoryTypeBits >>= 1;
-    }
+    vkMemoryAllocateInfo.memoryTypeIndex = resizeBarMemoryIndex;
 
     //* Step - 9
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
@@ -3440,8 +3439,11 @@ VkResult updateVertexBuffer(void)
     // Code
     vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, meshArraySize * sizeof(float), 0, &data);
     if (vkResult != VK_SUCCESS)
+    {
         fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position : %d\n", __func__, vkResult);
-    
+        return vkResult;
+    }
+        
     memcpy(data, pPosition, meshArraySize * sizeof(float));
 
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
@@ -4881,7 +4883,7 @@ VkResult createDescriptorSet_compute(void)
     
     VkDescriptorBufferInfo vkDescriptorBufferInfo;
     memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
-    vkDescriptorBufferInfo.buffer = computeBuffer.vkBuffer;
+    vkDescriptorBufferInfo.buffer = vertexData_position.vkBuffer;
     vkDescriptorBufferInfo.offset = 0;
     vkDescriptorBufferInfo.range = VK_WHOLE_SIZE;
 
@@ -5024,61 +5026,28 @@ VkResult buildCommandBuffer_compute(void)
 
     vkCmdDispatch(vkCommandBuffer_compute, (meshWidth + 15) / 16, (meshHeight + 15) / 16, 1);
 
-    //! Barrier -> Wait For Compute Shader To Finish Writing To computeBuffer
+    //! Barrier -> Wait For Compute Shader To Finish Writing To Buffer
     VkBufferMemoryBarrier vkBufferMemoryBarrier_compute;
     memset((void*)&vkBufferMemoryBarrier_compute, 0, sizeof(VkBufferMemoryBarrier));
     vkBufferMemoryBarrier_compute.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
     vkBufferMemoryBarrier_compute.pNext = NULL;
     vkBufferMemoryBarrier_compute.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    vkBufferMemoryBarrier_compute.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    vkBufferMemoryBarrier_compute.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
     vkBufferMemoryBarrier_compute.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     vkBufferMemoryBarrier_compute.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    vkBufferMemoryBarrier_compute.buffer = computeBuffer.vkBuffer;
+    vkBufferMemoryBarrier_compute.buffer = vertexData_position.vkBuffer;
     vkBufferMemoryBarrier_compute.offset = 0;
     vkBufferMemoryBarrier_compute.size = VK_WHOLE_SIZE;
 
     vkCmdPipelineBarrier(
         vkCommandBuffer_compute,
         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0,
-        NULL,
-        1,
-        &vkBufferMemoryBarrier_compute,
-        0,
-        NULL
-    );
-
-    //! GPU Copy -> Move Data From Compute Buffer To Vertex Buffer
-    VkBufferCopy vkBufferCopy_compute;
-    vkBufferCopy_compute.srcOffset = 0;
-    vkBufferCopy_compute.dstOffset = 0;
-    vkBufferCopy_compute.size = meshArraySize * sizeof(float);
-    vkCmdCopyBuffer(vkCommandBuffer_compute, computeBuffer.vkBuffer, vertexData_position.vkBuffer, 1, &vkBufferCopy_compute);
-
-    //! Barrier -> Wait For Copy To Finish Before Vertex Input Starts
-    VkBufferMemoryBarrier vkBufferMemoryBarrier_vertex;
-    memset((void*)&vkBufferMemoryBarrier_vertex, 0, sizeof(VkBufferMemoryBarrier));
-    vkBufferMemoryBarrier_vertex.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    vkBufferMemoryBarrier_vertex.pNext = NULL;
-    vkBufferMemoryBarrier_vertex.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    vkBufferMemoryBarrier_vertex.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-    vkBufferMemoryBarrier_vertex.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    vkBufferMemoryBarrier_vertex.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    vkBufferMemoryBarrier_vertex.buffer = vertexData_position.vkBuffer;
-    vkBufferMemoryBarrier_vertex.offset = 0;
-    vkBufferMemoryBarrier_vertex.size = VK_WHOLE_SIZE;
-
-    vkCmdPipelineBarrier(
-        vkCommandBuffer_compute,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
         0,
         0,
         NULL,
         1,
-        &vkBufferMemoryBarrier_vertex,
+        &vkBufferMemoryBarrier_compute,
         0,
         NULL
     );
