@@ -1,6 +1,8 @@
 // Header Files
 #import <Foundation/Foundation.h>
 #import <Cocoa/Cocoa.h>
+#import <QuartzCore/CVDisplayLink.h>    // For CoreVideo
+#import <QuartzCore/CAMetalLayer.h>     // Metal-Based Core Animation Layer
 
 // Macros
 #define WIN_WIDTH   800
@@ -16,6 +18,9 @@ bool bWindowMinimized = NO;
 
 char gszLogFileName[] = "Log.txt";
 FILE *gpFile = NULL;
+
+// Global Function Declarations
+CVReturn DisplayLinkCallback(CVDisplayLinkRef, const CVTimeStamp*, const CVTimeStamp*, CVOptionFlags, CVOptionFlags*, void*);
 
 // Forward Interface Declarations
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
@@ -87,7 +92,7 @@ int main(int argc, char* argv[])
                               backing: NSBackingStoreBuffered
                               defer: NO];
 
-    [window setTitle:@"Atharv Natu : macOS Window"];
+    [window setTitle:@"Atharv Natu : macOS Window Template For MoltenVk"];
     [window setBackgroundColor:[NSColor blackColor]];
     [window center];
 
@@ -153,6 +158,10 @@ int main(int argc, char* argv[])
 
 // View Interface Implementation
 @implementation View
+{
+    @private
+    CVDisplayLinkRef displayLink;
+}
 
 -(id) initWithFrame:(NSRect)frame 
 {
@@ -160,11 +169,23 @@ int main(int argc, char* argv[])
     self = [super initWithFrame:frame];
     if (self)
     {
+        //* Transform Our View To CAMetalLayer Backing View (NSView -> Metal Backing View)
+        [self setWantsLayer:YES];
+
         int result = [self initialize];
         if (result != 0)
             fprintf(gpFile, "\n%s() => initialize() Failed : %d !!!\n", __func__, result);
         else
             fprintf(gpFile, "\n%s() => initialize() Succeeded\n", __func__);
+
+        //* Create A Display Link Capable Of Being Used By All Active Displays
+        CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
+
+        //* Set The Display Link As Our Rendering Output Callback
+        CVDisplayLinkSetOutputCallback(displayLink, &DisplayLinkCallback, self);
+
+        //* Activate The Display Link
+        CVDisplayLinkStart(displayLink);
     }
 
     return self;
@@ -185,6 +206,8 @@ int main(int argc, char* argv[])
 -(NSSize) windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize 
 {
     // Code
+    CVDisplayLinkStop(displayLink);
+
     if (bWindowMinimized == NO)
     {
         [self resize: frameSize.width :frameSize.height];
@@ -195,13 +218,15 @@ int main(int argc, char* argv[])
 
 -(void) windowDidResize:(NSNotification *)notification 
 {
-    // Code - Empty Body -> Written For Delegate Implementation
+    // Code
+    CVDisplayLinkStart(displayLink);
 }
 
 -(void) windowWillMiniaturize:(NSNotification *)notification 
 {
     // Code
     bWindowMinimized = YES;
+    CVDisplayLinkStop(displayLink);
 }
 
 -(void) windowDidMiniaturize:(NSNotification *)notification 
@@ -213,6 +238,7 @@ int main(int argc, char* argv[])
 {
     // Code
     bWindowMinimized = NO;
+    CVDisplayLinkStart(displayLink);
 }
 
 -(void) windowWillClose:(NSNotification *)notification 
@@ -277,8 +303,54 @@ int main(int argc, char* argv[])
 -(void) drawRect:(NSRect)dirtyRect
 {
     // Code
+
+    //* To Prevent Flickering (Image Tearing) Happening Due To Synchronization Issues - Call Rendering Function
     [self drawView];
 }
+
+-(CVReturn) getFrameForTime:(const CVTimeStamp *)pOutputTime
+{
+    // Code
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
+
+    //* Render The Scene
+    [self drawView];
+
+    [pool release];
+
+    return kCVReturnSuccess;
+}
+
+//! For setWantsLayer() To Return True We Must Override/Implement The Following 2 Static Functions
+//!     1) Needed For Draw
+//!     2) Needed For Update
+
++(Class) layerClass
+{
+    // Code
+    return [CAMetalLayer class];
+}
+
+//* Continuosly Demand The Updated Layer, Which Is Updated By Rendering
+-(BOOL) wantsUpdateLayer 
+{
+    // Code
+    return YES;
+}
+
+//* To Have The Result Of setWantsLayer, The Following Function Needs To Return Resized Layer, If Resizing Is Done
+-(CALayer*) makeBackingLayer 
+{
+    // Code
+    CALayer* layer = [[[self class]layerClass]layer];
+
+    CGSize viewSize = [self convertSizeToBacking:CGSizeMake(1.0, 1.0)];
+
+    [layer setContentsScale:MIN(viewSize.width, viewSize.height)];
+
+    return layer;
+}
+
 
 -(void) drawView
 {
@@ -318,7 +390,30 @@ int main(int argc, char* argv[])
 -(void) dealloc 
 {
     // Code
+    if (displayLink)
+    {
+        CVDisplayLinkStop(displayLink);
+        CVDisplayLinkRelease(displayLink);
+        displayLink = NULL;
+    }
+
     [super dealloc];
 }
 
 @end
+
+// Callback Implementation
+CVReturn DisplayLinkCallback(
+    CVDisplayLinkRef displayLinkRef, 
+    const CVTimeStamp* now, 
+    const CVTimeStamp* outputTime, 
+    CVOptionFlags flagsIn, 
+    CVOptionFlags* flagsOut, 
+    void* renderer)
+{
+    // Code
+    CVReturn result = [(View*)renderer getFrameForTime:outputTime];
+
+    return result;
+}
+

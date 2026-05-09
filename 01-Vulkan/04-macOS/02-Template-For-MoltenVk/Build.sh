@@ -22,7 +22,8 @@ clang \
     -o "$BIN_DIR/Window.app/Contents/MacOS/Window" \
     "$SOURCE_PATH/Window.m" \
     -framework Foundation \
-    -framework Cocoa
+    -framework Cocoa \
+    -framework QuartzCore
     
 if [ $? -ne 0 ]; then
     echo "Compilation Failed !!!"
