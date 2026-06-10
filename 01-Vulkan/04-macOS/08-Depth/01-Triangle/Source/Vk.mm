@@ -245,7 +245,7 @@ int main(int argc, char* argv[])
                               backing: NSBackingStoreBuffered
                               defer: NO];
 
-    [window setTitle:@"Atharv Natu : macOS Window Template For MoltenVk"];
+    [window setTitle:@"Atharv Natu : macOS : Vulkan Depth-Enabled Triangle"];
     [window setBackgroundColor:[NSColor blackColor]];
     [window center];
 
@@ -324,6 +324,9 @@ int main(int argc, char* argv[])
     {
         //* Transform Our View To CAMetalLayer Backing View (NSView -> Metal Backing View)
         [self setWantsLayer:YES];
+
+        //* Set Global View Object
+        gpView = (NSView*)self;
 
         VkResult vkResult = [self initialize];
         if (vkResult != VK_SUCCESS)
@@ -1367,6 +1370,9 @@ int main(int argc, char* argv[])
     memset((void*)&vkInstanceCreateInfo, 0, sizeof(VkInstanceCreateInfo));
     vkInstanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     vkInstanceCreateInfo.pNext = NULL;
+
+    //! Following flag is needed, if Khronos Vulkan ICD Loader is used instead of linking with MoltenVk Framework
+    vkInstanceCreateInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     vkInstanceCreateInfo.pApplicationInfo = &vkApplicationInfo;
     vkInstanceCreateInfo.enabledExtensionCount = enabledInstanceExtensionCount;
     vkInstanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensionNames_array;
@@ -1495,7 +1501,8 @@ int main(int argc, char* argv[])
 
     //* Step - 5
     VkBool32 vulkanSurfaceExtensionFound = VK_FALSE;
-    VkBool32 win32SurfaceExtensionFound = VK_FALSE;
+    VkBool32 macOsSurfaceExtensionFound = VK_FALSE;
+    VkBool32 vulkanPortabilityEnumerationExtensionFound = VK_FALSE;     //* Since Vulkan 1.3.216.0
     VkBool32 debugReportExtensionFound = VK_FALSE;
 
     for (uint32_t i = 0; i < instanceExtensionCount; i++)
@@ -1508,8 +1515,14 @@ int main(int argc, char* argv[])
            
         if (strcmp(instanceExtensionNames_array[i], VK_MVK_MACOS_SURFACE_EXTENSION_NAME) == 0)
         {
-            win32SurfaceExtensionFound = VK_TRUE;
+            macOsSurfaceExtensionFound = VK_TRUE;
             enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_MVK_MACOS_SURFACE_EXTENSION_NAME;
+        } 
+           
+        if (strcmp(instanceExtensionNames_array[i], VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
+        {
+            vulkanPortabilityEnumerationExtensionFound = VK_TRUE;
+            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
         } 
 
         if (strcmp(instanceExtensionNames_array[i], VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
@@ -1546,14 +1559,23 @@ int main(int argc, char* argv[])
     else
         fprintf(gpFile, "%s() => VK_KHR_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
 
-    if (win32SurfaceExtensionFound == VK_FALSE)
+    if (macOsSurfaceExtensionFound == VK_FALSE)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        fprintf(gpFile, "%s() => VK_KHR_WIN32_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        fprintf(gpFile, "%s() => VK_MVK_MACOS_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => VK_KHR_WIN32_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
+        fprintf(gpFile, "%s() => VK_MVK_MACOS_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
+
+    if (vulkanPortabilityEnumerationExtensionFound == VK_FALSE)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME Extension Found\n", __func__);
 
     if (debugReportExtensionFound == VK_FALSE)
     {
@@ -1754,10 +1776,10 @@ int main(int argc, char* argv[])
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 2
-    memset((void*)&vkMacOSSurfaceCreateInfoMVK, 0, sizeof(vkMacOSSurfaceCreateInfoMVK));
+    memset((void*)&vkMacOSSurfaceCreateInfoMVK, 0, sizeof(VkMacOSSurfaceCreateInfoMVK));
 
     //* Step - 3
-    vkMacOSSurfaceCreateInfoMVK.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    vkMacOSSurfaceCreateInfoMVK.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
     vkMacOSSurfaceCreateInfoMVK.pNext = NULL;
     vkMacOSSurfaceCreateInfoMVK.flags = 0;
     vkMacOSSurfaceCreateInfoMVK.pView = gpView;
@@ -2180,6 +2202,16 @@ int main(int argc, char* argv[])
         }
     }
 
+    VkBool32 vulkanPortabilitySubsetExtensionFound = VK_FALSE;
+    for (uint32_t i = 0; i < deviceExtensionCount; i++)
+    {
+        if (strcmp(deviceExtensionNames_array[i], VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME) == 0)
+        {
+            vulkanPortabilitySubsetExtensionFound = VK_TRUE;
+            enabledDeviceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME;
+        }
+    }
+
     //* Step - 6
     if (deviceExtensionNames_array)
     {
@@ -2201,6 +2233,15 @@ int main(int argc, char* argv[])
     }
     else
         fprintf(gpFile, "%s() => VK_KHR_SWAPCHAIN_EXTENSION_NAME Extension Found\n", __func__);
+
+    if (vulkanPortabilitySubsetExtensionFound == VK_FALSE)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME Extension Found\n", __func__);
 
     //* Step - 8
     for (uint32_t i = 0; i < enabledDeviceExtensionCount; i++)
@@ -2515,7 +2556,6 @@ int main(int argc, char* argv[])
     else
         fprintf(gpFile, "%s() => vkCreateSwapchainKHR() Succeeded\n", __func__);
 
-
     return VK_SUCCESS;
 }
 
@@ -2611,8 +2651,8 @@ int main(int argc, char* argv[])
     vkImageCreateInfo.flags = 0;
     vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     vkImageCreateInfo.format = vkFormat_depth;
-    vkImageCreateInfo.extent.width = winWidth;
-    vkImageCreateInfo.extent.height = winHeight;
+    vkImageCreateInfo.extent.width = vkExtent2D_swapchain.width;
+    vkImageCreateInfo.extent.height = vkExtent2D_swapchain.height;
     vkImageCreateInfo.extent.depth = 1;
     vkImageCreateInfo.mipLevels = 1;
     vkImageCreateInfo.arrayLayers = 1;
@@ -2638,6 +2678,8 @@ int main(int argc, char* argv[])
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
     vkMemoryAllocateInfo.memoryTypeIndex = 0;
 
+    VkBool32 foundMatchingMemoryType_depth = VK_FALSE;
+
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
@@ -2645,11 +2687,20 @@ int main(int argc, char* argv[])
             if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
             {
                 vkMemoryAllocateInfo.memoryTypeIndex = i;
+                foundMatchingMemoryType_depth = VK_TRUE;
                 break;
             }
         }
 
         vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Check For memoryTypeIndex != 0 On MoltenVK
+    if (foundMatchingMemoryType_depth == VK_FALSE)
+    {
+        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        fprintf(gpFile, "%s() => Device Local Memory Not Found : %d !!!\n", __func__, vkResult);
+        return vkResult;
     }
 
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vkDeviceMemory_depth);
@@ -2676,7 +2727,15 @@ int main(int argc, char* argv[])
     vkImageViewCreateInfo.pNext = NULL;
     vkImageViewCreateInfo.flags = 0;
     vkImageViewCreateInfo.format = vkFormat_depth;
-    vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+
+    vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    if (vkFormat_depth == VK_FORMAT_D32_SFLOAT_S8_UINT || 
+        vkFormat_depth == VK_FORMAT_D24_UNORM_S8_UINT || 
+        vkFormat_depth == VK_FORMAT_D16_UNORM_S8_UINT)
+    {
+        vkImageViewCreateInfo.subresourceRange.aspectMask |=  VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+
     vkImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
     vkImageViewCreateInfo.subresourceRange.levelCount = 1;
     vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
@@ -2829,8 +2888,9 @@ int main(int argc, char* argv[])
     vkMemoryAllocateInfo.pNext = NULL;
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
     vkMemoryAllocateInfo.memoryTypeIndex = 0;
-    
+
     //* Step - 8.1
+    VkBool32 foundMatchingMemoryType_vertex = VK_FALSE;
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         //* Step - 8.2
@@ -2841,12 +2901,21 @@ int main(int argc, char* argv[])
             {
                 //* Step - 8.4
                 vkMemoryAllocateInfo.memoryTypeIndex = i;
+                foundMatchingMemoryType_vertex = VK_TRUE;
                 break;
             }
         }
 
         //* Step - 8.5
         vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Check For memoryTypeIndex != 0 On MoltenVK
+    if (foundMatchingMemoryType_vertex == VK_FALSE)
+    {
+        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        fprintf(gpFile, "%s() => Host Visible Memory Not Found : %d !!!\n", __func__, vkResult);
+        return vkResult;
     }
 
     //* Step - 9
@@ -2917,6 +2986,7 @@ int main(int argc, char* argv[])
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
     vkMemoryAllocateInfo.memoryTypeIndex = 0;
 
+    VkBool32 foundMatchingMemoryType_uniform = VK_FALSE;
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
@@ -2924,11 +2994,20 @@ int main(int argc, char* argv[])
             if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
             {
                 vkMemoryAllocateInfo.memoryTypeIndex = i;
+                foundMatchingMemoryType_uniform = VK_TRUE;
                 break;
             }
         }
 
         vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Check For memoryTypeIndex != 0 On MoltenVK
+    if (foundMatchingMemoryType_uniform == VK_FALSE)
+    {
+        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        fprintf(gpFile, "%s() => Host Visible Memory Not Found : %d !!!\n", __func__, vkResult);
+        return vkResult;
     }
 
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData.vkDeviceMemory);
@@ -3013,11 +3092,18 @@ int main(int argc, char* argv[])
     //! Vertex Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
+    NSBundle* appBundle = [NSBundle mainBundle];
+    NSString* appDirectoryName = [appBundle bundlePath];
+    NSString* parentDirectoryPath = [appDirectoryName stringByDeletingLastPathComponent];
+
     const char* szFileName = "Shader.vert.spv";
+    NSString *shaderFileNameWithPath = [NSString stringWithFormat:@"%@/%s", parentDirectoryPath, szFileName];
+    const char* pszShaderFileNameWithPath = [shaderFileNameWithPath cStringUsingEncoding:NSASCIIStringEncoding];
+
     FILE *fp = NULL;
     size_t size;
 
-    fp = fopen(szFileName, "rb");
+    fp = fopen(pszShaderFileNameWithPath, "rb");
     if (fp == NULL)
     {
         fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File : %s !!!", __func__, szFileName);
@@ -3091,9 +3177,11 @@ int main(int argc, char* argv[])
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     szFileName = "Shader.frag.spv";
+    shaderFileNameWithPath = [NSString stringWithFormat:@"%@/%s", parentDirectoryPath, szFileName];
+    pszShaderFileNameWithPath = [shaderFileNameWithPath cStringUsingEncoding:NSASCIIStringEncoding];
 
     fp = NULL;
-    fp = fopen(szFileName, "rb");
+    fp = fopen(pszShaderFileNameWithPath, "rb");
     if (fp == NULL)
     {
         fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File :  %s !!!", __func__, szFileName);
@@ -3369,6 +3457,30 @@ int main(int argc, char* argv[])
     vkSubpassDescription.pPreserveAttachments = NULL;
     vkSubpassDescription.pResolveAttachments = NULL;
 
+    //! Explicit subpass dependencies are defined below to prevent synchronization validation errors. 
+    //! While the application may function without them and bypass core validation, 
+    //! the Synchronization Validation Layer will flag the missing explicit setup.
+    VkSubpassDependency vkSubpassDependency_array[2];
+    memset((void*)vkSubpassDependency_array, 0, sizeof(VkSubpassDependency) * _ARRAYSIZE(vkSubpassDependency_array));
+    
+    //! Color Subpass Dependency
+    vkSubpassDependency_array[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    vkSubpassDependency_array[0].dstSubpass = 0;
+    vkSubpassDependency_array[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    vkSubpassDependency_array[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    vkSubpassDependency_array[0].srcAccessMask = 0;
+    vkSubpassDependency_array[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    vkSubpassDependency_array[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    //! Depth Subpass Dependency
+    vkSubpassDependency_array[1].srcSubpass = VK_SUBPASS_EXTERNAL;
+    vkSubpassDependency_array[1].dstSubpass = 0;
+    vkSubpassDependency_array[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    vkSubpassDependency_array[1].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    vkSubpassDependency_array[1].srcAccessMask = 0;
+    vkSubpassDependency_array[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    vkSubpassDependency_array[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
     //* Step - 4
     VkRenderPassCreateInfo vkRenderPassCreateInfo;
     memset((void*)&vkRenderPassCreateInfo, 0, sizeof(VkRenderPassCreateInfo));
@@ -3379,8 +3491,8 @@ int main(int argc, char* argv[])
     vkRenderPassCreateInfo.pAttachments = vkAttachmentDescription_array;
     vkRenderPassCreateInfo.subpassCount = 1;
     vkRenderPassCreateInfo.pSubpasses = &vkSubpassDescription;
-    vkRenderPassCreateInfo.dependencyCount = 0;
-    vkRenderPassCreateInfo.pDependencies = NULL;
+    vkRenderPassCreateInfo.dependencyCount = _ARRAYSIZE(vkSubpassDependency_array);
+    vkRenderPassCreateInfo.pDependencies = vkSubpassDependency_array;
 
     //* Step - 5
     vkResult = vkCreateRenderPass(vkDevice, &vkRenderPassCreateInfo, NULL, &vkRenderPass);

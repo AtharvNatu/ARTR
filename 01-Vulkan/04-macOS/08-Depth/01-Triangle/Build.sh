@@ -2,12 +2,14 @@ clear
 
 SOURCE_PATH=Source
 BIN_DIR=Bin
+SPV=1
 
-VULKAN_INCLUDE_PATH="/Users/atharv/VulkanSDK/1.4.304.0/macOS/include"
-VULKAN_LIB_PATH="/Users/atharv/VulkanSDK/1.4.304.0/macOS/lib"
-VULKAN_BIN_PATH="/Users/atharv/VulkanSDK/1.4.304.0/macOS/bin"
+VULKAN_INCLUDE_PATH="$HOME/VulkanSDK/Vulkan/macOS/include"
+VULKAN_LIB_PATH="$HOME/VulkanSDK/Vulkan/macOS/lib"
+VULKAN_FRAMEWORK_PATH="$HOME/VulkanSDK/Vulkan/macOS/Frameworks"
+VULKAN_BIN_PATH="$HOME/VulkanSDK/Vulkan/macOS/bin"
 
-GLM_INCLUDE_PATH=/Users/atharv/VulkanSDK/1.4.304.0/macOS/include
+GLM_INCLUDE_PATH="$HOME/VulkanSDK/Vulkan/macOS/include"
 
 echo "--------------------------------------------------------------------------------"
 echo "Creating Directory Layout ..."
@@ -28,21 +30,40 @@ clang++ \
     -I"$GLM_INCLUDE_PATH" \
     -I"$VULKAN_INCLUDE_PATH" \
     -L"$VULKAN_LIB_PATH" \
-    -lvulkan \
+    -F"$VULKAN_FRAMEWORK_PATH" \
+    -rpath "$VULKAN_FRAMEWORK_PATH" \
     -o "$BIN_DIR/Vk.app/Contents/MacOS/Vk" \
     "$SOURCE_PATH/Vk.mm" \
-    -framework Foundation \
+    -framework QuartzCore \
     -framework Cocoa \
+    -framework vulkan
     
-# if [ $? -ne 0 ]; then
-#     echo "Compilation Failed !!!"
-#     exit 1
-# else 
-#     echo "--------------------------------------------------------------------------------"
-#     echo "Opening Application ..."
-#     echo "--------------------------------------------------------------------------------"
-#     open "$BIN_DIR/Vk.app"
-# fi
+if [ $? -ne 0 ]; then
+    echo "Compilation Failed !!!"
+    exit 1
+fi
+
+if (( SPV == 1)); then
+    echo
+    echo "--------------------------------------------------------------------------------"
+    echo "Compiling Shader Files To SPIR-V Binaries ..."
+    echo "--------------------------------------------------------------------------------"
+    cd Shaders
+        glslangValidator -V -H -o Shader.vert.spv Shader.vert
+        glslangValidator -V -H -o Shader.frag.spv Shader.frag
+        if [ $? -ne 0 ]; then
+            echo "Shader Compilation Failed !!!"
+            exit 1
+        fi
+        mv Shader.vert.spv ../"$BIN_DIR"
+        mv Shader.frag.spv ../"$BIN_DIR"
+    cd ..
+fi
+
+echo "--------------------------------------------------------------------------------"
+echo "Opening Application ..."
+echo "--------------------------------------------------------------------------------"
+open "$BIN_DIR/Vk.app"
 
 
 
