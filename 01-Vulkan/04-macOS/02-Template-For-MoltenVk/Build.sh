@@ -3,6 +3,7 @@ clear
 SOURCE_PATH=Source
 BIN_DIR=Bin
 
+echo
 echo "--------------------------------------------------------------------------------"
 echo "Creating Directory Layout ..."
 echo "--------------------------------------------------------------------------------"
@@ -13,6 +14,7 @@ mkdir -p "$BIN_DIR/Window.app/Contents/MacOS"
 mkdir -p "$BIN_DIR/Window.app/Contents/Resources"
 cp Assets/* "$BIN_DIR/Window.app/Contents/Resources"
 
+echo
 echo "--------------------------------------------------------------------------------"
 echo "Compiling Cocoa Source Code And Linking Frameworks ..."
 echo "--------------------------------------------------------------------------------"
@@ -28,12 +30,19 @@ clang \
 if [ $? -ne 0 ]; then
     echo "Compilation Failed !!!"
     exit 1
-else 
-    echo "--------------------------------------------------------------------------------"
-    echo "Opening Application ..."
-    echo "--------------------------------------------------------------------------------"
-    open "$BIN_DIR/Window.app"
 fi
+
+echo
+echo "--------------------------------------------------------------------------------"
+echo "Signing Application Bundle For Disk Access..."
+echo "--------------------------------------------------------------------------------"
+codesign --force --deep --sign - "$BIN_DIR/Window.app"
+
+echo
+echo "--------------------------------------------------------------------------------"
+echo "Opening Application ..."
+echo "--------------------------------------------------------------------------------"
+open "$BIN_DIR/Window.app"
 
 
 

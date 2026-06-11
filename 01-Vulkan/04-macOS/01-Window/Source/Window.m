@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
                                     forFile:appDirectoryName 
                                     options:0];
         [icon release];
-        icon = NULL;
+        icon = nil;
     }
     else
         fprintf(gpFile, "\nFailed To Set App Icon !!!");
