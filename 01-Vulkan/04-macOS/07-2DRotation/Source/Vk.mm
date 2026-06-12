@@ -3660,7 +3660,7 @@ int main(int argc, char* argv[])
     VkDescriptorPoolSize vkDescriptorPoolSize;
     memset((void*)&vkDescriptorPoolSize, 0, sizeof(VkDescriptorPoolSize));
     vkDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorPoolSize.descriptorCount = 2;
+    vkDescriptorPoolSize.descriptorCount = 1;
    
     //* Create the pool
     VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo;
