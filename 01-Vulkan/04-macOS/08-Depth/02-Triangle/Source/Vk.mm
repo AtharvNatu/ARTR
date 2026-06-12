@@ -3348,7 +3348,7 @@ int main(int argc, char* argv[])
 -(VkResult) createDescriptorSet
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 

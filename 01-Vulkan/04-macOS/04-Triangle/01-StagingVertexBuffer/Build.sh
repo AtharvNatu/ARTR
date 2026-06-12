@@ -10,8 +10,6 @@ VULKAN_INCLUDE_PATH="$HOME/VulkanSDK/Vulkan/macOS/include"
 VULKAN_LIB_PATH="$HOME/VulkanSDK/Vulkan/macOS/lib"
 VULKAN_FRAMEWORK_PATH="$HOME/VulkanSDK/Vulkan/macOS/Frameworks"
 
-GLM_INCLUDE_PATH="$HOME/VulkanSDK/Vulkan/macOS/include"
-
 echo
 echo "--------------------------------------------------------------------------------"
 echo "Creating Directory Layout ..."
@@ -27,16 +25,15 @@ echo
 echo "--------------------------------------------------------------------------------"
 echo "Compiling Cocoa + MoltenVk Source Code And Linking Frameworks ..."
 echo "--------------------------------------------------------------------------------"
-clang++ \
+clang \
     -Wno-deprecated-declarations \
     -arch "$ARCH" \
-    -I"$GLM_INCLUDE_PATH" \
     -I"$VULKAN_INCLUDE_PATH" \
     -L"$VULKAN_LIB_PATH" \
     -F"$VULKAN_FRAMEWORK_PATH" \
     -rpath "$VULKAN_FRAMEWORK_PATH" \
     -o "$BIN_DIR/Vk.app/Contents/MacOS/Vk" \
-    "$SOURCE_PATH/Vk.mm" \
+    "$SOURCE_PATH/Vk.m" \
     -framework QuartzCore \
     -framework Cocoa \
     -framework vulkan
@@ -62,12 +59,6 @@ if (( SPV == 1)); then
         mv Shader.frag.spv ../"$BIN_DIR"
     cd ..
 fi
-
-echo
-echo "--------------------------------------------------------------------------------"
-echo "Signing Application Bundle For Disk Access..."
-echo "--------------------------------------------------------------------------------"
-codesign --force --deep --sign - "$BIN_DIR/Vk.app"
 
 echo
 echo "--------------------------------------------------------------------------------"

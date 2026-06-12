@@ -100,7 +100,6 @@ VkFence *vkFence_array = NULL;
 
 //? Clear Color Values
 VkClearColorValue vkClearColorValue;
-VkClearDepthStencilValue vkClearDepthStencilValue;
 
 //? Render
 bool bInitialized = NO;
@@ -523,11 +522,6 @@ int main(int argc, char* argv[])
     vkClearColorValue.float32[1] = 0.0f;    //* G
     vkClearColorValue.float32[2] = 1.0f;    //* B
     vkClearColorValue.float32[3] = 1.0f;    //* A
-
-    //! Set Default Clear Depth and Stencil Values
-    memset((void*)&vkClearDepthStencilValue, 0, sizeof(VkClearDepthStencilValue));
-    vkClearDepthStencilValue.depth = 1.0f;
-    vkClearDepthStencilValue.stencil = 0;
 
     vkResult = [self buildCommandBuffers];
     if (vkResult != VK_SUCCESS)
@@ -2479,10 +2473,9 @@ int main(int argc, char* argv[])
             fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded For Index : %d\n", __func__, i);
 
         //* Step - 4 => Set Clear Value
-        VkClearValue vkClearValue_array[2];
+        VkClearValue vkClearValue_array[1];
         memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
         vkClearValue_array[0].color = vkClearColorValue;
-        vkClearValue_array[1].depthStencil = vkClearDepthStencilValue;
 
         //* Step - 5
         VkRenderPassBeginInfo vkRenderPassBeginInfo;

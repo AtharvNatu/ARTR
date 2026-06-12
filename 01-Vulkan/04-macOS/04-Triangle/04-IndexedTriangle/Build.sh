@@ -58,8 +58,8 @@ if (( SPV == 1)); then
             echo "Shader Compilation Failed !!!"
             exit 1
         fi
-        mv Shader.vert.spv ../"$BIN_DIR"
-        mv Shader.frag.spv ../"$BIN_DIR"
+        mv Shader.vert.spv "../$BIN_DIR"
+        mv Shader.frag.spv "../$BIN_DIR"
     cd ..
 fi
 

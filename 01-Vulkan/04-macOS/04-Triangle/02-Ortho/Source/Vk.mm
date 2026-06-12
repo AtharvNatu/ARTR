@@ -87,12 +87,6 @@ uint32_t swapchainImageCount = UINT32_MAX;
 VkImage *swapchainImage_array = NULL;
 VkImageView *swapchainImageView_array = NULL;
 
-//? For Depth Image
-VkFormat vkFormat_depth = VK_FORMAT_UNDEFINED;
-VkImage vkImage_depth = VK_NULL_HANDLE;
-VkDeviceMemory vkDeviceMemory_depth = VK_NULL_HANDLE;
-VkImageView vkImageView_depth = VK_NULL_HANDLE;
-
 //? Command Pool
 VkCommandPool vkCommandPool = VK_NULL_HANDLE;
 
@@ -112,7 +106,6 @@ VkFence *vkFence_array = NULL;
 
 //? Clear Color Values
 VkClearColorValue vkClearColorValue;
-VkClearDepthStencilValue vkClearDepthStencilValue;
 
 //? Render
 bool bInitialized = NO;
@@ -245,7 +238,7 @@ int main(int argc, char* argv[])
                               backing: NSBackingStoreBuffered
                               defer: NO];
 
-    [window setTitle:@"Atharv Natu : macOS : Vulkan Depth-Enabled Triangle"];
+    [window setTitle:@"Atharv Natu : macOS : Vulkan Triangle With Orthographic Projection"];
     [window setBackgroundColor:[NSColor blackColor]];
     [window center];
 
@@ -671,11 +664,6 @@ int main(int argc, char* argv[])
     vkClearColorValue.float32[2] = 1.0f;    //* B
     vkClearColorValue.float32[3] = 1.0f;    //* A
 
-    //! Set Default Clear Depth and Stencil Values
-    memset((void*)&vkClearDepthStencilValue, 0, sizeof(VkClearDepthStencilValue));
-    vkClearDepthStencilValue.depth = 1.0f;
-    vkClearDepthStencilValue.stencil = 0;
-
     vkResult = [self buildCommandBuffers];
     if (vkResult != VK_SUCCESS)
     {
@@ -769,26 +757,6 @@ int main(int argc, char* argv[])
             vkDestroyRenderPass(vkDevice, vkRenderPass, NULL);
             vkRenderPass = VK_NULL_HANDLE;
         }
-
-        //* Destroying Depth Image
-        if (vkImageView_depth)
-        {
-            vkDestroyImageView(vkDevice, vkImageView_depth, NULL);
-            vkImageView_depth = VK_NULL_HANDLE;
-        }
-
-        if (vkImage_depth)
-        {
-            vkDestroyImage(vkDevice, vkImage_depth, NULL);
-            vkImage_depth = VK_NULL_HANDLE;
-        }
-
-        if (vkDeviceMemory_depth)
-        {
-            vkFreeMemory(vkDevice, vkDeviceMemory_depth, NULL);
-            vkDeviceMemory_depth = VK_NULL_HANDLE;
-        }
-
         
         //* Destroy Swapchain Image and Image Views
         for (uint32_t i = 0; i < swapchainImageCount; i++)
@@ -1222,28 +1190,6 @@ int main(int argc, char* argv[])
         vkDestroyCommandPool(vkDevice, vkCommandPool, NULL);
         vkCommandPool = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyCommandPool() Succeeded\n", __func__);
-    }
-
-    //* Destroying Depth Image
-    if (vkImageView_depth)
-    {
-        vkDestroyImageView(vkDevice, vkImageView_depth, NULL);
-        vkImageView_depth = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyImageView() Succeeded For vkImageView_depth\n", __func__);
-    }
-
-    if (vkImage_depth)
-    {
-        vkDestroyImage(vkDevice, vkImage_depth, NULL);
-        vkImage_depth = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyImage() Succeeded For vkImage_depth\n", __func__);
-    }
-
-    if (vkDeviceMemory_depth)
-    {
-        vkFreeMemory(vkDevice, vkDeviceMemory_depth, NULL);
-        vkDeviceMemory_depth = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vkDeviceMemory_depth\n", __func__);
     }
 
     //* Step - 7, 8 of Swapchain Image and Image Views
@@ -2633,156 +2579,6 @@ int main(int argc, char* argv[])
             fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For Index : %d\n", __func__, i);
     }
 
-    //! For Depth Image
-    vkResult = [self getSupportedDepthFormat];
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => getSupportedDepthFormat() Failed : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => getSupportedDepthFormat() Succeded\n", __func__);
-
-    //* For Depth Image, initialize VkImageCreateInfo
-    VkImageCreateInfo vkImageCreateInfo;
-    memset((void*)&vkImageCreateInfo, 0, sizeof(VkImageCreateInfo));
-    vkImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    vkImageCreateInfo.pNext = NULL;
-    vkImageCreateInfo.flags = 0;
-    vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    vkImageCreateInfo.format = vkFormat_depth;
-    vkImageCreateInfo.extent.width = vkExtent2D_swapchain.width;
-    vkImageCreateInfo.extent.height = vkExtent2D_swapchain.height;
-    vkImageCreateInfo.extent.depth = 1;
-    vkImageCreateInfo.mipLevels = 1;
-    vkImageCreateInfo.arrayLayers = 1;
-    vkImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    vkImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    vkImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-    vkResult = vkCreateImage(vkDevice, &vkImageCreateInfo, NULL, &vkImage_depth);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateImage() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateImage() Succeeded\n", __func__);
-
-    //! Memory Requirements For Depth Image
-    VkMemoryRequirements vkMemoryRequirements;
-    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetImageMemoryRequirements(vkDevice, vkImage_depth, &vkMemoryRequirements);
-
-    VkMemoryAllocateInfo vkMemoryAllocateInfo;
-    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
-    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    vkMemoryAllocateInfo.pNext = NULL;
-    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-    vkMemoryAllocateInfo.memoryTypeIndex = 0;
-
-    VkBool32 foundMatchingMemoryType_depth = VK_FALSE;
-
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-    {
-        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
-        {
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-            {
-                vkMemoryAllocateInfo.memoryTypeIndex = i;
-                foundMatchingMemoryType_depth = VK_TRUE;
-                break;
-            }
-        }
-
-        vkMemoryRequirements.memoryTypeBits >>= 1;
-    }
-
-    //* Check For memoryTypeIndex != 0 On MoltenVK
-    if (foundMatchingMemoryType_depth == VK_FALSE)
-    {
-        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
-        fprintf(gpFile, "%s() => Device Local Memory Not Found : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vkDeviceMemory_depth);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Depth : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }     
-    else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Depth\n", __func__);
-
-    vkResult = vkBindImageMemory(vkDevice, vkImage_depth, vkDeviceMemory_depth, 0);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkBindImageMemory() Failed For Depth : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => vkBindImageMemory() Succeeded For Depth\n", __func__);
-
-    //! Create Image View For Above Depth Image
-    memset((void*)&vkImageViewCreateInfo, 0, sizeof(VkImageViewCreateInfo));
-    vkImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    vkImageViewCreateInfo.pNext = NULL;
-    vkImageViewCreateInfo.flags = 0;
-    vkImageViewCreateInfo.format = vkFormat_depth;
-
-    vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    if (vkFormat_depth == VK_FORMAT_D32_SFLOAT_S8_UINT || 
-        vkFormat_depth == VK_FORMAT_D24_UNORM_S8_UINT || 
-        vkFormat_depth == VK_FORMAT_D16_UNORM_S8_UINT)
-    {
-        vkImageViewCreateInfo.subresourceRange.aspectMask |=  VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
-
-    vkImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-    vkImageViewCreateInfo.subresourceRange.levelCount = 1;
-    vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    vkImageViewCreateInfo.subresourceRange.layerCount = 1;
-    vkImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    vkImageViewCreateInfo.image = vkImage_depth;    //! Added here, as previously we had swapchain images, but here we are creating a new depth image
-
-    //* Step - 6
-    vkResult = vkCreateImageView(vkDevice, &vkImageViewCreateInfo, NULL, &vkImageView_depth);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateImageView() Failed For Depth : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For Depth\n", __func__);
-
-    return vkResult;
-}
-
--(VkResult) getSupportedDepthFormat
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-    
-    VkFormat vkFormat_depth_array[] = 
-    {
-        //* Descending Order
-        VK_FORMAT_D32_SFLOAT_S8_UINT,
-        VK_FORMAT_D32_SFLOAT,
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_D16_UNORM_S8_UINT,
-        VK_FORMAT_D16_UNORM
-    };
-    
-    // Code
-    for (uint32_t i = 0; i < (sizeof(vkFormat_depth_array) / sizeof(vkFormat_depth_array[0])); i++)
-    {
-        VkFormatProperties vkFormatProperties;
-        memset((void*)&vkFormatProperties, 0, sizeof(VkFormatProperties));
-        vkGetPhysicalDeviceFormatProperties(vkPhysicalDevice_selected, vkFormat_depth_array[i], &vkFormatProperties);
-
-        if (vkFormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-        {
-            vkFormat_depth = vkFormat_depth_array[i];
-            vkResult = VK_SUCCESS;
-            break;
-        }    
-    }
-
     return vkResult;
 }
 
@@ -2850,9 +2646,9 @@ int main(int argc, char* argv[])
     //* Step - 3
     float triangle_position[] = 
     {
-        0.0f,   1.0f,   0.0f,
-        -1.0f,  -1.0f,  0.0f,
-        1.0f,   -1.0f,  0.0f  
+        0.0f,   50.0f,   0.0f,
+        -50.0f,  -50.0f,  0.0f,
+        50.0f,   -50.0f,  0.0f  
     };
 
     // Code
@@ -3051,20 +2847,34 @@ int main(int argc, char* argv[])
     memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
 
     //! Update Matrices
-    mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
-    mvp_UniformData.viewMatrix = glm::mat4(1.0f);
-    
-    glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
-    perspectiveProjectionMatrix = glm::perspective(
-        glm::radians(45.0f),
-        (float)winWidth / (float)winHeight,
-        0.1f,
-        100.0f
-    );
-    //! 2D Matrix with Column Major (Like OpenGL)
-    perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
-    mvp_UniformData.projectionMatrix = perspectiveProjectionMatrix;
+    mvp_UniformData.modelMatrix = glm::mat4(1.0);
+    mvp_UniformData.viewMatrix = glm::mat4(1.0);
+    glm::mat4 orthographicProjectionMatrix = glm::mat4(1.0);
+
+    if (winWidth <= winHeight)
+    {
+        orthographicProjectionMatrix = glm::ortho(
+            -100.0f,
+            100.0f,
+            -100.0f * ((float)winHeight / (float)winWidth),
+            100.0f * ((float)winHeight / (float)winWidth),
+            -100.0f,
+            100.0f
+        );
+    }
+    else
+    {
+        orthographicProjectionMatrix = glm::ortho(
+            -100.0f * ((float)winWidth / (float)winHeight),
+            100.0f * ((float)winWidth / (float)winHeight),
+            -100.0f,
+            100.0f,
+            -100.0f,
+            100.0f
+        );
+    }
+
+    mvp_UniformData.projectionMatrix = orthographicProjectionMatrix;
 
     //! Map Uniform Buffer
     void* data = NULL;
@@ -3348,7 +3158,7 @@ int main(int argc, char* argv[])
 -(VkResult) createDescriptorSet
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 
@@ -3406,7 +3216,7 @@ int main(int argc, char* argv[])
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 1
-    VkAttachmentDescription vkAttachmentDescription_array[2];   //! Size changed to 2 to accomodate depth
+    VkAttachmentDescription vkAttachmentDescription_array[1];   //! Size changed to 2 to accomodate depth
     memset((void*)vkAttachmentDescription_array, 0, sizeof(VkAttachmentDescription) * _ARRAYSIZE(vkAttachmentDescription_array));
 
     //! Color Attachment (Graphics Pipeline)
@@ -3420,29 +3230,11 @@ int main(int argc, char* argv[])
     vkAttachmentDescription_array[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     vkAttachmentDescription_array[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    //! Depth Attachment
-    vkAttachmentDescription_array[1].flags = 0;
-    vkAttachmentDescription_array[1].format = vkFormat_depth;
-    vkAttachmentDescription_array[1].samples = VK_SAMPLE_COUNT_1_BIT;
-    vkAttachmentDescription_array[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    vkAttachmentDescription_array[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    vkAttachmentDescription_array[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    vkAttachmentDescription_array[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    vkAttachmentDescription_array[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    vkAttachmentDescription_array[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
     //* Step - 2
-    //! Color Attachment Reference
-    VkAttachmentReference vkAttachmentReference_color;
-    memset((void*)&vkAttachmentReference_color, 0, sizeof(VkAttachmentReference));
-    vkAttachmentReference_color.attachment = 0;   //* 0 specifies 0th index in above array
-    vkAttachmentReference_color.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    //! Depth Attachment Reference
-    VkAttachmentReference vkAttachmentReference_depth;
-    memset((void*)&vkAttachmentReference_depth, 0, sizeof(VkAttachmentReference));
-    vkAttachmentReference_depth.attachment = 1;   //* 1 specifies 1st index in above array
-    vkAttachmentReference_depth.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    VkAttachmentReference vkAttachmentReference;
+    memset((void*)&vkAttachmentReference, 0, sizeof(VkAttachmentReference));
+    vkAttachmentReference.attachment = 0;   //* 0 specifies 0th index in above array
+    vkAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     //* Step - 3
     VkSubpassDescription vkSubpassDescription;
@@ -3451,16 +3243,16 @@ int main(int argc, char* argv[])
     vkSubpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     vkSubpassDescription.inputAttachmentCount = 0;
     vkSubpassDescription.pInputAttachments = NULL;
-    vkSubpassDescription.colorAttachmentCount = 1;  //! This should be the count of vkAttachmentReference used for color
-    vkSubpassDescription.pColorAttachments = &vkAttachmentReference_color;
-    vkSubpassDescription.pDepthStencilAttachment = &vkAttachmentReference_depth;
+    vkSubpassDescription.colorAttachmentCount = _ARRAYSIZE(vkAttachmentDescription_array);
+    vkSubpassDescription.pColorAttachments = &vkAttachmentReference;
+    vkSubpassDescription.pDepthStencilAttachment = NULL;
     vkSubpassDescription.pPreserveAttachments = NULL;
     vkSubpassDescription.pResolveAttachments = NULL;
 
     //! Explicit subpass dependencies are defined below to prevent synchronization validation errors. 
     //! While the application may function without them and bypass core validation, 
     //! the Synchronization Validation Layer will flag the missing explicit setup.
-    VkSubpassDependency vkSubpassDependency_array[2];
+    VkSubpassDependency vkSubpassDependency_array[1];
     memset((void*)vkSubpassDependency_array, 0, sizeof(VkSubpassDependency) * _ARRAYSIZE(vkSubpassDependency_array));
     
     //! Color Subpass Dependency
@@ -3471,16 +3263,6 @@ int main(int argc, char* argv[])
     vkSubpassDependency_array[0].srcAccessMask = 0;
     vkSubpassDependency_array[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     vkSubpassDependency_array[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    //! Depth Subpass Dependency
-    vkSubpassDependency_array[1].srcSubpass = VK_SUBPASS_EXTERNAL;
-    vkSubpassDependency_array[1].dstSubpass = 0;
-    vkSubpassDependency_array[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    vkSubpassDependency_array[1].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    vkSubpassDependency_array[1].srcAccessMask = 0;
-    vkSubpassDependency_array[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    vkSubpassDependency_array[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
     //* Step - 4
     VkRenderPassCreateInfo vkRenderPassCreateInfo;
     memset((void*)&vkRenderPassCreateInfo, 0, sizeof(VkRenderPassCreateInfo));
@@ -3551,7 +3333,7 @@ int main(int argc, char* argv[])
     vkPipelineRasterizationStateCreateInfo.flags = 0;
     vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
     vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-    vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
     vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
     //! Color Blend State
@@ -3707,6 +3489,23 @@ int main(int argc, char* argv[])
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 1
+    VkImageView vkImageView_attachments_array[1];
+    memset((void*)vkImageView_attachments_array, 0, sizeof(VkImageView) * _ARRAYSIZE(vkImageView_attachments_array));
+
+    //* Step - 2
+    VkFramebufferCreateInfo vkFramebufferCreateInfo;
+    memset((void*)&vkFramebufferCreateInfo, 0, sizeof(VkFramebufferCreateInfo));
+    vkFramebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    vkFramebufferCreateInfo.flags = 0;
+    vkFramebufferCreateInfo.pNext = NULL;
+    vkFramebufferCreateInfo.attachmentCount = _ARRAYSIZE(vkImageView_attachments_array);
+    vkFramebufferCreateInfo.pAttachments = vkImageView_attachments_array;
+    vkFramebufferCreateInfo.renderPass = vkRenderPass;
+    vkFramebufferCreateInfo.width = vkExtent2D_swapchain.width;
+    vkFramebufferCreateInfo.height = vkExtent2D_swapchain.height;
+    vkFramebufferCreateInfo.layers = 1;
+
+    //* Step - 3
     vkFramebuffer_array = (VkFramebuffer*)malloc(sizeof(VkFramebuffer) * swapchainImageCount);
     if (vkFramebuffer_array == NULL)
     {
@@ -3717,25 +3516,7 @@ int main(int argc, char* argv[])
     //* Step - 2
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
-        //* Step - 3
-        VkImageView vkImageView_attachments_array[2];
-        memset((void*)vkImageView_attachments_array, 0, sizeof(VkImageView) * _ARRAYSIZE(vkImageView_attachments_array));
-
-        //* Step - 4
-        VkFramebufferCreateInfo vkFramebufferCreateInfo;
-        memset((void*)&vkFramebufferCreateInfo, 0, sizeof(VkFramebufferCreateInfo));
-        vkFramebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        vkFramebufferCreateInfo.flags = 0;
-        vkFramebufferCreateInfo.pNext = NULL;
-        vkFramebufferCreateInfo.attachmentCount = _ARRAYSIZE(vkImageView_attachments_array);
-        vkFramebufferCreateInfo.pAttachments = vkImageView_attachments_array;
-        vkFramebufferCreateInfo.renderPass = vkRenderPass;
-        vkFramebufferCreateInfo.width = vkExtent2D_swapchain.width;
-        vkFramebufferCreateInfo.height = vkExtent2D_swapchain.height;
-        vkFramebufferCreateInfo.layers = 1;
-
         vkImageView_attachments_array[0] = swapchainImageView_array[i];
-        vkImageView_attachments_array[1] = vkImageView_depth;
 
         vkResult = vkCreateFramebuffer(vkDevice, &vkFramebufferCreateInfo, NULL, &vkFramebuffer_array[i]);
         if (vkResult != VK_SUCCESS)
@@ -3856,10 +3637,9 @@ int main(int argc, char* argv[])
             fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded For Index : %d\n", __func__, i);
 
         //* Step - 4 => Set Clear Value
-        VkClearValue vkClearValue_array[2];
+        VkClearValue vkClearValue_array[1];
         memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
         vkClearValue_array[0].color = vkClearColorValue;
-        vkClearValue_array[1].depthStencil = vkClearDepthStencilValue;
 
         //* Step - 5
         VkRenderPassBeginInfo vkRenderPassBeginInfo;
