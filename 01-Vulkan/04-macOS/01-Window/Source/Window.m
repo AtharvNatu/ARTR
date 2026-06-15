@@ -10,9 +10,9 @@
 int winWidth = WIN_WIDTH;
 int winHeight = WIN_HEIGHT;
 
-bool bActiveWindow = NO;
-bool bFullscreen = NO;
-bool bWindowMinimized = NO;
+BOOL bActiveWindow = NO;
+BOOL bFullscreen = NO;
+BOOL bWindowMinimized = NO;
 
 char gszLogFileName[] = "Log.txt";
 FILE *gpFile = NULL;

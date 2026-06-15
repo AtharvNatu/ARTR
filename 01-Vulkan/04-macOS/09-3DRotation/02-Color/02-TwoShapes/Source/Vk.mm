@@ -22,9 +22,9 @@
 #define _ARRAYSIZE(x)       (sizeof(x) / sizeof((x)[0]))
 
 // Global Variable Declarations
-bool bActiveWindow = NO;
-bool bFullscreen = NO;
-bool bWindowMinimized = NO;
+BOOL bActiveWindow = NO;
+BOOL bFullscreen = NO;
+BOOL bWindowMinimized = NO;
 
 char gszLogFileName[] = "Log.txt";
 const char *gpSzAppName = "ARTR";
@@ -115,11 +115,11 @@ VkClearColorValue vkClearColorValue;
 VkClearDepthStencilValue vkClearDepthStencilValue;
 
 //? Render
-bool bInitialized = NO;
+BOOL bInitialized = NO;
 uint32_t currentImageIndex = UINT32_MAX;
 
 //? Validation
-bool bValidation = YES;
+BOOL bValidation = YES;
 uint32_t enabledValidationLayerCount = 0;
 const char *enabledValidationLayerNames_array[1];   //* For VK_LAYER_KHRONOS_validation
 VkDebugReportCallbackEXT vkDebugReportCallbackEXT = VK_NULL_HANDLE;
@@ -414,7 +414,7 @@ int main(int argc, char* argv[])
     [NSApp terminate:self];
 }
 
--(bool) acceptsFirstResponder
+-(BOOL) acceptsFirstResponder
 {
     // Code
     [[self window]makeFirstResponder:self];
@@ -935,7 +935,7 @@ int main(int argc, char* argv[])
 }
 
 //* Continuosly Demand The Updated Layer, Which Is Updated By Rendering
--(bool) wantsUpdateLayer 
+-(BOOL) wantsUpdateLayer 
 {
     // Code
     return YES;
@@ -4682,13 +4682,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
 -(void) dealloc 
 {
     // Code
-    if (displayLink)
-    {
-        CVDisplayLinkStop(displayLink);
-        CVDisplayLinkRelease(displayLink);
-        displayLink = NULL;
-    }
-
     [super dealloc];
 }
 

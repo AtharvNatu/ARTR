@@ -26,9 +26,9 @@
 #define _ARRAYSIZE(x)       (sizeof(x) / sizeof((x)[0]))
 
 // Global Variable Declarations
-bool bActiveWindow = NO;
-bool bFullscreen = NO;
-bool bWindowMinimized = NO;
+BOOL bActiveWindow = NO;
+BOOL bFullscreen = NO;
+BOOL bWindowMinimized = NO;
 
 char gszLogFileName[] = "Log.txt";
 const char *gpSzAppName = "ARTR";
@@ -119,11 +119,11 @@ VkClearColorValue vkClearColorValue;
 VkClearDepthStencilValue vkClearDepthStencilValue;
 
 //? Render
-bool bInitialized = NO;
+BOOL bInitialized = NO;
 uint32_t currentImageIndex = UINT32_MAX;
 
 //? Validation
-bool bValidation = YES;
+BOOL bValidation = YES;
 uint32_t enabledValidationLayerCount = 0;
 const char *enabledValidationLayerNames_array[1];   //* For VK_LAYER_KHRONOS_validation
 VkDebugReportCallbackEXT vkDebugReportCallbackEXT = VK_NULL_HANDLE;
@@ -415,7 +415,7 @@ int main(int argc, char* argv[])
     [NSApp terminate:self];
 }
 
--(bool) acceptsFirstResponder
+-(BOOL) acceptsFirstResponder
 {
     // Code
     [[self window]makeFirstResponder:self];
@@ -949,7 +949,7 @@ int main(int argc, char* argv[])
 }
 
 //* Continuosly Demand The Updated Layer, Which Is Updated By Rendering
--(bool) wantsUpdateLayer 
+-(BOOL) wantsUpdateLayer 
 {
     // Code
     return YES;
@@ -3203,6 +3203,7 @@ int main(int argc, char* argv[])
     vkMemoryAllocateInfo_stagingBuffer.allocationSize = vkMemoryRequirements_stagingBuffer.size;
     vkMemoryAllocateInfo_stagingBuffer.memoryTypeIndex = 0;
 
+    VkBool32 foundMatchingMemoryType_staging_buffer = VK_FALSE;
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         if ((vkMemoryRequirements_stagingBuffer.memoryTypeBits & 1) == 1)
@@ -3210,10 +3211,19 @@ int main(int argc, char* argv[])
             if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
             {
                 vkMemoryAllocateInfo_stagingBuffer.memoryTypeIndex = i;
+                foundMatchingMemoryType_staging_buffer = VK_TRUE;
                 break;
             }
         }
         vkMemoryRequirements_stagingBuffer.memoryTypeBits >>= 1;
+    }
+
+    //* Check For memoryTypeIndex != 0 On MoltenVK
+    if (foundMatchingMemoryType_staging_buffer == VK_FALSE)
+    {
+        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        fprintf(gpFile, "%s() => Host Visible | Host Coherent Memory Not Found For Staging Buffer : %d !!!\n", __func__, vkResult);
+        return vkResult;
     }
 
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo_stagingBuffer, NULL, &vkDeviceMemory_stagingBuffer);
@@ -3374,6 +3384,7 @@ int main(int argc, char* argv[])
     vkMemoryAllocateInfo_image.memoryTypeIndex = 0;
     vkMemoryAllocateInfo_image.allocationSize = vkMemoryRequirements_image.size;
 
+    VkBool32 foundMatchingMemoryType_texture = VK_FALSE;
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         if ((vkMemoryRequirements_image.memoryTypeBits & 1) == 1)
@@ -3381,10 +3392,19 @@ int main(int argc, char* argv[])
             if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
             {
                 vkMemoryAllocateInfo_image.memoryTypeIndex = i;
+                foundMatchingMemoryType_texture = VK_TRUE;
                 break;
             }
         }
         vkMemoryRequirements_image.memoryTypeBits >>= 1;
+    }
+
+    //* Check For memoryTypeIndex != 0 On MoltenVK
+    if (foundMatchingMemoryType_texture == VK_FALSE)
+    {
+        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        fprintf(gpFile, "%s() => Device Local Memory Not Found For Texture : %d !!!\n", __func__, vkResult);
+        return vkResult;
     }
 
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo_image, NULL, &vkDeviceMemory_texture);
@@ -5307,13 +5327,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
 -(void) dealloc 
 {
     // Code
-    if (displayLink)
-    {
-        CVDisplayLinkStop(displayLink);
-        CVDisplayLinkRelease(displayLink);
-        displayLink = NULL;
-    }
-
     [super dealloc];
 }
 
