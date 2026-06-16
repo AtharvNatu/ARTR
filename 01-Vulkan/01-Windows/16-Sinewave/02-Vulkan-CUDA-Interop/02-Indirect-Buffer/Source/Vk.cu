@@ -1524,7 +1524,7 @@ void uninitialize(void)
     if (cudaResult != cudaSuccess)
         fprintf(gpFile, "%s() => uninitializeCuda() Failed !!!\n", __func__);
     else
-        fprintf(gpFile, "%s() => uninitializeCuda() Succeeded !!!\n", __func__);
+        fprintf(gpFile, "%s() => uninitializeCuda() Succeeded\n", __func__);
 
     //* External Buffer
     if (vertexData_external.vkDeviceMemory)

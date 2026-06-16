@@ -2,7 +2,6 @@
 #include <stdio.h>          // For Standard I/O
 #include <stdlib.h>         // For exit()
 #include <memory.h>         // For memset()
-#include <time.h>           // For FPS
 
 // X11 Headers
 #include <X11/Xlib.h>       // For XClient APIs
@@ -20,6 +19,9 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+
+//! CUDA Header File
+#include <cuda.h>
 
 // Macros
 #define WIN_WIDTH           1000
@@ -69,7 +71,10 @@ VkPhysicalDevice *vkPhysicalDevice_array = NULL;
 
 //? Device Extensions Related Variables
 uint32_t enabledDeviceExtensionCount = 0;
-const char *enabledDeviceExtensionNames_array[1]; //* -> VK_KHR_SWAPCHAIN_EXTENSTION_NAME
+
+//* VK_KHR_SWAPCHAIN_EXTENSTION_NAME, 
+//* VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME
+const char *enabledDeviceExtensionNames_array[2];
 
 //? Vulkan Device Creation Related Variables
 VkDevice vkDevice = VK_NULL_HANDLE;
@@ -143,6 +148,7 @@ typedef struct
 {
     glm::mat4 mvpMatrix;
     glm::vec4 color;
+    int useGPU;
 } Host_UniformData;
 
 typedef struct
@@ -188,31 +194,35 @@ VertexData vertexData_indirect_buffer;
 char selectedColor = 'O';
 float fAnimationSpeed = 0.0f;
 
-//! Compute Shader Related
-typedef struct
+//* CUDA Related Variables
+cudaError_t cudaResult;
+VkExternalMemoryHandleTypeFlagBits vkExternalMemoryHandleTypeFlagBits;
+cudaExternalMemory_t cuExternalMemory;
+
+VertexData vertexData_external;
+void *cudaDevicePtr = NULL;
+
+Bool onGPU = False;
+
+// CUDA Kernel
+__global__ void sineWaveKernel(float4* pos, unsigned int width, unsigned int height, float time)
 {
-    int width;
-    int height;
-    float time;
-} PushConstants;
+    // Code
+   unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+   unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-typedef struct
-{
-    VkBuffer vkBuffer;
-    VkDeviceMemory vkDeviceMemory;
-} ComputeData;
+   float u = (float)i / (float)width;
+   float v = (float)j / (float)height;
 
-VkCommandBuffer vkCommandBuffer_compute = VK_NULL_HANDLE;               // For Storing Dispatch Command and Barriers
-VkCommandBuffer vkCommandBuffer_array_compute[2];                       // For Storing Compute Command Buffer Handle and Graphics Command Buffer Handle
+   u = u * 2.0f - 1.0f;
+   v = v * 2.0f - 1.0f;
 
-VkShaderModule vkShaderModule_compute_shader = VK_NULL_HANDLE;
-VkDescriptorSetLayout vkDescriptorSetLayout_compute = VK_NULL_HANDLE;   // Compute Shader Binding Layout
-VkDescriptorSet vkDescriptorSet_compute = VK_NULL_HANDLE;               // Compute Shader Bindings
-VkPipelineLayout vkPipelineLayout_compute = VK_NULL_HANDLE;             // Compute Pipeline Layout
-VkPipeline vkPipeline_compute = VK_NULL_HANDLE;                         // Compute Pipeline for Sinewave
+   float frequency = 4.0f;
 
-ComputeData computeBuffer;
-Bool bUseCompute = False;
+   float w = sinf(u * frequency + time) * cosf(v * frequency + time) * 0.5;
+
+   pos[j * width + i] = make_float4(u, w, v, 1.0f);
+}
 
 // Entry Point Function
 int main(void)
@@ -225,7 +235,6 @@ int main(void)
     void uninitialize(void);
     void toggleFullScreen(void);
     Bool isWindowMinimized(void);
-    void generateSineWaveData(void);
 
     // Variable Declarations
     XVisualInfo xVisualInfo;
@@ -320,7 +329,7 @@ int main(void)
     }
 
     //* Set Window Caption
-    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan Sine Wave Using Compute Shader");
+    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan-CUDA Interop Sine Wave Using Indirect Drawing : SSBO Vertex Pulling");
 
     //* Prepare Window to respond to Window Manager's Close Event
     windowManagerDeleteAtom = XInternAtom(gpDisplay, "WM_DELETE_WINDOW", True);
@@ -387,49 +396,42 @@ int main(void)
                             meshWidth = 64;
                             meshHeight = 64;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
-                            generateSineWaveData();
                         break;
 
                         case XK_2:
                             meshWidth = 128;
                             meshHeight = 128;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
-                            generateSineWaveData();
                         break;
 
                         case XK_3:
                             meshWidth = 256;
                             meshHeight = 256;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
-                            generateSineWaveData();
                         break;
 
                         case XK_4:
                             meshWidth = 512;
                             meshHeight = 512;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
-                            generateSineWaveData();
                         break;
 
                         case XK_5:
                             meshWidth = 1024;
                             meshHeight = 1024;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
-                            generateSineWaveData();
                         break;
 
                         case XK_6:
                             meshWidth = 2048;
                             meshHeight = 2048;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
-                            generateSineWaveData();
                         break;
 
                         case XK_7:
                             meshWidth = 4096;
                             meshHeight = 4096;
                             meshArraySize = meshWidth * meshHeight * meshDepth;
-                            generateSineWaveData();
                         break;
                     }
 
@@ -452,9 +454,9 @@ int main(void)
 
                         case 'T':
                         case 't':
-                            bUseCompute = !bUseCompute;
+                            onGPU = !onGPU;
                         break;
-
+                        
                         case 'O':
                         case 'o':
                             selectedColor = 'O';
@@ -488,6 +490,11 @@ int main(void)
                         case 'Y':
                         case 'y':
                             selectedColor = 'Y';
+                        break;
+
+                        case 'K':
+                        case 'k':
+                            selectedColor = 'K';
                         break;
 
                         case 'W':
@@ -655,82 +662,6 @@ Bool isWindowMinimized(void)
 
 }
 
-void generateSineWaveData()
-{
-    //! Free Position Array
-    if (pPosition)
-    {
-        free(pPosition);
-        pPosition = NULL;
-    }
-
-    //! Reallocate Position Array
-    pPosition = (float*)malloc(meshArraySize * sizeof(float));
-}
-
-
-const char* getVkResultString(VkResult vkResult)
-{
-    switch(vkResult)
-    {
-        case 0:                 return "VK_SUCCESS";
-        case 1:                 return "VK_NOT_READY";
-        case 2:                 return "VK_TIMEOUT";
-        case 3:                 return "VK_EVENT_SET";
-        case 4:                 return "VK_EVENT_RESET";
-        case 5:                 return "VK_INCOMPLETE";
-        
-        case -1:                return "VK_ERROR_OUT_OF_HOST_MEMORY";
-        case -2:                return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
-        case -3:                return "VK_ERROR_INITIALIZATION_FAILED";
-        case -4:                return "VK_ERROR_DEVICE_LOST";
-        case -5:                return "VK_ERROR_MEMORY_MAP_FAILED";
-        case -6:                return "VK_ERROR_LAYER_NOT_PRESENT";
-        case -7:                return "VK_ERROR_EXTENSION_NOT_PRESENT";
-        case -8:                return "VK_ERROR_FEATURE_NOT_PRESENT";
-        case -9:                return "VK_ERROR_INCOMPATIBLE_DRIVER";
-        case -10:               return "VK_ERROR_TOO_MANY_OBJECTS";
-        case -11:               return "VK_ERROR_FORMAT_NOT_SUPPORTED";
-        case -12:               return "VK_ERROR_FRAGMENTED_POOL";
-        case -13:               return "VK_ERROR_UNKNOWN";
-
-        case -1000011001:       return "VK_ERROR_VALIDATION_FAILED";
-        case -1000069000:       return "VK_ERROR_OUT_OF_POOL_MEMORY";
-        case -1000072003:       return "VK_ERROR_INVALID_EXTERNAL_HANDLE";
-        case -1000257000:       return "VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS";
-        case -1000161000:       return "VK_ERROR_FRAGMENTATION";
-        case 1000297000:        return "VK_PIPELINE_COMPILE_REQUIRED";
-        case -1000174001:       return "VK_ERROR_NOT_PERMITTED";
-        case -1000000000:       return "VK_ERROR_SURFACE_LOST_KHR";
-        case -1000000001:       return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
-        case 1000001003:        return "VK_SUBOPTIMAL_KHR";
-        case -1000001004:       return "VK_ERROR_OUT_OF_DATE_KHR";
-        case -1000003001:       return "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
-        case -1000012000:       return "VK_ERROR_INVALID_SHADER_NV";
-        case -1000023000:       return "VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR";
-        case -1000023001:       return "VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR";
-        case -1000023002:       return "VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR";
-        case -1000023003:       return "VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR";
-        case -1000023004:       return "VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR";
-        case -1000023005:       return "VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR";
-        case -1000158000:       return "VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
-        case -1000208000:       return "VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT";
-        case -1000255000:       return "VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT";
-        case 1000268000:        return "VK_THREAD_IDLE_KHR";
-        case 1000268001:        return "VK_THREAD_DONE_KHR";
-        case 1000268002:        return "VK_OPERATION_DEFERRED_KHR";
-        case 1000268003:        return "VK_OPERATION_NOT_DEFERRED_KHR";
-        case -1000299000:       return "VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR";
-        case -1000338000:       return "VK_ERROR_COMPRESSION_EXHAUSTED_EXT";
-        case 1000482000:        return "VK_INCOMPATIBLE_SHADER_BINARY_EXT";
-        case 1000483000:        return "VK_ERROR_NOT_ENOUGH_SPACE_KHR";
-        
-        default:                return "UNKNOWN ERROR CODE";
-    }
-
-    return NULL;
-}
-
 VkResult initialize(void)
 {
     // Function Declarations
@@ -744,7 +675,6 @@ VkResult initialize(void)
     VkResult createImagesAndImageViews(void);
     VkResult createCommandPool(void);
     VkResult createCommandBuffers(void);
-    void initializeSinewaveArrays(uint32_t, uint32_t);
     VkResult createVertexBuffer(void);
     VkResult createIndirectBuffer(void);
     VkResult createUniformBuffer(void);
@@ -760,8 +690,9 @@ VkResult initialize(void)
     VkResult createFences(void);
     VkResult buildCommandBuffers(void);
 
-    //! Compute Related
-    VkResult initialize_compute(void);
+    //! CUDA Related Function Declarations
+    cudaError initializeCuda(void);
+    VkResult createExternalVertexBuffer(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -803,6 +734,17 @@ VkResult initialize(void)
 
     //! Get Device Queue
     getDeviceQueue();
+
+    //! Initialize CUDA
+    cudaResult = initializeCuda();
+    if (cudaResult != cudaSuccess)
+    {
+        fprintf(gpFile, "%s() => initializeCuda() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    } 
+    else
+        fprintf(gpFile, "%s() => initializeCuda() Succeeded\n", __func__);
 
     //! Create Swapchain
     vkResult = createSwapchain(VK_FALSE);
@@ -889,7 +831,18 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createIndirectBuffer() Succeeded\n", __func__);
-   
+
+    //! Create External Buffer
+    vkResult = createExternalVertexBuffer();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded\n", __func__);
+
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
     if (vkResult != VK_SUCCESS)
@@ -1033,21 +986,85 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => buildCommandBuffers() Succeeded\n", __func__);
 
-    vkResult = initialize_compute();
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => initialize_compute() Failed\n", __func__);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => initialize_compute() Succeeded\n", __func__);
-
     //! Initialization Completed
     bInitialized = True;
     fprintf(gpFile, "%s() => Initialization Completed Successfully\n", __func__);
     
     return vkResult;
+}
+
+cudaError initializeCuda(void)
+{
+    // Variable Declarations
+    int devCount;
+    int interopDeviceFound = -1;
+
+    // Code
+    cudaResult = cudaGetDeviceCount(&devCount);
+    if (cudaResult != cudaSuccess)
+    {
+        fprintf(gpFile, "%s() => cudaGetDeviceCount() Failed !!!\n", __func__);
+        return cudaResult;
+    }
+    else if (devCount == 0)
+    {
+        fprintf(gpFile, "%s() => cudaGetDeviceCount() Returned 0 CUDA Supported Devices !!!\n", __func__);
+        return cudaResult;
+    }
+
+    //* Check UUID between Vulkan and CUDA
+    VkPhysicalDeviceIDProperties vkPhysicalDeviceIDProperties;
+    memset((void*)&vkPhysicalDeviceIDProperties, 0, sizeof(VkPhysicalDeviceIDProperties));
+    vkPhysicalDeviceIDProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+    vkPhysicalDeviceIDProperties.pNext = NULL;
+
+    VkPhysicalDeviceProperties2 vkPhysicalDeviceProperties2;
+    memset((void*)&vkPhysicalDeviceProperties2, 0, sizeof(VkPhysicalDeviceProperties2));
+    vkPhysicalDeviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    vkPhysicalDeviceProperties2.pNext = &vkPhysicalDeviceIDProperties;
+
+    vkGetPhysicalDeviceProperties2(vkPhysicalDevice_selected, &vkPhysicalDeviceProperties2);
+
+    uint8_t vulkanDeviceUUID[VK_UUID_SIZE];
+    memcpy(vulkanDeviceUUID, vkPhysicalDeviceIDProperties.deviceUUID, VK_UUID_SIZE);
+
+    for (int i = 0; i < devCount; i++)
+    {
+        // Select the device whose compute mode is not prohibited
+        int computeMode;
+        cudaResult = cudaDeviceGetAttribute(&computeMode, cudaDevAttrComputeMode, i);
+        if (cudaResult != cudaSuccess)
+            continue;
+
+        if (computeMode == cudaComputeModeProhibited)
+            continue;
+
+        // Get CUDA Device Properties
+        cudaDeviceProp devProp;
+        memset((void*)&devProp, 0, sizeof(cudaDeviceProp));
+        cudaResult = cudaGetDeviceProperties(&devProp, i);
+        if (cudaResult != cudaSuccess)
+            continue;
+
+        if (memcmp((void*)&devProp.uuid.bytes, vulkanDeviceUUID, VK_UUID_SIZE) != 0)
+            continue;
+
+        // Required Device Found
+        cudaResult = cudaSetDevice(i);
+        if (cudaResult != cudaSuccess)
+            continue;
+
+        fprintf(gpFile, "%s() => Selected CUDA Device : %s\n", __func__, devProp.name);
+        interopDeviceFound = 1;
+        break;
+    }
+
+    if (interopDeviceFound == -1)
+        return cudaErrorUnknown;
+
+    vkExternalMemoryHandleTypeFlagBits = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+
+    return cudaSuccess;
 }
 
 VkResult resize(int width, int height)
@@ -1077,7 +1094,7 @@ VkResult resize(int width, int height)
         return vkResult;
     }
 
-    //* As recreation of swapchain is needed, we are going to repeat many steps of initialize() again. Hence, set bInitialize = False again
+    //* As recreation of swapchain is needed, we are going to repeat many steps of initialize() again. Hence, set bInitialize = FALSE again
     bInitialized = False;
     {
         //* Set Global winWidth and winHeight variables
@@ -1266,7 +1283,6 @@ VkResult display(void)
 {
     // Function Declarations
     VkResult resize(int, int);
-    VkResult buildCommandBuffer_compute(void);
     VkResult updateUniformBuffer(void);
     void sinewave(uint32_t, uint32_t, float);
     VkResult updateVertexBuffer(void);
@@ -1322,24 +1338,10 @@ VkResult display(void)
     vkSubmitInfo.pWaitDstStageMask = &waitDstStageMask;
     vkSubmitInfo.waitSemaphoreCount = 1;
     vkSubmitInfo.pWaitSemaphores = &vkSemaphore_backBuffer;
+    vkSubmitInfo.commandBufferCount = 1;
+    vkSubmitInfo.pCommandBuffers = &vkCommandBuffer_array[currentImageIndex];
     vkSubmitInfo.signalSemaphoreCount = 1;
     vkSubmitInfo.pSignalSemaphores = &vkSemaphore_renderComplete;
-
-    if (bUseCompute)
-    {
-        buildCommandBuffer_compute();
-
-        vkCommandBuffer_array_compute[0] = vkCommandBuffer_compute;
-        vkCommandBuffer_array_compute[1] = vkCommandBuffer_array[currentImageIndex];    
-
-        vkSubmitInfo.commandBufferCount = 2;
-        vkSubmitInfo.pCommandBuffers = vkCommandBuffer_array_compute;
-    }
-    else
-    {
-        vkSubmitInfo.commandBufferCount = 1;
-        vkSubmitInfo.pCommandBuffers = &vkCommandBuffer_array[currentImageIndex];
-    }
 
     //! Submit above work to the queue
     vkResult = vkQueueSubmit(vkQueue, 1, &vkSubmitInfo, vkFence_array[currentImageIndex]);
@@ -1373,11 +1375,47 @@ VkResult display(void)
         }
     }
 
-    if (!bUseCompute)
+    if (onGPU)
+    {   
+        // Run CUDA Kernel
+        dim3 block(8, 8, 1);
+        dim3 grid(meshWidth / block.x, meshHeight / block.y, 1);
+
+        sineWaveKernel<<<grid, block>>>((float4*)cudaDevicePtr, meshWidth, meshHeight, fAnimationSpeed);
+        
+        cudaResult = cudaGetLastError();
+        if (cudaResult != cudaSuccess)
+        {
+            fprintf(gpFile, "%s() => cudaGetLastError() Returned : %s !!!\n", __func__, cudaGetErrorString(cudaResult));
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+
+        cudaResult = cudaDeviceSynchronize();
+        if (cudaResult != cudaSuccess)
+        {
+            fprintf(gpFile, "%s() => cudaDeviceSynchronize() Failed : %s !!!\n", __func__, cudaGetErrorString(cudaResult));
+            vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+    }
+    else
     {
+        //! Free Position Array
+        if (pPosition)
+        {
+            free(pPosition);
+            pPosition = NULL;
+        }
+
+        //! Reallocate Position Array
+        pPosition = (float*)malloc(meshArraySize * sizeof(float));
+        if (pPosition == NULL)
+            fprintf(gpFile, "%s() => malloc() Failed For pPosition: %d\n", __func__, vkResult);
+
         //! Create Sinewave
         sinewave(meshWidth, meshHeight, fAnimationSpeed);
-        
+
         //! Update Vertex Buffer
         vkResult = updateVertexBuffer();
         if (vkResult != VK_SUCCESS)
@@ -1393,9 +1431,8 @@ VkResult display(void)
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
 
-
     vkDeviceWaitIdle(vkDevice);
-    
+
     return vkResult;
 }
 
@@ -1437,7 +1474,7 @@ void uninitialize(void)
 {
     // Function Declarations
     void toggleFullScreen(void);
-    void uninitialize_compute(void);
+    cudaError uninitializeCuda(void);
 
     // Code
     if (bFullscreen)
@@ -1450,8 +1487,6 @@ void uninitialize(void)
         vkDeviceWaitIdle(vkDevice);
         fprintf(gpFile, "%s() => vkDeviceWaitIdle() Succeeded\n", __func__);
     }
-
-    uninitialize_compute();
 
     //* Step - 7 of Fences and Semaphores
     if (vkFence_array)
@@ -1572,6 +1607,28 @@ void uninitialize(void)
         pPosition = NULL;
     }
 
+    //* Uninitialize CUDA
+    cudaResult = uninitializeCuda();
+    if (cudaResult != cudaSuccess)
+        fprintf(gpFile, "%s() => uninitializeCuda() Failed !!!\n", __func__);
+    else
+        fprintf(gpFile, "%s() => uninitializeCuda() Succeeded !!!\n", __func__);
+
+    //* External Buffer
+    if (vertexData_external.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_external.vkDeviceMemory, NULL);
+        vertexData_external.vkDeviceMemory = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_external.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_external.vkBuffer, NULL);
+        vertexData_external.vkBuffer = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external.vkBuffer\n", __func__);
+    }
+
     //* Step - 14 of Vertex Buffer
     if (vertexData_indirect_buffer.vkDeviceMemory)
     {
@@ -1600,7 +1657,7 @@ void uninitialize(void)
         vertexData_position.vkBuffer = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_position.vkBuffer\n", __func__);
     }
-    
+
     //* Step - 5 of Command Buffer
     if (vkCommandBuffer_array)
     {
@@ -1741,6 +1798,36 @@ void uninitialize(void)
         fclose(gpFile);
         gpFile = NULL;
     }
+}
+
+cudaError uninitializeCuda()
+{
+    // Code
+    if (cudaDevicePtr)
+    {
+        cudaResult = cudaFree(cudaDevicePtr);
+        if (cudaResult != cudaSuccess)
+            fprintf(gpFile, "%s() => cudaFree() Failed For cudaDevicePtr !!!\n", __func__);
+        else
+        {
+            fprintf(gpFile, "%s() => cudaFree() Succeeded For cudaDevicePtr\n", __func__);
+            cudaDevicePtr = NULL;
+        }    
+    }
+
+    if (cuExternalMemory)
+    {
+        cudaResult = cudaDestroyExternalMemory(cuExternalMemory);
+        if (cudaResult != cudaSuccess)
+            fprintf(gpFile, "%s() => cudaDestroyExternalMemory() Failed For cuExternalMemory !!!\n", __func__);
+        else
+        {
+            fprintf(gpFile, "%s() => cudaDestroyExternalMemory() Succeeded For cuExternalMemory\n", __func__);
+            cuExternalMemory = NULL;
+        }    
+    }
+
+    return cudaResult;
 }
 
 //! Definition of Vulkan Related Functions
@@ -2295,7 +2382,7 @@ VkResult getPhysicalDevice(void)
         //* Step - 5.7
         for (uint32_t j = 0; j < queueCount; j++)
         {
-            if (vkQueueFamilyProperties_array[j].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+            if (vkQueueFamilyProperties_array[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)
             {
                 if (isQueueSurfaceSupported_array[j] == VK_TRUE)
                 {
@@ -2615,12 +2702,20 @@ VkResult fillDeviceExtensionNames(void)
 
     //* Step - 5
     VkBool32 vulkanSwapchainExtensionFound = VK_FALSE;
+    VkBool32 vulkanExternalMemoryFdExtensionFound = VK_FALSE;
+
     for (uint32_t i = 0; i < deviceExtensionCount; i++)
     {
         if (strcmp(deviceExtensionNames_array[i], VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
         {
             vulkanSwapchainExtensionFound = VK_TRUE;
             enabledDeviceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+        }
+
+        if (strcmp(deviceExtensionNames_array[i], VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME) == 0)
+        {
+            vulkanExternalMemoryFdExtensionFound = VK_TRUE;
+            enabledDeviceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME;
         }
     }
 
@@ -2645,6 +2740,15 @@ VkResult fillDeviceExtensionNames(void)
     }
     else
         fprintf(gpFile, "%s() => VK_KHR_SWAPCHAIN_EXTENSION_NAME Extension Found\n", __func__);
+
+    if (vulkanExternalMemoryFdExtensionFound == VK_FALSE)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME Extension Found\n", __func__);
 
     //* Step - 8
     for (uint32_t i = 0; i < enabledDeviceExtensionCount; i++)
@@ -3202,7 +3306,7 @@ VkResult createCommandPool(void)
     return vkResult;
 }
 
-VkResult createCommandBuffers()
+VkResult createCommandBuffers(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -3277,31 +3381,31 @@ VkResult createVertexBuffer(void)
     vkGetBufferMemoryRequirements(vkDevice, vertexData_position.vkBuffer, &vkMemoryRequirements);
 
     //* Step - 8
-    
-    //! RESIZABLE BAR
-    int resizeBarMemoryIndex = -1;
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++) 
-    {
-        VkMemoryPropertyFlags flags = vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags;
-        if ((flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-        {
-            //* Check the heap which it belogs to is large (> 256 MB)
-            uint32_t heapIndex = vkPhysicalDeviceMemoryProperties.memoryTypes[i].heapIndex;
-            if (vkPhysicalDeviceMemoryProperties.memoryHeaps[heapIndex].size > 256 * 1024 * 1024) 
-            {
-                resizeBarMemoryIndex = i;
-                break;
-            }
-        }
-    }
-
-    //* Step - 8.1
     VkMemoryAllocateInfo vkMemoryAllocateInfo;
     memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
     vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     vkMemoryAllocateInfo.pNext = NULL;
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-    vkMemoryAllocateInfo.memoryTypeIndex = resizeBarMemoryIndex;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    
+    //* Step - 8.1
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
 
     //* Step - 9
     vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
@@ -3332,16 +3436,12 @@ VkResult updateVertexBuffer(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
-    void* data = NULL;
 
-    // Code
+    void* data = NULL;
     vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, meshArraySize * sizeof(float), 0, &data);
     if (vkResult != VK_SUCCESS)
-    {
         fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position : %d\n", __func__, vkResult);
-        return vkResult;
-    }
-        
+
     memcpy(data, pPosition, meshArraySize * sizeof(float));
 
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
@@ -3452,6 +3552,163 @@ VkResult updateIndirectBuffer(void)
     memcpy(data, &vkDrawIndirectCommand, sizeof(vkDrawIndirectCommand));
 
     vkUnmapMemory(vkDevice, vertexData_indirect_buffer.vkDeviceMemory);
+
+    return vkResult;
+}
+
+VkResult createExternalVertexBuffer(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    size_t bufferSize = MAX_MESH_SIZE * sizeof(float);
+
+    memset((void*)&vertexData_external, 0, sizeof(VertexData));
+
+    //* Initialize External Memory Buffer
+    VkExternalMemoryBufferCreateInfo vkExternalMemoryBufferCreateInfo;
+    memset((void*)&vkExternalMemoryBufferCreateInfo, 0, sizeof(VkExternalMemoryBufferCreateInfo));
+    vkExternalMemoryBufferCreateInfo.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO;
+    vkExternalMemoryBufferCreateInfo.pNext = NULL;
+    vkExternalMemoryBufferCreateInfo.handleTypes = vkExternalMemoryHandleTypeFlagBits;
+    
+    //* Step - 5
+    VkBufferCreateInfo vkBufferCreateInfo;
+    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
+    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
+    vkBufferCreateInfo.size = bufferSize;
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    vkBufferCreateInfo.pNext = &vkExternalMemoryBufferCreateInfo;
+    
+    //* Step - 6
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_external.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For External Vertex Buffer  : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For External Vertex Buffer\n", __func__);
+    
+    //* Step - 7
+    VkMemoryRequirements vkMemoryRequirements;
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_external.vkBuffer, &vkMemoryRequirements);
+
+    //* Initialize Exportable Memory Allocation
+    VkExportMemoryAllocateInfoKHR vkExportMemoryAllocateInfoKHR;
+    memset((void*)&vkExportMemoryAllocateInfoKHR, 0, sizeof(VkExportMemoryAllocateInfoKHR));
+    vkExportMemoryAllocateInfoKHR.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
+    vkExportMemoryAllocateInfoKHR.handleTypes = vkExternalMemoryHandleTypeFlagBits;
+    
+    //* Step - 8
+    VkMemoryAllocateInfo vkMemoryAllocateInfo;
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    vkMemoryAllocateInfo.pNext = &vkExportMemoryAllocateInfoKHR;
+    
+    //* Step - 8.1
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Step - 9
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_external.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For External Vertex Buffer\n", __func__);
+
+    //* Step - 10
+    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_external.vkBuffer, vertexData_external.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For External Vertex Buffer\n", __func__);
+
+    VkMemoryGetFdInfoKHR vkMemoryGetFdInfoKHR;
+    memset((void*)&vkMemoryGetFdInfoKHR, 0, sizeof(VkMemoryGetFdInfoKHR));
+    vkMemoryGetFdInfoKHR.sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR;
+    vkMemoryGetFdInfoKHR.pNext = NULL;
+    vkMemoryGetFdInfoKHR.memory = vertexData_external.vkDeviceMemory;
+    vkMemoryGetFdInfoKHR.handleType = vkExternalMemoryHandleTypeFlagBits;
+
+    PFN_vkGetMemoryFdKHR vkGetMemoryFdKHR = NULL;
+    vkGetMemoryFdKHR = (PFN_vkGetMemoryFdKHR)vkGetDeviceProcAddr(vkDevice, "vkGetMemoryFdKHR");
+    if (vkGetMemoryFdKHR == NULL)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        fprintf(gpFile, "%s() => vkGetDeviceProcAddr() Failed To Get Function Pointer For vkGetMemoryFdKHR !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkGetDeviceProcAddr() Succeeded To Get Function Pointer For vkGetMemoryFdKHR\n", __func__);
+
+    //* Get Memory Fd
+    int fd = 0;
+    vkResult = vkGetMemoryFdKHR(vkDevice, &vkMemoryGetFdInfoKHR, &fd);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkGetMemoryFdKHR() Failed To Get File Descriptor : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    } 
+    else
+        fprintf(gpFile, "%s() => vkGetMemoryFdKHR() Succeeded To Get File Descriptor\n", __func__);
+
+
+    //* Import External Buffer Memory into CUDA
+    cudaExternalMemoryHandleDesc cuExtMemoryHandleDesc;
+    memset((void*)&cuExtMemoryHandleDesc, 0, sizeof(cudaExternalMemoryHandleDesc));
+    cuExtMemoryHandleDesc.type = cudaExternalMemoryHandleTypeOpaqueFd;
+    cuExtMemoryHandleDesc.handle.fd = fd;
+    cuExtMemoryHandleDesc.size = bufferSize;
+    cuExtMemoryHandleDesc.flags = cudaExternalMemoryDedicated;
+    
+    cudaResult = cudaImportExternalMemory(&cuExternalMemory, &cuExtMemoryHandleDesc);
+    if (cudaResult != cudaSuccess)
+    {
+        fprintf(gpFile, "%s() => cudaImportExternalMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => cudaImportExternalMemory() Succeeded For External Vertex Buffer\n", __func__);
+
+    fd = 0;
+
+    //* Map to CUDA Pointer
+    cudaExternalMemoryBufferDesc cuExtMemoryBufferDesc;
+    memset((void*)&cuExtMemoryBufferDesc, 0, sizeof(cudaExternalMemoryBufferDesc));
+    cuExtMemoryBufferDesc.offset = 0;
+    cuExtMemoryBufferDesc.size = bufferSize;
+    cuExtMemoryBufferDesc.flags = 0;
+
+    cudaResult = cudaExternalMemoryGetMappedBuffer(&cudaDevicePtr, cuExternalMemory, &cuExtMemoryBufferDesc);
+    if (cudaResult != cudaSuccess)
+    {
+        fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Failed For External Vertex Buffer : %d !!!\n", __func__, cudaResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => cudaExternalMemoryGetMappedBuffer() Succeeded For External Vertex Buffer\n", __func__);
 
     return vkResult;
 }
@@ -3586,6 +3843,11 @@ VkResult updateUniformBuffer(void)
             host_uniformData.color = glm::vec4(1.0, 0.5, 0.0, 1.0);   // Orange
         break;
     }
+
+    if (onGPU)
+        host_uniformData.useGPU = 1;
+    else
+        host_uniformData.useGPU = 0;
 
     //! Map Uniform Buffer
     void* data = NULL;
@@ -3772,13 +4034,29 @@ VkResult createDescriptorSetLayout(void)
     VkResult vkResult = VK_SUCCESS;
 
     //! Initialize VkDescriptorSetLayoutBinding
-    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding;
-    memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(VkDescriptorSetLayoutBinding));
-    vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorSetLayoutBinding.binding = 0;   //! Mapped with layout(binding = 0) in vertex shader
-    vkDescriptorSetLayoutBinding.descriptorCount = 1;
-    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
+    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding_array[3];
+    memset((void*)vkDescriptorSetLayoutBinding_array, 0, sizeof(VkDescriptorSetLayoutBinding) * _ARRAYSIZE(vkDescriptorSetLayoutBinding_array));
+
+    //* UBO
+    vkDescriptorSetLayoutBinding_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorSetLayoutBinding_array[0].binding = 0;
+    vkDescriptorSetLayoutBinding_array[0].descriptorCount = 1;
+    vkDescriptorSetLayoutBinding_array[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    vkDescriptorSetLayoutBinding_array[0].pImmutableSamplers = NULL;
+
+    //* CPU SSBO
+    vkDescriptorSetLayoutBinding_array[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkDescriptorSetLayoutBinding_array[1].binding = 1;
+    vkDescriptorSetLayoutBinding_array[1].descriptorCount = 1;
+    vkDescriptorSetLayoutBinding_array[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding_array[1].pImmutableSamplers = NULL;
+
+    //* GPU SSBO
+    vkDescriptorSetLayoutBinding_array[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkDescriptorSetLayoutBinding_array[2].binding = 2;
+    vkDescriptorSetLayoutBinding_array[2].descriptorCount = 1;
+    vkDescriptorSetLayoutBinding_array[2].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    vkDescriptorSetLayoutBinding_array[2].pImmutableSamplers = NULL;
 
     //* Step - 3
     VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo;
@@ -3786,8 +4064,8 @@ VkResult createDescriptorSetLayout(void)
     vkDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     vkDescriptorSetLayoutCreateInfo.pNext = NULL;
     vkDescriptorSetLayoutCreateInfo.flags = 0;
-    vkDescriptorSetLayoutCreateInfo.bindingCount = 1;   //! An integer value where you want to bind descriptor set
-    vkDescriptorSetLayoutCreateInfo.pBindings = &vkDescriptorSetLayoutBinding;
+    vkDescriptorSetLayoutCreateInfo.bindingCount = _ARRAYSIZE(vkDescriptorSetLayoutBinding_array);
+    vkDescriptorSetLayoutCreateInfo.pBindings = vkDescriptorSetLayoutBinding_array;
 
     //* Step - 4
     vkResult = vkCreateDescriptorSetLayout(vkDevice, &vkDescriptorSetLayoutCreateInfo, NULL, &vkDescriptorSetLayout);
@@ -3833,16 +4111,20 @@ VkResult createDescriptorPool(void)
     // Code
 
     //* Vulkan expects decriptor pool size before creating actual descriptor pool
-    VkDescriptorPoolSize vkDescriptorPoolSize_array[2];
+    VkDescriptorPoolSize vkDescriptorPoolSize_array[3];
     memset((void*)vkDescriptorPoolSize_array, 0, sizeof(VkDescriptorPoolSize) * _ARRAYSIZE(vkDescriptorPoolSize_array));
 
-    // Graphics UBO
+    //! UBO
     vkDescriptorPoolSize_array[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     vkDescriptorPoolSize_array[0].descriptorCount = 1;
 
-    // Compute SSBO
+    //! CPU SSBO
     vkDescriptorPoolSize_array[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     vkDescriptorPoolSize_array[1].descriptorCount = 1;
+
+    //! GPU SSBO
+    vkDescriptorPoolSize_array[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkDescriptorPoolSize_array[2].descriptorCount = 1;
    
     //* Create the pool
     VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo;
@@ -3852,7 +4134,7 @@ VkResult createDescriptorPool(void)
     vkDescriptorPoolCreateInfo.flags = 0;
     vkDescriptorPoolCreateInfo.poolSizeCount = _ARRAYSIZE(vkDescriptorPoolSize_array);
     vkDescriptorPoolCreateInfo.pPoolSizes = vkDescriptorPoolSize_array;
-    vkDescriptorPoolCreateInfo.maxSets = 2;     //! 1 - GFX, 2 - Compute
+    vkDescriptorPoolCreateInfo.maxSets = 1;
 
     vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
     if (vkResult != VK_SUCCESS)
@@ -3889,31 +4171,69 @@ VkResult createDescriptorSet(void)
         fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded\n", __func__);
     
     //* Describe whether we want buffer as uniform or image as uniform
-    VkDescriptorBufferInfo vkDescriptorBufferInfo;
-    memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
-    vkDescriptorBufferInfo.buffer = uniformData.vkBuffer;
-    vkDescriptorBufferInfo.offset = 0;
-    vkDescriptorBufferInfo.range = sizeof(Host_UniformData);
+    VkDescriptorBufferInfo vkDescriptorBufferInfo_array[3];
+    memset((void*)vkDescriptorBufferInfo_array, 0, sizeof(VkDescriptorBufferInfo) * _ARRAYSIZE(vkDescriptorBufferInfo_array));
+
+    //* UBO
+    vkDescriptorBufferInfo_array[0].buffer = uniformData.vkBuffer;
+    vkDescriptorBufferInfo_array[0].offset = 0;
+    vkDescriptorBufferInfo_array[0].range = sizeof(Host_UniformData);
+
+    //* CPU SSBO
+    vkDescriptorBufferInfo_array[1].buffer = vertexData_position.vkBuffer;
+    vkDescriptorBufferInfo_array[1].offset = 0;
+    vkDescriptorBufferInfo_array[1].range = sizeof(VertexData);
+
+    //* GPU SSBO
+    vkDescriptorBufferInfo_array[2].buffer = vertexData_external.vkBuffer;
+    vkDescriptorBufferInfo_array[2].offset = 0;
+    vkDescriptorBufferInfo_array[2].range = sizeof(VertexData);
 
     /* Update above descriptor set directly to the shader
     There are 2 ways :-
         1) Writing directly to the shader
         2) Copying from one shader to another shader
     */
-    VkWriteDescriptorSet vkWriteDescriptorSet;
-    memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
-    vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    vkWriteDescriptorSet.pNext = NULL;
-    vkWriteDescriptorSet.dstSet = vkDescriptorSet;
-    vkWriteDescriptorSet.dstArrayElement = 0;
-    vkWriteDescriptorSet.descriptorCount = 1;
-    vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
-    vkWriteDescriptorSet.pImageInfo = NULL;
-    vkWriteDescriptorSet.pTexelBufferView = NULL;
-    vkWriteDescriptorSet.dstBinding = 0;
+    VkWriteDescriptorSet vkWriteDescriptorSet_array[3];
+    memset((void*)vkWriteDescriptorSet_array, 0, sizeof(VkWriteDescriptorSet) * _ARRAYSIZE(vkWriteDescriptorSet_array));
 
-    vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
+    //! UBO
+    vkWriteDescriptorSet_array[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet_array[0].pNext = NULL;
+    vkWriteDescriptorSet_array[0].dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet_array[0].dstArrayElement = 0;
+    vkWriteDescriptorSet_array[0].dstBinding = 0;
+    vkWriteDescriptorSet_array[0].descriptorCount = 1;
+    vkWriteDescriptorSet_array[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkWriteDescriptorSet_array[0].pBufferInfo = &vkDescriptorBufferInfo_array[0];
+    vkWriteDescriptorSet_array[0].pImageInfo = NULL;
+    vkWriteDescriptorSet_array[0].pTexelBufferView = NULL;
+
+    //! CPU SSBO
+    vkWriteDescriptorSet_array[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet_array[1].pNext = NULL;
+    vkWriteDescriptorSet_array[1].dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet_array[1].dstArrayElement = 0;
+    vkWriteDescriptorSet_array[1].dstBinding = 1;
+    vkWriteDescriptorSet_array[1].descriptorCount = 1;
+    vkWriteDescriptorSet_array[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkWriteDescriptorSet_array[1].pBufferInfo = &vkDescriptorBufferInfo_array[1];
+    vkWriteDescriptorSet_array[1].pImageInfo = NULL;
+    vkWriteDescriptorSet_array[1].pTexelBufferView = NULL;
+
+    //! GPU SSBO
+    vkWriteDescriptorSet_array[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet_array[2].pNext = NULL;
+    vkWriteDescriptorSet_array[2].dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet_array[2].dstArrayElement = 0;
+    vkWriteDescriptorSet_array[2].dstBinding = 2;
+    vkWriteDescriptorSet_array[2].descriptorCount = 1;
+    vkWriteDescriptorSet_array[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkWriteDescriptorSet_array[2].pBufferInfo = &vkDescriptorBufferInfo_array[2];
+    vkWriteDescriptorSet_array[2].pImageInfo = NULL;
+    vkWriteDescriptorSet_array[2].pTexelBufferView = NULL;
+
+    vkUpdateDescriptorSets(vkDevice, _ARRAYSIZE(vkWriteDescriptorSet_array), vkWriteDescriptorSet_array, 0, NULL);
 
     return vkResult;
 }
@@ -4005,29 +4325,16 @@ VkResult createPipeline(void)
 
     //* Code
 
-    //! Vertex Input State
-    VkVertexInputBindingDescription vkVertexInputBindingDescription_array[1];
-    memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
-    vkVertexInputBindingDescription_array[0].binding = 0;
-    vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 4; 
-    vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[1];
-    memset((void*)vkVertexInputAttributeDescription_array, 0, sizeof(VkVertexInputAttributeDescription) * _ARRAYSIZE(vkVertexInputAttributeDescription_array));
-    vkVertexInputAttributeDescription_array[0].binding = 0;
-    vkVertexInputAttributeDescription_array[0].location = 0;
-    vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    vkVertexInputAttributeDescription_array[0].offset = 0;
-
+    //! Emtpy Vertex Input State -> Replaced with SSBOs used for Vertex Pulling
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
     memset((void*)&vkPipelineVertexInputStateCreateInfo, 0, sizeof(VkPipelineVertexInputStateCreateInfo));
     vkPipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vkPipelineVertexInputStateCreateInfo.pNext = NULL;
     vkPipelineVertexInputStateCreateInfo.flags = 0;
-    vkPipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = _ARRAYSIZE(vkVertexInputBindingDescription_array);
-    vkPipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = vkVertexInputBindingDescription_array;
-    vkPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = _ARRAYSIZE(vkVertexInputAttributeDescription_array);
-    vkPipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = vkVertexInputAttributeDescription_array;
+    vkPipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
+    vkPipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = NULL;
+    vkPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
+    vkPipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = NULL;
     
     //! Input Assembly State
     VkPipelineInputAssemblyStateCreateInfo vkPipelineInputAssemblyStateCreateInfo;
@@ -4397,8 +4704,19 @@ VkResult buildCommandBuffers(void)
                 vkDeviceSize_offset_position
             );
 
+            //! Bind with External Vertex Buffer
+            memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
+            vkCmdBindVertexBuffers(
+                vkCommandBuffer_array[i], 
+                1, 
+                1, 
+                &vertexData_external.vkBuffer, 
+                vkDeviceSize_offset_position
+            );
+
             //! Vulkan Drawing Function
             vkCmdDrawIndirect(vkCommandBuffer_array[i], vertexData_indirect_buffer.vkBuffer, 0, 1, sizeof(VkDrawIndirectCommand));
+            
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
@@ -4416,6 +4734,7 @@ VkResult buildCommandBuffers(void)
     return vkResult;
 }
 
+
 VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     VkDebugReportFlagsEXT vkDebugReportFlagsEXT,
     VkDebugReportObjectTypeEXT vkDebugReportObjectTypeEXT,
@@ -4432,580 +4751,4 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     return VK_FALSE;
 }
 
-
-//! Compute Shader Related
-VkResult initialize_compute(void)
-{
-    // Function Declarations
-    VkResult createCommandBuffer_compute(void);
-    VkResult createStorageBuffer_compute(void);
-    VkResult createShader_compute(void);
-    VkResult createDescriptorSetLayout_compute(void);
-    VkResult createPipelineLayout_compute(void);
-    VkResult createDescriptorSet_compute(void);
-    VkResult createPipeline_compute(void);
-    VkResult buildCommandBuffer_compute(void);
-
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    // Code
-    vkResult = createCommandBuffer_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createCommandBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => createCommandBuffer_compute() Succeeded\n", __func__);
-
-    vkResult = createStorageBuffer_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createStorageBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => createStorageBuffer_compute() Succeeded\n", __func__);
-
-    vkResult = createShader_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createShader_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => createShader_compute() Succeeded\n", __func__);
-
-    vkResult = createDescriptorSetLayout_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createDescriptorSetLayout_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => createDescriptorSetLayout_compute() Succeeded\n", __func__);
-
-    vkResult = createPipelineLayout_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createPipelineLayout_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => createPipelineLayout_compute() Succeeded\n", __func__);
-
-    vkResult = createDescriptorSet_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createDescriptorSet_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => createDescriptorSet_compute() Succeeded\n", __func__);
-
-    vkResult = createPipeline_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createPipeline_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => createPipeline_compute() Succeeded\n", __func__);
-
-    vkResult = buildCommandBuffer_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => buildCommandBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => buildCommandBuffer_compute() Succeeded\n", __func__);
-
-    return vkResult;
-}
-
-VkResult createCommandBuffer_compute(void)
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    // Code
-    VkCommandBufferAllocateInfo vkCommandBufferAllocateInfo;
-    memset((void*)&vkCommandBufferAllocateInfo, 0, sizeof(VkCommandBufferAllocateInfo));
-    vkCommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO; 
-    vkCommandBufferAllocateInfo.pNext = NULL;
-    vkCommandBufferAllocateInfo.commandPool = vkCommandPool;
-    vkCommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    vkCommandBufferAllocateInfo.commandBufferCount = 1;
-
-    vkResult = vkAllocateCommandBuffers(vkDevice, &vkCommandBufferAllocateInfo, &vkCommandBuffer_compute);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Failed For vkCommandBuffer_compute : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_compute\n", __func__);
-
-    return vkResult;
-}
-
-VkResult createStorageBuffer_compute(void)
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    // Code
-    VkDeviceSize bufferSize = 4096 * 4096 * 4 * sizeof(float);
-
-    memset((void*)&computeBuffer, 0, sizeof(ComputeData));
-
-    //* Step - 5
-    VkBufferCreateInfo vkBufferCreateInfo;
-    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
-    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
-    vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = bufferSize;
-    vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    //!                                 COMPUTE WRITE                          GRAPHICS READ                TRANSFER DATA VIA BARRIER
-    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    
-    //* Step - 6
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &computeBuffer.vkBuffer);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Compute Storage Buffer  : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Compute Storage Buffer\n", __func__);
-    
-    //* Step - 7
-    VkMemoryRequirements vkMemoryRequirements;
-    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, computeBuffer.vkBuffer, &vkMemoryRequirements);
-
-    //* Step - 8
-    VkMemoryAllocateInfo vkMemoryAllocateInfo;
-    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
-    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    vkMemoryAllocateInfo.pNext = NULL;
-    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-    vkMemoryAllocateInfo.memoryTypeIndex = 0;
-    
-    //* Step - 8.1
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-    {
-        //* Step - 8.2
-        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
-        {
-            //* Step - 8.3
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-            {
-                //* Step - 8.4
-                vkMemoryAllocateInfo.memoryTypeIndex = i;
-                break;
-            }
-        }
-
-        //* Step - 8.5
-        vkMemoryRequirements.memoryTypeBits >>= 1;
-    }
-
-    //* Step - 9
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &computeBuffer.vkDeviceMemory);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Compute Storage Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Compute Storage Buffer\n", __func__);
-
-    //* Step - 10
-    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
-    vkResult = vkBindBufferMemory(vkDevice, computeBuffer.vkBuffer, computeBuffer.vkDeviceMemory, 0);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Compute Storage Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Compute Storage Buffer\n", __func__);
-    
-
-    return vkResult;
-}
-
-VkResult createShader_compute(void)
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    //! Compute Shader
-    //! ---------------------------------------------------------------------------------------------------------------------------
-    //* Step - 6
-    const char* szFileName = "Shader.comp.spv";
-    FILE *fp = NULL;
-    size_t size;
-
-    fp = fopen(szFileName, "rb");
-    if (fp == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Succeeded In Opening SPIR-V Shader File : %s\n", __func__, szFileName);
-
-    fseek(fp, 0L, SEEK_END);
-    size = ftell(fp);
-    if (size == 0)
-    {
-        fprintf(gpFile, "%s() => Empty SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    fseek(fp, 0L, SEEK_SET);
-
-    char* shaderData = (char*)malloc(size * sizeof(char));
-    if (shaderData == NULL)
-    {
-        fprintf(gpFile, "%s() => malloc() Failed For shaderData !!!\n", __func__);
-        return VK_ERROR_OUT_OF_HOST_MEMORY;
-    }
-
-    size_t retVal = fread(shaderData, size, 1, fp);
-    if (retVal != 1)
-    {
-        fprintf(gpFile, "%s() => Failed To Read From SPIR-V Shader File : %s !!!", __func__, szFileName);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => Successfully Read Shader From SPIR-V Shader File : %s\n", __func__, szFileName);
-    
-    if (fp)
-    {
-        fclose(fp);
-        fp = NULL;
-        fprintf(gpFile, "%s() => Closed SPIR-V File : %s\n", __func__, szFileName);
-    }
-
-    //* Step - 7
-    VkShaderModuleCreateInfo vkShaderModuleCreateInfo;
-    memset((void*)&vkShaderModuleCreateInfo, 0, sizeof(VkShaderModuleCreateInfo));
-    vkShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    vkShaderModuleCreateInfo.pNext = NULL;
-    vkShaderModuleCreateInfo.flags = 0; //! Reserved, must be 0
-    vkShaderModuleCreateInfo.pCode = (uint32_t*)shaderData;
-    vkShaderModuleCreateInfo.codeSize = size;
-
-    //* Step - 8
-    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_compute_shader);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Compute Shader : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Compute Shader\n", __func__);
-
-    //* Step - 9
-    if (shaderData)
-    {
-        free(shaderData);
-        shaderData = NULL;
-        fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
-    }
-
-    fprintf(gpFile, "%s() => Compute Shader Module Successfully Created\n", __func__);
-    //! ---------------------------------------------------------------------------------------------------------------------------
-
-    return vkResult;
-}
-
-VkResult createDescriptorSetLayout_compute(void)
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    //! Initialize VkDescriptorSetLayoutBinding
-    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding;
-    memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(VkDescriptorSetLayoutBinding));
-    vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    vkDescriptorSetLayoutBinding.binding = 1;
-    vkDescriptorSetLayoutBinding.descriptorCount = 1;
-    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
-
-    //* Step - 3
-    VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo;
-    memset((void*)&vkDescriptorSetLayoutCreateInfo, 0, sizeof(VkDescriptorSetLayoutCreateInfo));
-    vkDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    vkDescriptorSetLayoutCreateInfo.pNext = NULL;
-    vkDescriptorSetLayoutCreateInfo.flags = 0;
-    vkDescriptorSetLayoutCreateInfo.bindingCount = 1;   //! An integer value where you want to bind descriptor set
-    vkDescriptorSetLayoutCreateInfo.pBindings = &vkDescriptorSetLayoutBinding;
-
-    //* Step - 4
-    vkResult = vkCreateDescriptorSetLayout(vkDevice, &vkDescriptorSetLayoutCreateInfo, NULL, &vkDescriptorSetLayout_compute);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Failed For Compute : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Succeeded For Compute\n", __func__);
-
-    return vkResult;
-}
-
-VkResult createPipelineLayout_compute(void)
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    VkPushConstantRange vkPushConstantRange;
-    memset((void*)&vkPushConstantRange, 0, sizeof(VkPushConstantRange));
-    vkPushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    vkPushConstantRange.offset = 0;
-    vkPushConstantRange.size = sizeof(PushConstants);
-
-    //* Step - 3
-    VkPipelineLayoutCreateInfo vkPipelineLayoutCreateInfo;
-    memset((void*)&vkPipelineLayoutCreateInfo, 0, sizeof(VkPipelineLayoutCreateInfo));
-    vkPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    vkPipelineLayoutCreateInfo.pNext = NULL;
-    vkPipelineLayoutCreateInfo.flags = 0;
-    vkPipelineLayoutCreateInfo.setLayoutCount = 1;
-    vkPipelineLayoutCreateInfo.pSetLayouts = &vkDescriptorSetLayout_compute;
-    vkPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-    vkPipelineLayoutCreateInfo.pPushConstantRanges = &vkPushConstantRange;
-
-    //* Step - 4
-    vkResult = vkCreatePipelineLayout(vkDevice, &vkPipelineLayoutCreateInfo, NULL, &vkPipelineLayout_compute);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreatePipelineLayout() Failed For Compute : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreatePipelineLayout() Succeeded For Compute\n", __func__);
-
-    return vkResult;
-}
-
-VkResult createDescriptorSet_compute(void)
-{
-    // Variable Declarations
-    VkResult vkResult;
-
-    // Code
-
-    //* Initialize DescriptorSetAllocationInfo
-    VkDescriptorSetAllocateInfo vkDescriptorSetAllocateInfo;
-    memset((void*)&vkDescriptorSetAllocateInfo, 0, sizeof(VkDescriptorSetAllocateInfo));
-    vkDescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    vkDescriptorSetAllocateInfo.pNext = NULL;
-    vkDescriptorSetAllocateInfo.descriptorPool = vkDescriptorPool;
-    vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
-    vkDescriptorSetAllocateInfo.pSetLayouts = &vkDescriptorSetLayout_compute;
-
-    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet_compute);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Failed For vkDescriptorSet_compute : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }  
-    else
-        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded For vkDescriptorSet_compute\n", __func__);
-    
-    VkDescriptorBufferInfo vkDescriptorBufferInfo;
-    memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
-    vkDescriptorBufferInfo.buffer = vertexData_position.vkBuffer;
-    vkDescriptorBufferInfo.offset = 0;
-    vkDescriptorBufferInfo.range = VK_WHOLE_SIZE;
-
-    /* Update above descriptor set directly to the shader
-    There are 2 ways :-
-        1) Writing directly to the shader
-        2) Copying from one shader to another shader
-    */
-    VkWriteDescriptorSet vkWriteDescriptorSet;
-    memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
-    vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    vkWriteDescriptorSet.pNext = NULL;
-    vkWriteDescriptorSet.dstSet = vkDescriptorSet_compute;
-    vkWriteDescriptorSet.dstArrayElement = 0;
-    vkWriteDescriptorSet.descriptorCount = 1;
-    vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
-    vkWriteDescriptorSet.pImageInfo = NULL;
-    vkWriteDescriptorSet.pTexelBufferView = NULL;
-    vkWriteDescriptorSet.dstBinding = 1;
-
-    vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
-
-    return vkResult;
-}
-
-VkResult createPipeline_compute(void)
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    //* Code
-
-    //! Shader Stage State
-    VkPipelineShaderStageCreateInfo vkPipelineShaderStageCreateInfo;
-    memset((void*)&vkPipelineShaderStageCreateInfo, 0, sizeof(VkPipelineShaderStageCreateInfo));
-    
-    //* Vertex Shader
-    vkPipelineShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vkPipelineShaderStageCreateInfo.pNext = NULL;
-    vkPipelineShaderStageCreateInfo.flags = 0;
-    vkPipelineShaderStageCreateInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    vkPipelineShaderStageCreateInfo.module = vkShaderModule_compute_shader;
-    vkPipelineShaderStageCreateInfo.pName = "main";
-    vkPipelineShaderStageCreateInfo.pSpecializationInfo = NULL;
-
-    VkComputePipelineCreateInfo vkComputePipelineCreateInfo;
-    memset((void*)&vkComputePipelineCreateInfo, 0, sizeof(VkComputePipelineCreateInfo));
-    vkComputePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    vkComputePipelineCreateInfo.pNext = NULL;
-    vkComputePipelineCreateInfo.flags = 0;
-    vkComputePipelineCreateInfo.stage = vkPipelineShaderStageCreateInfo;
-    vkComputePipelineCreateInfo.layout = vkPipelineLayout_compute;
-
-    VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo;
-    memset((void*)&vkPipelineCacheCreateInfo, 0, sizeof(VkPipelineCacheCreateInfo));
-    vkPipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-    vkPipelineCacheCreateInfo.pNext = NULL;
-    vkPipelineCacheCreateInfo.flags = 0;
-    
-    VkPipelineCache vkPipelineCache_compute = VK_NULL_HANDLE;
-    vkResult = vkCreatePipelineCache(vkDevice, &vkPipelineCacheCreateInfo, NULL, &vkPipelineCache_compute);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreatePipelineCache() Failed For Compute : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreatePipelineCache() Succeeded For Compute\n", __func__);
-    
-    vkResult = vkCreateComputePipelines(vkDevice, vkPipelineCache_compute, 1, &vkComputePipelineCreateInfo, NULL, &vkPipeline_compute);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateComputePipelines() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateComputePipelines() Succeeded\n", __func__);
-
-    //* Destroy Pipeline Cache
-    if (vkPipelineCache_compute)
-    {
-        vkDestroyPipelineCache(vkDevice, vkPipelineCache_compute, NULL);
-        vkPipelineCache_compute = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyPipelineCache() Succeeded\n", __func__);
-    }
-   
-
-    return vkResult;
-}
-
-VkResult buildCommandBuffer_compute(void)
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    // Code
-    vkResult = vkResetCommandBuffer(vkCommandBuffer_compute, 0);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkResetCommandBuffer() Failed : %d\n", __func__, vkResult);
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-
-    VkCommandBufferBeginInfo vkCommandBufferBeginInfo;
-    memset((void*)&vkCommandBufferBeginInfo, 0, sizeof(VkCommandBufferBeginInfo));
-    vkCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    vkCommandBufferBeginInfo.pNext = NULL;
-    vkCommandBufferBeginInfo.flags = 0;     //! 0 specifies that we will use only the primary command buffer, and not going to use this command buffer simultaneously between multiple threads
-
-    vkResult = vkBeginCommandBuffer(vkCommandBuffer_compute, &vkCommandBufferBeginInfo);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkBeginCommandBuffer() Failed For vkCommandBuffer_compute : %d\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-
-    vkCmdBindPipeline(vkCommandBuffer_compute, VK_PIPELINE_BIND_POINT_COMPUTE, vkPipeline_compute);
-
-    vkCmdBindDescriptorSets(
-        vkCommandBuffer_compute,
-        VK_PIPELINE_BIND_POINT_COMPUTE,
-        vkPipelineLayout_compute,
-        0,
-        1,
-        &vkDescriptorSet_compute,
-        0,
-        0
-    );
-
-    PushConstants pushData;
-    memset((void*)&pushData, 0, sizeof(PushConstants));
-    pushData.width = meshWidth;
-    pushData.height = meshHeight;
-    pushData.time = fAnimationSpeed;
-
-    vkCmdPushConstants(
-        vkCommandBuffer_compute,
-        vkPipelineLayout_compute,
-        VK_SHADER_STAGE_COMPUTE_BIT,
-        0,
-        sizeof(PushConstants),
-        &pushData
-    );
-
-    vkCmdDispatch(vkCommandBuffer_compute, (meshWidth + 15) / 16, (meshHeight + 15) / 16, 1);
-
-    //! Barrier -> Wait For Compute Shader To Finish Writing To Buffer
-    VkBufferMemoryBarrier vkBufferMemoryBarrier_compute;
-    memset((void*)&vkBufferMemoryBarrier_compute, 0, sizeof(VkBufferMemoryBarrier));
-    vkBufferMemoryBarrier_compute.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    vkBufferMemoryBarrier_compute.pNext = NULL;
-    vkBufferMemoryBarrier_compute.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    vkBufferMemoryBarrier_compute.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-    vkBufferMemoryBarrier_compute.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    vkBufferMemoryBarrier_compute.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    vkBufferMemoryBarrier_compute.buffer = vertexData_position.vkBuffer;
-    vkBufferMemoryBarrier_compute.offset = 0;
-    vkBufferMemoryBarrier_compute.size = VK_WHOLE_SIZE;
-
-    vkCmdPipelineBarrier(
-        vkCommandBuffer_compute,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-        0,
-        0,
-        NULL,
-        1,
-        &vkBufferMemoryBarrier_compute,
-        0,
-        NULL
-    );
-
-    vkResult = vkEndCommandBuffer(vkCommandBuffer_compute);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkEndCommandBuffer() Failed For vkCommandBuffer_compute : %d\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-
-    return vkResult;
-}
-
-void uninitialize_compute(void)
-{
-    // Code
-    if (vkPipeline_compute)
-    {
-        vkDestroyPipeline(vkDevice, vkPipeline_compute, NULL);
-        vkPipeline_compute = VK_NULL_HANDLE;
-    }
-
-    if (vkPipelineLayout_compute)
-    {
-        vkDestroyPipelineLayout(vkDevice, vkPipelineLayout_compute, NULL);
-        vkPipelineLayout_compute = VK_NULL_HANDLE;
-    }
-
-    if (vkDescriptorSetLayout_compute)
-    {
-        vkDestroyDescriptorSetLayout(vkDevice, vkDescriptorSetLayout_compute, NULL);
-        vkDescriptorSet_compute = VK_NULL_HANDLE;
-        vkDescriptorSetLayout_compute = VK_NULL_HANDLE;
-    }
-    
-    if (vkShaderModule_compute_shader)
-    {
-        vkDestroyShaderModule(vkDevice, vkShaderModule_compute_shader, NULL);
-        vkShaderModule_compute_shader = VK_NULL_HANDLE;
-    }
-
-    if (computeBuffer.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, computeBuffer.vkDeviceMemory, NULL);
-        computeBuffer.vkDeviceMemory = VK_NULL_HANDLE;
-    }
-
-    if (computeBuffer.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, computeBuffer.vkBuffer, NULL);
-        computeBuffer.vkBuffer = VK_NULL_HANDLE;
-    }
-
-    if (vkCommandBuffer_compute)
-    {
-        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_compute);
-        vkCommandBuffer_compute = NULL;
-    }
-
-}
 

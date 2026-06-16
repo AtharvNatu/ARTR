@@ -2,6 +2,10 @@
 
 ## Problem
 
+49 FPS to 140 FPS
+
+External Vertex Buffer and CPU Vertex Buffer have added flags as SSBO
+
 The initial template for indirect drawing uses fixed-function vertex attributes
 
  - Your initial setup used "Fixed-Function" vertex attributes. The GPU's Input Assembler was hard-wired to fetch data from both your CPU and GPU buffers for every vertex. Even if the shader only used one, the hardware wasted half your memory bandwidth pre-fetching data you were about to throw away.

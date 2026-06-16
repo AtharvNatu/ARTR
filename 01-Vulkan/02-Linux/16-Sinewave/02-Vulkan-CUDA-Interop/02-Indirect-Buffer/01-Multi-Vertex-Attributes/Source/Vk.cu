@@ -329,7 +329,7 @@ int main(void)
     }
 
     //* Set Window Caption
-    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan-CUDA Interop Sine Wave Using Indirect Drawing");
+    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan-CUDA Interop Sine Wave Using Indirect Drawing : Multiple Vertex Attributes");
 
     //* Prepare Window to respond to Window Manager's Close Event
     windowManagerDeleteAtom = XInternAtom(gpDisplay, "WM_DELETE_WINDOW", True);
@@ -660,96 +660,6 @@ Bool isWindowMinimized(void)
 
     return windowMinimized;
 
-}
-
-
-//* FPS Related Code
-int getFPS(void)
-{
-    // Static variables persist across calls
-    static double lastTime = 0.0;
-    static double smoothedFPS = 0.0;
-    const double smoothing = 0.9; // 0.0 → no smoothing, 0.9 → very smooth
-
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    double currentTime = ts.tv_sec + ts.tv_nsec / 1e9;
-
-    // First call initialization
-    if (lastTime == 0.0)
-    {
-        lastTime = currentTime;
-        return 0;
-    }
-
-    double deltaTime = currentTime - lastTime;
-    lastTime = currentTime;
-
-    if (deltaTime <= 0.0)
-        return (int)smoothedFPS;
-
-    double currentFPS = 1.0 / deltaTime;
-
-    // Exponential smoothing
-    smoothedFPS = smoothing * smoothedFPS + (1.0 - smoothing) * currentFPS;
-
-    return (int)(smoothedFPS + 0.5); // round to nearest int
-}
-
-
-//* Device Name Code
-const char* getCPUName(void)
-{
-    static char cpu[256] = "Unknown CPU";
-
-    FILE *fp = popen("fastfetch", "r");
-    if (!fp)
-        return cpu;
-
-    char line[512];
-
-    while (fgets(line, sizeof(line), fp))
-    {
-        if (strstr(line, "CPU:"))
-        {
-            char *start = strstr(line, "CPU:") + 4;
-            while (*start == ' ') start++;
-
-            strncpy(cpu, start, sizeof(cpu));
-            cpu[strcspn(cpu, "\n")] = '\0';
-            break;
-        }
-    }
-
-    pclose(fp);
-    return cpu;
-}
-
-const char* getGPUName(void)
-{
-    static char gpu[256] = "Unknown GPU";
-
-    FILE *fp = popen("fastfetch", "r");
-    if (!fp)
-        return gpu;
-
-    char line[512];
-
-    while (fgets(line, sizeof(line), fp))
-    {
-        if (strstr(line, "GPU:"))
-        {
-            char *start = strstr(line, "GPU:") + 4;
-            while (*start == ' ') start++;
-
-            strncpy(gpu, start, sizeof(gpu));
-            gpu[strcspn(gpu, "\n")] = '\0';
-            break;
-        }
-    }
-
-    pclose(fp);
-    return gpu;
 }
 
 VkResult initialize(void)
@@ -1521,19 +1431,6 @@ VkResult display(void)
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
 
-    if (onGPU)
-    {
-        char str[255];
-        sprintf(str, "Atharv Natu : Vulkan-CUDA Interop [Indirect Drawing] | Device = %s | Mesh Size = %d x %d | FPS = %d", getGPUName(), meshWidth, meshHeight, getFPS());
-        XStoreName(gpDisplay, window, str);
-    }
-    else
-    {
-        char str[255];
-        sprintf(str, "Atharv Natu : Vulkan-CUDA Interop [Indirect Drawing] | Device = %s | Mesh Size = %d x %d | FPS = %d", getCPUName(), meshWidth, meshHeight, getFPS());
-        XStoreName(gpDisplay, window, str);
-    }
-
     vkDeviceWaitIdle(vkDevice);
 
     return vkResult;
@@ -1715,7 +1612,7 @@ void uninitialize(void)
     if (cudaResult != cudaSuccess)
         fprintf(gpFile, "%s() => uninitializeCuda() Failed !!!\n", __func__);
     else
-        fprintf(gpFile, "%s() => uninitializeCuda() Succeeded !!!\n", __func__);
+        fprintf(gpFile, "%s() => uninitializeCuda() Succeeded\n", __func__);
 
     //* External Buffer
     if (vertexData_external.vkDeviceMemory)
@@ -4428,16 +4325,44 @@ VkResult createPipeline(void)
 
     //* Code
 
-    //! Emtpy Vertex Input State -> Replaced with SSBOs used for Vertex Pulling
+    //! Vertex Input State
+    VkVertexInputBindingDescription vkVertexInputBindingDescription_array[2];
+    memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
+
+    //! CPU Position
+    vkVertexInputBindingDescription_array[0].binding = 0;
+    vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 4; 
+    vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    //! GPU Position
+    vkVertexInputBindingDescription_array[1].binding = 1;
+    vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 4; 
+    vkVertexInputBindingDescription_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[2];
+    memset((void*)vkVertexInputAttributeDescription_array, 0, sizeof(VkVertexInputAttributeDescription) * _ARRAYSIZE(vkVertexInputAttributeDescription_array));
+    
+    //! CPU Position
+    vkVertexInputAttributeDescription_array[0].binding = 0;
+    vkVertexInputAttributeDescription_array[0].location = 0;
+    vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    vkVertexInputAttributeDescription_array[0].offset = 0;
+    
+    //! GPU Position
+    vkVertexInputAttributeDescription_array[1].binding = 1;
+    vkVertexInputAttributeDescription_array[1].location = 1;
+    vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    vkVertexInputAttributeDescription_array[1].offset = 0;
+
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
     memset((void*)&vkPipelineVertexInputStateCreateInfo, 0, sizeof(VkPipelineVertexInputStateCreateInfo));
     vkPipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vkPipelineVertexInputStateCreateInfo.pNext = NULL;
     vkPipelineVertexInputStateCreateInfo.flags = 0;
-    vkPipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
-    vkPipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = NULL;
-    vkPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
-    vkPipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = NULL;
+    vkPipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = _ARRAYSIZE(vkVertexInputBindingDescription_array);
+    vkPipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = vkVertexInputBindingDescription_array;
+    vkPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = _ARRAYSIZE(vkVertexInputAttributeDescription_array);
+    vkPipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = vkVertexInputAttributeDescription_array;
     
     //! Input Assembly State
     VkPipelineInputAssemblyStateCreateInfo vkPipelineInputAssemblyStateCreateInfo;

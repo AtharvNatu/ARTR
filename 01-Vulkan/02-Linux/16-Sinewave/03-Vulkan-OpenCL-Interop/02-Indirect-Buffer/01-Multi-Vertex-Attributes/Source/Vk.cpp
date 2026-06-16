@@ -2,6 +2,7 @@
 #include <stdio.h>          // For Standard I/O
 #include <stdlib.h>         // For exit()
 #include <memory.h>         // For memset()
+#include <time.h>           // For getFPS()
 
 // X11 Headers
 #include <X11/Xlib.h>       // For XClient APIs
@@ -319,7 +320,7 @@ int main(void)
     }
 
     //* Set Window Caption
-    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan-OpenCL Interop Sine Wave Using Indirect Drawing");
+    XStoreName(gpDisplay, window, "Atharv Natu : Vulkan-OpenCL Interop Sine Wave Using Indirect Drawing : Multiple Vertex Attributes");
 
     //* Prepare Window to respond to Window Manager's Close Event
     windowManagerDeleteAtom = XInternAtom(gpDisplay, "WM_DELETE_WINDOW", True);
@@ -1821,7 +1822,6 @@ VkResult display(void)
     vkResult = updateUniformBuffer();
     if (vkResult != VK_SUCCESS)
         fprintf(gpFile, "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
-
 
     vkDeviceWaitIdle(vkDevice);
 
@@ -4228,7 +4228,7 @@ VkResult updateUniformBuffer(void)
     glm::mat4 modelViewMatrix = glm::mat4(1.0f);
     glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
 
-    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
     modelViewMatrix = translationMatrix;
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
