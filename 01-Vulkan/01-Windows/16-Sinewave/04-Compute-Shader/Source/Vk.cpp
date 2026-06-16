@@ -180,7 +180,6 @@ VertexData vertexData_indirect_buffer;
 char selectedColor = 'O';
 float fAnimationSpeed = 0.0f;
 
-
 //! Compute Shader Related
 typedef struct
 {
@@ -188,12 +187,6 @@ typedef struct
     int height;
     float time;
 } PushConstants;
-
-typedef struct
-{
-    VkBuffer vkBuffer;
-    VkDeviceMemory vkDeviceMemory;
-} ComputeData;
 
 VkCommandBuffer vkCommandBuffer_compute = VK_NULL_HANDLE;               // For Storing Dispatch Command and Barriers
 VkCommandBuffer vkCommandBuffer_array_compute[2];                       // For Storing Compute Command Buffer Handle and Graphics Command Buffer Handle
@@ -204,7 +197,6 @@ VkDescriptorSet vkDescriptorSet_compute = VK_NULL_HANDLE;               // Compu
 VkPipelineLayout vkPipelineLayout_compute = VK_NULL_HANDLE;             // Compute Pipeline Layout
 VkPipeline vkPipeline_compute = VK_NULL_HANDLE;                         // Compute Pipeline for Sinewave
 
-ComputeData computeBuffer;
 BOOL bUseCompute = FALSE;
 
 // Entry Point Function
@@ -1160,8 +1152,6 @@ VkResult display(void)
     vkSubmitInfo.pWaitDstStageMask = &waitDstStageMask;
     vkSubmitInfo.waitSemaphoreCount = 1;
     vkSubmitInfo.pWaitSemaphores = &vkSemaphore_backBuffer;
-    vkSubmitInfo.commandBufferCount = 1;
-    vkSubmitInfo.pCommandBuffers = &vkCommandBuffer_array[currentImageIndex];
     vkSubmitInfo.signalSemaphoreCount = 1;
     vkSubmitInfo.pSignalSemaphores = &vkSemaphore_renderComplete;
 
@@ -1213,7 +1203,6 @@ VkResult display(void)
         }
     }
 
-    
     if (!bUseCompute)
     {
         //! Create Sinewave
@@ -2117,7 +2106,8 @@ VkResult getPhysicalDevice(void)
         //* Step - 5.7
         for (uint32_t j = 0; j < queueCount; j++)
         {
-            if (vkQueueFamilyProperties_array[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            if ((vkQueueFamilyProperties_array[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+                (vkQueueFamilyProperties_array[j].queueFlags & VK_QUEUE_COMPUTE_BIT))
             {
                 if (isQueueSurfaceSupported_array[j] == VK_TRUE)
                 {
@@ -4265,7 +4255,6 @@ VkResult initialize_compute(void)
 {
     // Function Declarations
     VkResult createCommandBuffer_compute(void);
-    VkResult createStorageBuffer_compute(void);
     VkResult createShader_compute(void);
     VkResult createDescriptorSetLayout_compute(void);
     VkResult createPipelineLayout_compute(void);
@@ -4282,12 +4271,6 @@ VkResult initialize_compute(void)
         fprintf(gpFile, "%s() => createCommandBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => createCommandBuffer_compute() Succeeded\n", __func__);
-
-    vkResult = createStorageBuffer_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createStorageBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => createStorageBuffer_compute() Succeeded\n", __func__);
 
     vkResult = createShader_compute();
     if (vkResult != VK_SUCCESS)
@@ -4347,85 +4330,6 @@ VkResult createCommandBuffer_compute(void)
         fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Failed For vkCommandBuffer_compute : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_compute\n", __func__);
-
-    return vkResult;
-}
-
-VkResult createStorageBuffer_compute(void)
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    // Code
-    VkDeviceSize bufferSize = 4096 * 4096 * 4 * sizeof(float);
-
-    memset((void*)&computeBuffer, 0, sizeof(ComputeData));
-
-    //* Step - 5
-    VkBufferCreateInfo vkBufferCreateInfo;
-    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
-    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
-    vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = bufferSize;
-    vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    //!                                 COMPUTE WRITE                          GRAPHICS READ                TRANSFER DATA VIA BARRIER
-    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    
-    //* Step - 6
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &computeBuffer.vkBuffer);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Compute Storage Buffer  : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Compute Storage Buffer\n", __func__);
-    
-    //* Step - 7
-    VkMemoryRequirements vkMemoryRequirements;
-    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, computeBuffer.vkBuffer, &vkMemoryRequirements);
-
-    //* Step - 8
-    VkMemoryAllocateInfo vkMemoryAllocateInfo;
-    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
-    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    vkMemoryAllocateInfo.pNext = NULL;
-    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-    vkMemoryAllocateInfo.memoryTypeIndex = 0;
-    
-    //* Step - 8.1
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-    {
-        //* Step - 8.2
-        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
-        {
-            //* Step - 8.3
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-            {
-                //* Step - 8.4
-                vkMemoryAllocateInfo.memoryTypeIndex = i;
-                break;
-            }
-        }
-
-        //* Step - 8.5
-        vkMemoryRequirements.memoryTypeBits >>= 1;
-    }
-
-    //* Step - 9
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &computeBuffer.vkDeviceMemory);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Compute Storage Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Compute Storage Buffer\n", __func__);
-
-    //* Step - 10
-    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
-    vkResult = vkBindBufferMemory(vkDevice, computeBuffer.vkBuffer, computeBuffer.vkDeviceMemory, 0);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Compute Storage Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Compute Storage Buffer\n", __func__);
-    
 
     return vkResult;
 }
@@ -4814,18 +4718,6 @@ void uninitialize_compute(void)
     {
         vkDestroyShaderModule(vkDevice, vkShaderModule_compute_shader, NULL);
         vkShaderModule_compute_shader = VK_NULL_HANDLE;
-    }
-
-    if (computeBuffer.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, computeBuffer.vkDeviceMemory, NULL);
-        computeBuffer.vkDeviceMemory = VK_NULL_HANDLE;
-    }
-
-    if (computeBuffer.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, computeBuffer.vkBuffer, NULL);
-        computeBuffer.vkBuffer = VK_NULL_HANDLE;
     }
 
     if (vkCommandBuffer_compute)

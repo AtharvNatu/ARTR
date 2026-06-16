@@ -127,6 +127,7 @@ uint32_t enabledValidationLayerCount = 0;
 const char *enabledValidationLayerNames_array[1];   //* For VK_LAYER_KHRONOS_validation
 VkDebugReportCallbackEXT vkDebugReportCallbackEXT = VK_NULL_HANDLE;
 PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT_fnptr = NULL;
+
 //? Vertex Buffer Related Variables
 typedef struct
 {
@@ -171,14 +172,6 @@ VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
 //* Sine Wave Related Variables
-float position_64_graphics[64][64][4];
-VertexData vertexData_position_64x64_graphics;
-VkCommandBuffer* vkCommandBuffer_64x64_graphics_array = NULL;
-
-float position_128_graphics[128][128][4];
-VertexData vertexData_position_128x128_graphics;
-VkCommandBuffer* vkCommandBuffer_128x128_graphics_array = NULL;
-
 float position_256_graphics[256][256][4];
 VertexData vertexData_position_256x256_graphics;
 VkCommandBuffer* vkCommandBuffer_256x256_graphics_array = NULL;
@@ -187,22 +180,20 @@ float position_512_graphics[512][512][4];
 VertexData vertexData_position_512x512_graphics;
 VkCommandBuffer* vkCommandBuffer_512x512_graphics_array = NULL;
 
-float position_1024_graphics[2048][2048][4];
+float position_1024_graphics[1024][1024][4];
 VertexData vertexData_position_1024x1024_graphics;
 VkCommandBuffer* vkCommandBuffer_1024x1024_graphics_array = NULL;
 
+float position_2048_graphics[2048][2048][4];
+VertexData vertexData_position_2048x2048_graphics;
+VkCommandBuffer* vkCommandBuffer_2048x2048_graphics_array = NULL;
 
-bool bMesh64Chosen = false;
-bool bMesh128Chosen = false;
-bool bMesh256Chosen = false;
+bool bMesh256Chosen = true;
 bool bMesh512Chosen = false;
-bool bMesh1024Chosen = true;
+bool bMesh1024Chosen = false;
 bool bMesh2048Chosen = false;
-bool bMesh4096Chosen = false;
 
 bool bUseCompute = false;
-
-char selectedColor = 'O';
 float fAnimationSpeed = 0.0f;
 
 //! Compute Related
@@ -366,47 +357,39 @@ void android_main(struct android_app* state)
                 switch(singleTap)
                 {
                     case 1:
-                        bMesh64Chosen = true;
-                        bMesh128Chosen = false;
-                        bMesh256Chosen = false;
-                        bMesh512Chosen = false;
-                        bMesh1024Chosen = false;
-                    break;
-
-                    case 2:
-                        bMesh64Chosen = false;
-                        bMesh128Chosen = true;
-                        bMesh256Chosen = false;
-                        bMesh512Chosen = false;
-                        bMesh1024Chosen = false;
-                    break;
-
-                    case 3:
-                        bMesh64Chosen = false;
-                        bMesh128Chosen = false;
                         bMesh256Chosen = true;
                         bMesh512Chosen = false;
                         bMesh1024Chosen = false;
+                        bMesh2048Chosen = false;
                     break;
 
-                    case 4:
-                        bMesh64Chosen = false;
-                        bMesh128Chosen = false;
+                    case 2:
                         bMesh256Chosen = false;
                         bMesh512Chosen = true;
                         bMesh1024Chosen = false;
+                        bMesh2048Chosen = false;
                     break;
 
-                    case 5:
-                        bMesh64Chosen = false;
-                        bMesh128Chosen = false;
+                    case 3:
                         bMesh256Chosen = false;
                         bMesh512Chosen = false;
                         bMesh1024Chosen = true;
+                        bMesh2048Chosen = false;
+                    break;
+
+                    case 4:
+                        bMesh256Chosen = false;
+                        bMesh512Chosen = false;
+                        bMesh1024Chosen = false;
+                        bMesh2048Chosen = true;
                     break;
 
                     default:
-                        singleTap = 1;
+                        singleTap = 0;
+                        bMesh256Chosen = true;
+                        bMesh512Chosen = false;
+                        bMesh1024Chosen = false;
+                        bMesh2048Chosen = false;
                     break;
                 }
             }
@@ -715,26 +698,6 @@ VkResult initialize(void)
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandPool() Succeeded\n", __func__);
 
     //! Create Command Buffers
-    vkResult = createCommandBuffers(&vkCommandBuffer_64x64_graphics_array);
-    if (vkResult != VK_SUCCESS)
-    {
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Failed For vkCommandBuffer_64x64_graphics_array : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_64x64_graphics_array\n", __func__);
-    
-    vkResult = createCommandBuffers(&vkCommandBuffer_128x128_graphics_array);
-    if (vkResult != VK_SUCCESS)
-    {
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Failed For vkCommandBuffer_128x128_graphics_array : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_128x128_graphics_array\n", __func__);
-    
     vkResult = createCommandBuffers(&vkCommandBuffer_256x256_graphics_array);
     if (vkResult != VK_SUCCESS)
     {
@@ -765,36 +728,23 @@ VkResult initialize(void)
     else
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_1024x1024_graphics_array\n", __func__);
 
-    //! Initialize Sinewave Arrays - 64, 128, 256, 512, 1024
-    initializeSinewaveArrays(64, 64);
-    initializeSinewaveArrays(128, 128);
+    vkResult = createCommandBuffers(&vkCommandBuffer_2048x2048_graphics_array);
+    if (vkResult != VK_SUCCESS)
+    {
+        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Failed For vkCommandBuffer_2048x2048_graphics_array : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Succeeded For vkCommandBuffer_2048x2048_graphics_array\n", __func__);
+    
+    //! Initialize Sinewave Arrays - 256, 512, 1024, 2048
     initializeSinewaveArrays(256, 256);
     initializeSinewaveArrays(512, 512);
     initializeSinewaveArrays(1024, 1024);
+    initializeSinewaveArrays(2048, 2048);
 
     //! Create Vertex Buffers
-    memset((void*)&vertexData_position_64x64_graphics, 0, sizeof(VertexData));
-    vkResult = createVertexBuffer(64, 64, &vertexData_position_64x64_graphics);
-    if (vkResult != VK_SUCCESS)
-    {
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Failed For vertexData_position_64x64_graphics : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Succeeded For vertexData_position_64x64_graphics\n", __func__);
-
-    memset((void*)&vertexData_position_128x128_graphics, 0, sizeof(VertexData));
-    vkResult = createVertexBuffer(128, 128, &vertexData_position_128x128_graphics);
-    if (vkResult != VK_SUCCESS)
-    {
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Failed For vertexData_position_128x128_graphics : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Succeeded For vertexData_position_128x128_graphics\n", __func__);
-    
     memset((void*)&vertexData_position_256x256_graphics, 0, sizeof(VertexData));
     vkResult = createVertexBuffer(256, 256, &vertexData_position_256x256_graphics);
     if (vkResult != VK_SUCCESS)
@@ -805,7 +755,7 @@ VkResult initialize(void)
     }
     else
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Succeeded For vertexData_position_256x256_graphics\n", __func__);
-    
+
     memset((void*)&vertexData_position_512x512_graphics, 0, sizeof(VertexData));
     vkResult = createVertexBuffer(512, 512, &vertexData_position_512x512_graphics);
     if (vkResult != VK_SUCCESS)
@@ -818,7 +768,7 @@ VkResult initialize(void)
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Succeeded For vertexData_position_512x512_graphics\n", __func__);
     
     memset((void*)&vertexData_position_1024x1024_graphics, 0, sizeof(VertexData));
-    vkResult = createVertexBuffer(2048, 2048, &vertexData_position_1024x1024_graphics);
+    vkResult = createVertexBuffer(1024, 1024, &vertexData_position_1024x1024_graphics);
     if (vkResult != VK_SUCCESS)
     {
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Failed For vertexData_position_1024x1024_graphics : %d !!!\n", __func__, vkResult);
@@ -827,6 +777,18 @@ VkResult initialize(void)
     }
     else
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Succeeded For vertexData_position_1024x1024_graphics\n", __func__);
+
+    memset((void*)&vertexData_position_2048x2048_graphics, 0, sizeof(VertexData));
+    vkResult = createVertexBuffer(2048, 2048, &vertexData_position_2048x2048_graphics);
+    if (vkResult != VK_SUCCESS)
+    {
+        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Failed For vertexData_position_2048x2048_graphics : %d !!!\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createVertexBuffer() Succeeded For vertexData_position_2048x2048_graphics\n", __func__);
+    
 
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
@@ -1048,11 +1010,16 @@ VkResult resize(int width, int height)
         //* Destroy Command Buffer
         for (uint32_t i = 0; i < swapchainImageCount; i++)
         {
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_2048x2048_graphics_array[i]);
             vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_1024x1024_graphics_array[i]);
             vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_512x512_graphics_array[i]);
             vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_256x256_graphics_array[i]);
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_128x128_graphics_array[i]);
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_64x64_graphics_array[i]);
+        }
+
+        if (vkCommandBuffer_2048x2048_graphics_array)
+        {
+            free(vkCommandBuffer_2048x2048_graphics_array);
+            vkCommandBuffer_2048x2048_graphics_array = NULL;
         }
             
         if (vkCommandBuffer_1024x1024_graphics_array)
@@ -1071,18 +1038,6 @@ VkResult resize(int width, int height)
         {
             free(vkCommandBuffer_256x256_graphics_array);
             vkCommandBuffer_256x256_graphics_array = NULL;
-        }
-            
-        if (vkCommandBuffer_128x128_graphics_array)
-        {
-            free(vkCommandBuffer_128x128_graphics_array);
-            vkCommandBuffer_128x128_graphics_array = NULL;
-        }
-            
-        if (vkCommandBuffer_64x64_graphics_array)
-        {
-            free(vkCommandBuffer_64x64_graphics_array);
-            vkCommandBuffer_64x64_graphics_array = NULL;
         }
 
         //* Destroy PipelineLayout
@@ -1200,27 +1155,10 @@ VkResult resize(int width, int height)
         }
 
         //* Create Command Buffers
-        vkResult = createCommandBuffers(&vkCommandBuffer_64x64_graphics_array);
-        if (vkResult != VK_SUCCESS)
-        {
-            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Failed For vkCommandBuffer_64x64_graphics_array : %d !!!\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        
-        vkResult = createCommandBuffers(&vkCommandBuffer_128x128_graphics_array);
-        if (vkResult != VK_SUCCESS)
-        {
-            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Failed For vkCommandBuffer_128x128_graphics_array : %d !!!\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            return vkResult;
-        }
-        
         vkResult = createCommandBuffers(&vkCommandBuffer_256x256_graphics_array);
         if (vkResult != VK_SUCCESS)
         {
             __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Failed For vkCommandBuffer_256x256_graphics_array : %d !!!\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
             return vkResult;
         }
         
@@ -1228,7 +1166,6 @@ VkResult resize(int width, int height)
         if (vkResult != VK_SUCCESS)
         {
             __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Failed For vkCommandBuffer_512x512_graphics_array : %d !!!\n", __func__, vkResult);
-            vkResult = VK_ERROR_INITIALIZATION_FAILED;
             return vkResult;
         }
         
@@ -1237,6 +1174,13 @@ VkResult resize(int width, int height)
         {
             __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Failed For vkCommandBuffer_1024x1024_graphics_array : %d !!!\n", __func__, vkResult);
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
+            return vkResult;
+        }
+
+        vkResult = createCommandBuffers(&vkCommandBuffer_2048x2048_graphics_array);
+        if (vkResult != VK_SUCCESS)
+        {
+            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Failed For vkCommandBuffer_2048x2048_graphics_array : %d !!!\n", __func__, vkResult);
             return vkResult;
         }
 
@@ -1262,6 +1206,43 @@ VkResult resize(int width, int height)
     return vkResult;
 }
 
+double GetTimeSeconds()
+{
+    timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+
+    return
+        ts.tv_sec +
+        (ts.tv_nsec / 1000000000.0);
+}
+
+void UpdateFPS()
+{
+    static double last = GetTimeSeconds();
+
+    static int frames = 0;
+
+    frames++;
+
+    double now = GetTimeSeconds();
+
+    if ((now - last) >= 1.0)
+    {
+        double fps = frames / (now - last);
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            "FPS:",
+            "FPS = %.1f",
+            fps
+        );
+
+        frames = 0;
+
+        last = now;
+    }
+}
+
 VkResult display(void)
 {
     // Function Declarations
@@ -1281,32 +1262,20 @@ VkResult display(void)
         return (VkResult)VK_FALSE;
     }
 
-     if (bMesh64Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
-    else if (bMesh128Chosen)
-        vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
-    else if (bMesh256Chosen)
+    if (bMesh256Chosen)
         vkCommandBuffer_array = vkCommandBuffer_256x256_graphics_array;
     else if (bMesh512Chosen)
         vkCommandBuffer_array = vkCommandBuffer_512x512_graphics_array;
     else if (bMesh1024Chosen)
         vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
+    else if (bMesh2048Chosen)
+        vkCommandBuffer_array = vkCommandBuffer_2048x2048_graphics_array;
 
     vkResult = buildCommandBuffers();
     if (vkResult != VK_SUCCESS)
     {
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => buildCommandBuffers() Failed : %d\n", __func__, vkResult);
         return vkResult;
-    }
-
-    if (bUseCompute)
-    {
-        vkResult = buildCommandBuffer_compute();
-        if (vkResult != VK_SUCCESS)
-        {
-            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => buildCommandBuffer_compute() Failed : %d\n", __func__, vkResult);
-            return vkResult;
-        }
     }
 
     //! Acquire next image index
@@ -1354,6 +1323,13 @@ VkResult display(void)
 
     if (bUseCompute)
     {
+        vkResult = buildCommandBuffer_compute();
+        if (vkResult != VK_SUCCESS)
+        {
+            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => buildCommandBuffer_compute() Failed : %d\n", __func__, vkResult);
+            return vkResult;
+        }
+
         VkCommandBuffer vkCommandBufferArr[2] =
         {
             vkCommandBuffer_compute,
@@ -1404,6 +1380,9 @@ VkResult display(void)
     vkResult = updateUniformBuffer();
     if (vkResult != VK_SUCCESS)
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => updateUniformBuffer() Failed : %d\n", __func__, vkResult);
+
+    //* FPS
+    UpdateFPS();
 
     vkDeviceWaitIdle(vkDevice);
 
@@ -1549,6 +1528,20 @@ VkResult uninitialize(void)
     }
 
     //* Step - 14 of Vertex Buffer
+    if (vertexData_position_2048x2048_graphics.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_position_2048x2048_graphics.vkDeviceMemory, NULL);
+        vertexData_position_2048x2048_graphics.vkDeviceMemory = VK_NULL_HANDLE;
+        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkFreeMemory() Succeeded For vertexData_position_2048x2048_graphics.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_position_2048x2048_graphics.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_position_2048x2048_graphics.vkBuffer, NULL);
+        vertexData_position_2048x2048_graphics.vkBuffer = VK_NULL_HANDLE;
+        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkDestroyBuffer() Succeeded For vertexData_position_2048x2048_graphics.vkBuffer\n", __func__);
+    }
+
     if (vertexData_position_1024x1024_graphics.vkDeviceMemory)
     {
         vkFreeMemory(vkDevice, vertexData_position_1024x1024_graphics.vkDeviceMemory, NULL);
@@ -1591,35 +1584,17 @@ VkResult uninitialize(void)
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkDestroyBuffer() Succeeded For vertexData_position_256x256_graphics.vkBuffer\n", __func__);
     }
 
-    if (vertexData_position_128x128_graphics.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_position_128x128_graphics.vkDeviceMemory, NULL);
-        vertexData_position_128x128_graphics.vkDeviceMemory = VK_NULL_HANDLE;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkFreeMemory() Succeeded For vertexData_position_128x128_graphics.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_position_128x128_graphics.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_position_128x128_graphics.vkBuffer, NULL);
-        vertexData_position_128x128_graphics.vkBuffer = VK_NULL_HANDLE;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkDestroyBuffer() Succeeded For vertexData_position_128x128_graphics.vkBuffer\n", __func__);
-    }
-
-    if (vertexData_position_64x64_graphics.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_position_64x64_graphics.vkDeviceMemory, NULL);
-        vertexData_position_64x64_graphics.vkDeviceMemory = VK_NULL_HANDLE;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkFreeMemory() Succeeded For vertexData_position_64x64_graphics.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_position_64x64_graphics.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_position_64x64_graphics.vkBuffer, NULL);
-        vertexData_position_64x64_graphics.vkBuffer = VK_NULL_HANDLE;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkDestroyBuffer() Succeeded For vertexData_position_64x64_graphics.vkBuffer\n", __func__);
-    }
-
     //* Step - 5 of Command Buffer
+    if (vkCommandBuffer_2048x2048_graphics_array)
+    {
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_2048x2048_graphics_array[i]);
+
+        free(vkCommandBuffer_2048x2048_graphics_array);
+        vkCommandBuffer_2048x2048_graphics_array = NULL;
+        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => free() Succeeded For vkCommandBuffer_2048x2048_graphics_array\n", __func__);
+    }
+
     if (vkCommandBuffer_1024x1024_graphics_array)
     {
         for (uint32_t i = 0; i < swapchainImageCount; i++)
@@ -1648,26 +1623,6 @@ VkResult uninitialize(void)
         free(vkCommandBuffer_256x256_graphics_array);
         vkCommandBuffer_256x256_graphics_array = NULL;
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => free() Succeeded For vkCommandBuffer_256x256_graphics_array\n", __func__);
-    }
-
-    if (vkCommandBuffer_128x128_graphics_array)
-    {
-        for (uint32_t i = 0; i < swapchainImageCount; i++)
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_128x128_graphics_array[i]);
-
-        free(vkCommandBuffer_128x128_graphics_array);
-        vkCommandBuffer_128x128_graphics_array = NULL;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => free() Succeeded For vkCommandBuffer_128x128_graphics_array\n", __func__);
-    }
-
-    if (vkCommandBuffer_64x64_graphics_array)
-    {
-        for (uint32_t i = 0; i < swapchainImageCount; i++)
-            vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_64x64_graphics_array[i]);
-
-        free(vkCommandBuffer_64x64_graphics_array);
-        vkCommandBuffer_64x64_graphics_array = NULL;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => free() Succeeded For vkCommandBuffer_64x64_graphics_array\n", __func__);
     }
 
     //* Step - 4 of Command Pool (Destroy Command Pool)
@@ -3354,16 +3309,14 @@ VkResult createVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData*
     else
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkMapMemory() Succeeded For Vertex Position Buffer\n", __func__);
 
-    if (meshWidth == 64 && meshHeight == 64)
-        memcpy(data, position_64_graphics, bufferSize);
-    else if (meshWidth == 128 && meshHeight == 128)
-        memcpy(data, position_128_graphics, bufferSize);
-    else if (meshWidth == 256 && meshHeight == 256)
+    if (meshWidth == 256 && meshHeight == 256)
         memcpy(data, position_256_graphics, bufferSize);
     else if (meshWidth == 512 && meshHeight == 512)
         memcpy(data, position_512_graphics, bufferSize);
     else if (meshWidth == 1024 && meshHeight == 1024)
         memcpy(data, position_1024_graphics, bufferSize);
+    else if (meshWidth == 2048 && meshHeight == 2048)
+        memcpy(data, position_2048_graphics, bufferSize);
 
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
     //! -------------------------------------------------------------------------------------------------------------------------------------
@@ -3376,35 +3329,7 @@ VkResult createVertexBuffer(uint32_t meshWidth, uint32_t meshHeight, VertexData*
 void initializeSinewaveArrays(uint32_t meshWidth, uint32_t meshHeight)
 {
     // Code
-    if (meshWidth == 64 && meshHeight == 64)
-    {
-        for (unsigned int i = 0; i < meshWidth; i++)
-        {
-            for (unsigned int j = 0; j < meshHeight; j++)
-            {
-                for (unsigned int k = 0; k < 4; k++)
-                {
-                    position_64_graphics[i][j][k] = 0;
-                }
-            }
-        }
-    }
-    
-    else if (meshWidth == 128 && meshHeight == 128)
-    {
-        for (unsigned int i = 0; i < meshWidth; i++)
-        {
-            for (unsigned int j = 0; j < meshHeight; j++)
-            {
-                for (unsigned int k = 0; k < 4; k++)
-                {
-                    position_128_graphics[i][j][k] = 0;
-                }
-            }
-        }
-    }
-    
-    else if (meshWidth == 256 && meshHeight == 256)
+    if (meshWidth == 256 && meshHeight == 256)
     {
         for (unsigned int i = 0; i < meshWidth; i++)
         {
@@ -3441,6 +3366,20 @@ void initializeSinewaveArrays(uint32_t meshWidth, uint32_t meshHeight)
                 for (unsigned int k = 0; k < 4; k++)
                 {
                     position_1024_graphics[i][j][k] = 0;
+                }
+            }
+        }
+    }
+
+    else if (meshWidth == 2048 && meshHeight == 2048)
+    {
+        for (unsigned int i = 0; i < meshWidth; i++)
+        {
+            for (unsigned int j = 0; j < meshHeight; j++)
+            {
+                for (unsigned int k = 0; k < 4; k++)
+                {
+                    position_2048_graphics[i][j][k] = 0;
                 }
             }
         }
@@ -3546,7 +3485,7 @@ VkResult updateUniformBuffer(void)
     glm::mat4 modelViewMatrix = glm::mat4(1.0f);
     glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
 
-    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.5f));
     modelViewMatrix = translationMatrix;
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
@@ -3561,31 +3500,7 @@ VkResult updateUniformBuffer(void)
     modelViewProjectionMatrix = perspectiveProjectionMatrix * modelViewMatrix;
 
     host_uniformData.mvpMatrix = modelViewProjectionMatrix;
-
-    //* Color Update
-    switch (selectedColor)
-    {
-        // Background - White, Foreground - Black
-        case 'K': 
-        {
-            host_uniformData.color = glm::vec4(0.0, 0.0, 0.0, 1.0); 
-        }
-        break;
-
-        // For all other colors - Black background
-        case 'W': host_uniformData.color = glm::vec4(1.0, 1.0, 1.0, 1.0); break;    // White
-        case 'R': host_uniformData.color = glm::vec4(1.0, 0.0, 0.0, 1.0); break;    // Red
-        case 'G': host_uniformData.color = glm::vec4(0.0, 1.0, 0.0, 1.0); break;    // Green
-        case 'B': host_uniformData.color = glm::vec4(0.0, 0.0, 1.0, 1.0); break;    // Blue
-        case 'O': host_uniformData.color = glm::vec4(1.0, 0.5, 0.0, 1.0); break;    // Orange
-        case 'C': host_uniformData.color = glm::vec4(0.0, 1.0, 1.0, 1.0); break;    // Cyan
-        case 'M': host_uniformData.color = glm::vec4(1.0, 0.0, 1.0, 1.0); break;    // Magenta
-        case 'Y': host_uniformData.color = glm::vec4(1.0, 1.0, 0.0, 1.0); break;    // Yellow
-
-        default:
-            host_uniformData.color = glm::vec4(1.0, 0.5, 0.0, 1.0);   // Orange
-        break;
-    }
+    host_uniformData.color = glm::vec4(1.0, 0.5, 0.0, 1.0);   // Orange
 
     //! Map Uniform Buffer
     void* data = NULL;
@@ -4308,36 +4223,7 @@ VkResult buildCommandBuffers(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-
-    if (bMesh64Chosen)
-    {
-        if (!bUseCompute)
-        {
-            vkResult = prepareSineWaveForCPU(64, 64, fAnimationSpeed);
-            if (vkResult != VK_SUCCESS)
-            {
-                __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => prepareSineWaveForCPU() Failed For 64x64 : %d\n", __func__, vkResult);
-                vkResult = VK_ERROR_INITIALIZATION_FAILED;
-                return vkResult;
-            }
-        }
-        vkCommandBuffer_array = vkCommandBuffer_64x64_graphics_array;
-    }
-    else if (bMesh128Chosen)
-    {
-        if (!bUseCompute)
-        {
-            vkResult = prepareSineWaveForCPU(128, 128, fAnimationSpeed);
-            if (vkResult != VK_SUCCESS)
-            {
-                __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => prepareSineWaveForCPU() Failed For 128x128 : %d\n", __func__, vkResult);
-                vkResult = VK_ERROR_INITIALIZATION_FAILED;
-                return vkResult;
-            }
-            vkCommandBuffer_array = vkCommandBuffer_128x128_graphics_array;
-        }
-    }
-    else if (bMesh256Chosen)
+    if (bMesh256Chosen)
     {
         if (!bUseCompute)
         {
@@ -4369,7 +4255,7 @@ VkResult buildCommandBuffers(void)
     {
         if (!bUseCompute)
         {
-            vkResult = prepareSineWaveForCPU(2048, 2048, fAnimationSpeed);
+            vkResult = prepareSineWaveForCPU(1024, 1024, fAnimationSpeed);
             if (vkResult != VK_SUCCESS)
             {
                 __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => prepareSineWaveForCPU() Failed For 1024x1024 : %d\n", __func__, vkResult);
@@ -4378,6 +4264,20 @@ VkResult buildCommandBuffers(void)
             }
         }
         vkCommandBuffer_array = vkCommandBuffer_1024x1024_graphics_array;
+    }
+    else if (bMesh2048Chosen)
+    {
+        if (!bUseCompute)
+        {
+            vkResult = prepareSineWaveForCPU(2048, 2048, fAnimationSpeed);
+            if (vkResult != VK_SUCCESS)
+            {
+                __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => prepareSineWaveForCPU() Failed For 2048x2048 : %d\n", __func__, vkResult);
+                vkResult = VK_ERROR_INITIALIZATION_FAILED;
+                return vkResult;
+            }
+        }
+        vkCommandBuffer_array = vkCommandBuffer_2048x2048_graphics_array;
     }
     
     //! Loop per swapchain image
@@ -4411,14 +4311,7 @@ VkResult buildCommandBuffers(void)
         //* Step - 4 => Set Clear Value
         VkClearValue vkClearValue_array[2];
         memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
-        if (selectedColor == 'K')
-        {
-            VkClearColorValue vkClearColorValue_white = { 1.0f, 1.0f, 1.0f, 1.0f };
-            vkClearValue_array[0].color = vkClearColorValue_white;
-        }
-        else
-            vkClearValue_array[0].color = vkClearColorValue;
-
+        vkClearValue_array[0].color = vkClearColorValue;
         vkClearValue_array[1].depthStencil = vkClearDepthStencilValue;
 
         //* Pipeline Barrier
@@ -4483,50 +4376,33 @@ VkResult buildCommandBuffers(void)
                 NULL
             );
 
-            if (bMesh64Chosen)
+            
+            if (bMesh256Chosen)
             {
                 //! Bind with Vertex Position Buffer
                 VkDeviceSize vkDeviceSize_offset_position[1];
                 memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_64x64_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
 
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 64 * 64, 1, 0, 0);
-            }
-            else if (bMesh128Chosen)
-            {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_128x128_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
-
-                //! Vulkan Drawing Function
-                vkCmdDraw(vkCommandBuffer_array[i], 128 * 128, 1, 0, 0);
-            }
-            else if (bMesh256Chosen)
-            {
-                //! Bind with Vertex Position Buffer
-                VkDeviceSize vkDeviceSize_offset_position[1];
-                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_256x256_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
+                if (bUseCompute)
+                {
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &computeBuffer.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+                }
+                else
+                {
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_256x256_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+                }
 
                 //! Vulkan Drawing Function
                 vkCmdDraw(vkCommandBuffer_array[i], 256 * 256, 1, 0, 0);
@@ -4536,13 +4412,27 @@ VkResult buildCommandBuffers(void)
                 //! Bind with Vertex Position Buffer
                 VkDeviceSize vkDeviceSize_offset_position[1];
                 memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-                vkCmdBindVertexBuffers(
-                    vkCommandBuffer_array[i], 
-                    0, 
-                    1, 
-                    &vertexData_position_512x512_graphics.vkBuffer, 
-                    vkDeviceSize_offset_position
-                );
+
+                if (bUseCompute)
+                {
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &computeBuffer.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+                }
+                else
+                {
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_512x512_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+                }
 
                 //! Vulkan Drawing Function
                 vkCmdDraw(vkCommandBuffer_array[i], 512 * 512, 1, 0, 0);
@@ -4574,10 +4464,38 @@ VkResult buildCommandBuffers(void)
                     );
                 }
                 
+                //! Vulkan Drawing Function
+                vkCmdDraw(vkCommandBuffer_array[i], 1024 * 1024, 1, 0, 0);
+            }
+            else if (bMesh2048Chosen)
+            {
+                //! Bind with Vertex Position Buffer
+                VkDeviceSize vkDeviceSize_offset_position[1];
+                memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
 
+                if (bUseCompute)
+                {
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &computeBuffer.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+                }
+                else
+                {
+                    vkCmdBindVertexBuffers(
+                        vkCommandBuffer_array[i], 
+                        0, 
+                        1, 
+                        &vertexData_position_2048x2048_graphics.vkBuffer, 
+                        vkDeviceSize_offset_position
+                    );
+                }
+                
                 //! Vulkan Drawing Function
                 vkCmdDraw(vkCommandBuffer_array[i], 2048 * 2048, 1, 0, 0);
-            
             }
         }
         //* Step - 7
@@ -4610,33 +4528,7 @@ VkResult prepareSineWaveForCPU(uint32_t meshWidth, uint32_t meshHeight, float an
     // Code
 
     // Map the buffer
-    if (meshWidth == 64 && meshHeight == 64)
-    {
-        populateSineWaveArraysForCPU(64, 64, animationTime);
-
-        vkResult = vkMapMemory(vkDevice, vertexData_position_64x64_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
-        if (vkResult != VK_SUCCESS)
-            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkMapMemory() Failed For vertexData_position_64x64_graphics : %d\n", __func__, vkResult);
-
-        memcpy(data, position_64_graphics, bufferSize);
-
-        vkUnmapMemory(vkDevice, vertexData_position_64x64_graphics.vkDeviceMemory);
-    }
-
-    else if (meshWidth == 128 && meshHeight == 128)
-    {
-        populateSineWaveArraysForCPU(128, 128, animationTime);
-
-        vkResult = vkMapMemory(vkDevice, vertexData_position_128x128_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
-        if (vkResult != VK_SUCCESS)
-            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkMapMemory() Failed For vertexData_position_128x128_graphics : %d\n", __func__, vkResult);
-
-        memcpy(data, position_128_graphics, bufferSize);
-
-        vkUnmapMemory(vkDevice, vertexData_position_128x128_graphics.vkDeviceMemory);
-    }
-
-    else if (meshWidth == 256 && meshHeight == 256)
+    if (meshWidth == 256 && meshHeight == 256)
     {
         populateSineWaveArraysForCPU(256, 256, animationTime);
 
@@ -4662,9 +4554,9 @@ VkResult prepareSineWaveForCPU(uint32_t meshWidth, uint32_t meshHeight, float an
         vkUnmapMemory(vkDevice, vertexData_position_512x512_graphics.vkDeviceMemory);
     }
 
-    else if (meshWidth == 2048 && meshHeight == 2048)
+    else if (meshWidth == 1024 && meshHeight == 1024)
     {
-        populateSineWaveArraysForCPU(2048, 2048, animationTime);
+        populateSineWaveArraysForCPU(1024, 1024, animationTime);
 
         vkResult = vkMapMemory(vkDevice, vertexData_position_1024x1024_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
         if (vkResult != VK_SUCCESS)
@@ -4673,6 +4565,19 @@ VkResult prepareSineWaveForCPU(uint32_t meshWidth, uint32_t meshHeight, float an
         memcpy(data, position_1024_graphics, bufferSize);
 
         vkUnmapMemory(vkDevice, vertexData_position_1024x1024_graphics.vkDeviceMemory);
+    }
+
+    else if (meshWidth == 2048 && meshHeight == 2048)
+    {
+        populateSineWaveArraysForCPU(2048, 2048, animationTime);
+
+        vkResult = vkMapMemory(vkDevice, vertexData_position_2048x2048_graphics.vkDeviceMemory, 0, bufferSize, 0, &data);
+        if (vkResult != VK_SUCCESS)
+            __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkMapMemory() Failed For vertexData_position_2048x2048_graphics : %d\n", __func__, vkResult);
+
+        memcpy(data, position_2048_graphics, bufferSize);
+
+        vkUnmapMemory(vkDevice, vertexData_position_2048x2048_graphics.vkDeviceMemory);
     }
 
     return vkResult;
@@ -4697,29 +4602,7 @@ void populateSineWaveArraysForCPU(uint32_t meshWidth, uint32_t meshHeight, float
 
                 float w = sinf(u * frequency + animationTime) * cosf(v * frequency + animationTime) * 0.5f;
                 
-                if (meshWidth == 64 && meshHeight == 64)
-                {
-                    if (k == 0)
-                        position_64_graphics[i][j][k] = u;
-                    if (k == 1)
-                        position_64_graphics[i][j][k] = w;
-                    if (k == 2)
-                        position_64_graphics[i][j][k] = v;
-                    if (k == 3)
-                        position_64_graphics[i][j][k] = 1.0f;
-                }
-                else if (meshWidth == 128 && meshHeight == 128)
-                {
-                    if (k == 0)
-                        position_128_graphics[i][j][k] = u;
-                    if (k == 1)
-                        position_128_graphics[i][j][k] = w;
-                    if (k == 2)
-                        position_128_graphics[i][j][k] = v;
-                    if (k == 3)
-                        position_128_graphics[i][j][k] = 1.0f;
-                }
-                else if (meshWidth == 256 && meshHeight == 256)
+                if (meshWidth == 256 && meshHeight == 256)
                 {
                     if (k == 0)
                         position_256_graphics[i][j][k] = u;
@@ -4741,7 +4624,6 @@ void populateSineWaveArraysForCPU(uint32_t meshWidth, uint32_t meshHeight, float
                     if (k == 3)
                         position_512_graphics[i][j][k] = 1.0f;
                 }
-    
                 else if (meshWidth == 1024 && meshHeight == 1024)
                 {
                     if (k == 0)
@@ -4753,19 +4635,17 @@ void populateSineWaveArraysForCPU(uint32_t meshWidth, uint32_t meshHeight, float
                     if (k == 3)
                         position_1024_graphics[i][j][k] = 1.0f;
                 }
-    
                 else if (meshWidth == 2048 && meshHeight == 2048)
                 {
                     if (k == 0)
-                        position_1024_graphics[i][j][k] = u;
+                        position_2048_graphics[i][j][k] = u;
                     if (k == 1)
-                        position_1024_graphics[i][j][k] = w;
+                        position_2048_graphics[i][j][k] = w;
                     if (k == 2)
-                        position_1024_graphics[i][j][k] = v;
+                        position_2048_graphics[i][j][k] = v;
                     if (k == 3)
-                        position_1024_graphics[i][j][k] = 1.0f;
+                        position_2048_graphics[i][j][k] = 1.0f;
                 }
-               
             }
         }
     }
@@ -4886,7 +4766,7 @@ VkResult createStorageBuffer_compute(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    VkDeviceSize bufferSize = 4096 * 4096 * 4 * sizeof(float);
+    VkDeviceSize bufferSize = 2048 * 2048 * 4 * sizeof(float);
 
     memset((void*)&computeBuffer, 0, sizeof(ComputeData));
 
@@ -5210,6 +5090,7 @@ VkResult buildCommandBuffer_compute(void)
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
+    int currentMeshSize = 0;
 
     // Code
     vkResult = vkResetCommandBuffer(vkCommandBuffer_compute, 0);
@@ -5248,8 +5129,18 @@ VkResult buildCommandBuffer_compute(void)
 
     PushConstants pushData;
     memset((void*)&pushData, 0, sizeof(PushConstants));
-    pushData.width = 2048;
-    pushData.height = 2048;
+
+    if (bMesh256Chosen)
+        currentMeshSize = 256;
+    else if (bMesh512Chosen)
+        currentMeshSize = 512;
+    else if (bMesh1024Chosen)
+        currentMeshSize = 1024;
+    else if (bMesh2048Chosen)
+        currentMeshSize = 2048;
+
+    pushData.width = currentMeshSize;
+    pushData.height = currentMeshSize;
     pushData.time = fAnimationSpeed;
 
     vkCmdPushConstants(
@@ -5261,7 +5152,7 @@ VkResult buildCommandBuffer_compute(void)
         &pushData
     );
 
-    vkCmdDispatch(vkCommandBuffer_compute, (2048 + 15) / 16, (2048 + 15) / 16, 1);
+    vkCmdDispatch(vkCommandBuffer_compute, (currentMeshSize + 15) / 16, (currentMeshSize + 15) / 16, 1);
 
     vkResult = vkEndCommandBuffer(vkCommandBuffer_compute);
     if (vkResult != VK_SUCCESS)
@@ -5320,4 +5211,3 @@ void uninitialize_compute(void)
     }
 
 }
-
