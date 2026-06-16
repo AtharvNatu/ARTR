@@ -12,21 +12,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-//! OpenCL Headers
-#define CL_TARGET_OPENCL_VERSION    300
-#include <CL/opencl.h>
-
-//* CL_MEM_DEVICE_HANDLE_LIST_KHR
-//* CL_MEM_DEVICE_HANDLE_LIST_END_KHR
-#include <CL/cl_ext.h>
-
 #include "Vk.h"
 
 //! Vulkan Related Libraries
 #pragma comment(lib, "vulkan-1.lib")
-
-//! OpenCL Library
-#pragma comment(lib, "OpenCL.lib")
 
 #define WIN_WIDTH   800
 #define WIN_HEIGHT  600
@@ -70,10 +59,7 @@ VkPhysicalDevice *vkPhysicalDevice_array = NULL;
 
 //? Device Extensions Related Variables
 uint32_t enabledDeviceExtensionCount = 0;
-
-//* VK_KHR_SWAPCHAIN_EXTENSTION_NAME, 
-//* VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME
-const char *enabledDeviceExtensionNames_array[2];
+const char *enabledDeviceExtensionNames_array[1]; //* -> VK_KHR_SWAPCHAIN_EXTENSTION_NAME
 
 //? Vulkan Device Creation Related Variables
 VkDevice vkDevice = VK_NULL_HANDLE;
@@ -149,7 +135,6 @@ typedef struct
 {
     glm::mat4 mvpMatrix;
     glm::vec4 color;
-    int useGPU;
 } Host_UniformData;
 
 typedef struct
@@ -195,19 +180,32 @@ VertexData vertexData_indirect_buffer;
 char selectedColor = 'O';
 float fAnimationSpeed = 0.0f;
 
-//* OpenCL Related Variables
-cl_int oclResult;
-cl_platform_id oclPlatformId;
-cl_device_id oclDeviceId;
-cl_context oclContext;
-cl_command_queue oclCommandQueue;
-cl_program oclProgram;
-cl_kernel oclKernel;
 
-VertexData vertexData_external;
-cl_mem oclPosition = NULL;
-VkExternalMemoryHandleTypeFlagBits vkExternalMemoryHandleTypeFlagBits;
-BOOL onGPU = FALSE;
+//! Compute Shader Related
+typedef struct
+{
+    int width;
+    int height;
+    float time;
+} PushConstants;
+
+typedef struct
+{
+    VkBuffer vkBuffer;
+    VkDeviceMemory vkDeviceMemory;
+} ComputeData;
+
+VkCommandBuffer vkCommandBuffer_compute = VK_NULL_HANDLE;               // For Storing Dispatch Command and Barriers
+VkCommandBuffer vkCommandBuffer_array_compute[2];                       // For Storing Compute Command Buffer Handle and Graphics Command Buffer Handle
+
+VkShaderModule vkShaderModule_compute_shader = VK_NULL_HANDLE;
+VkDescriptorSetLayout vkDescriptorSetLayout_compute = VK_NULL_HANDLE;   // Compute Shader Binding Layout
+VkDescriptorSet vkDescriptorSet_compute = VK_NULL_HANDLE;               // Compute Shader Bindings
+VkPipelineLayout vkPipelineLayout_compute = VK_NULL_HANDLE;             // Compute Pipeline Layout
+VkPipeline vkPipeline_compute = VK_NULL_HANDLE;                         // Compute Pipeline for Sinewave
+
+ComputeData computeBuffer;
+BOOL bUseCompute = FALSE;
 
 // Entry Point Function
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
@@ -263,7 +261,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
     hwnd = CreateWindowEx(
         WS_EX_APPWINDOW,
         szAppName,
-        TEXT("Atharv Natu : Vulkan-OpenCL Interop Sine Wave Using Indirect Drawing"),
+        TEXT("Atharv Natu : Vulkan Sine Wave Using Compute Shader"),
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
         (screenX / 2) - (WIN_WIDTH / 2),
         (screenY / 2) - (WIN_HEIGHT / 2),
@@ -340,6 +338,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
     void ToggleFullScreen(void);
     VkResult resize(int, int);
     void uninitialize(void);
+    void generateSineWaveData(void);
 
     // Code
     switch(iMsg)
@@ -379,49 +378,54 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                     meshWidth = 64;
                     meshHeight = 64;
                     meshArraySize = meshWidth * meshHeight * meshDepth;
+                    generateSineWaveData();
                 break;
 
                 case 50:
                     meshWidth = 128;
                     meshHeight = 128;
                     meshArraySize = meshWidth * meshHeight * meshDepth;
+                    generateSineWaveData();
                 break;
 
                 case 51:
                     meshWidth = 256;
                     meshHeight = 256;
                     meshArraySize = meshWidth * meshHeight * meshDepth;
+                    generateSineWaveData();
                 break;
 
                 case 52:
                     meshWidth = 512;
                     meshHeight = 512;
                     meshArraySize = meshWidth * meshHeight * meshDepth;
+                    generateSineWaveData();
                 break;
 
                 case 53:
                     meshWidth = 1024;
                     meshHeight = 1024;
                     meshArraySize = meshWidth * meshHeight * meshDepth;
+                    generateSineWaveData();
                 break;
 
                 case 54:
                     meshWidth = 2048;
                     meshHeight = 2048;
                     meshArraySize = meshWidth * meshHeight * meshDepth;
+                    generateSineWaveData();
                 break;
 
                 case 55:
                     meshWidth = 4096;
                     meshHeight = 4096;
                     meshArraySize = meshWidth * meshHeight * meshDepth;
+                    generateSineWaveData();
                 break;
 
                 default:
                 break;
             }
-
-            
 
         break;
 
@@ -432,11 +436,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                 case 'F':
                 case 'f':
                     ToggleFullScreen();
-                break;
-
-                case 'T':
-                case 't':
-                    onGPU = !onGPU;
                 break;
 
                 case 'O':
@@ -474,14 +473,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                     selectedColor = 'Y';
                 break;
 
-                case 'K':
-                case 'k':
-                    selectedColor = 'K';
-                break;
-
                 case 'W':
                 case 'w':
                     selectedColor = 'W';
+                break;
+
+                case 'T':
+                case 't':
+                    bUseCompute = !bUseCompute;
                 break;
 
                 default:
@@ -556,6 +555,20 @@ void ToggleFullScreen(void)
     }
 }
 
+void generateSineWaveData()
+{
+    //! Free Position Array
+    if (pPosition)
+    {
+        free(pPosition);
+        pPosition = NULL;
+    }
+
+    //! Reallocate Position Array
+    pPosition = (float*)malloc(meshArraySize * sizeof(float));
+}
+
+
 VkResult initialize(void)
 {
     // Function Declarations
@@ -569,6 +582,7 @@ VkResult initialize(void)
     VkResult createImagesAndImageViews(void);
     VkResult createCommandPool(void);
     VkResult createCommandBuffers(void);
+    void initializeSinewaveArrays(uint32_t, uint32_t);
     VkResult createVertexBuffer(void);
     VkResult createIndirectBuffer(void);
     VkResult createUniformBuffer(void);
@@ -584,10 +598,8 @@ VkResult initialize(void)
     VkResult createFences(void);
     VkResult buildCommandBuffers(void);
 
-    //! OpenCL Related Function Declarations
-    cl_int initializeOpenCL(void);
-    const char* oclGetErrorString(cl_int error);
-    VkResult createExternalVertexBuffer(void);
+    //! Compute Related
+    VkResult initialize_compute(void);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -629,17 +641,6 @@ VkResult initialize(void)
 
     //! Get Device Queue
     getDeviceQueue();
-
-    //! Initialize OpenCL
-    oclResult = initializeOpenCL();
-    if (oclResult != CL_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => initializeOpenCL() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    } 
-    else
-        fprintf(gpFile, "%s() => initializeOpenCL() Succeeded\n", __func__);
 
     //! Create Swapchain
     vkResult = createSwapchain(VK_FALSE);
@@ -727,17 +728,6 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => createIndirectBuffer() Succeeded\n", __func__);
 
-    //! Create External Buffer
-    vkResult = createExternalVertexBuffer();
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Failed : %d !!!\n", __func__, vkResult);
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => createExternalVertexBuffer() Succeeded\n", __func__);
-    
     //! Create Uniform Buffer
     vkResult = createUniformBuffer();
     if (vkResult != VK_SUCCESS)
@@ -781,7 +771,7 @@ VkResult initialize(void)
     }
     else
         fprintf(gpFile, "%s() => createPipelineLayout() Succeeded\n", __func__);
-    
+
     //! Create Descriptor Pool
     vkResult = createDescriptorPool();
     if (vkResult != VK_SUCCESS)
@@ -804,7 +794,6 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => createDescriptorSet() Succeeded\n", __func__);
 
-    
     //! Create Render Pass
     vkResult = createRenderPass();
     if (vkResult != VK_SUCCESS)
@@ -827,7 +816,6 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => createPipeline() Succeeded\n", __func__);
 
-    
     //! Create Framebuffers
     vkResult = createFramebuffers();
     if (vkResult != VK_SUCCESS)
@@ -883,428 +871,21 @@ VkResult initialize(void)
     else
         fprintf(gpFile, "%s() => buildCommandBuffers() Succeeded\n", __func__);
 
+    vkResult = initialize_compute();
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => initialize_compute() Failed\n", __func__);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => initialize_compute() Succeeded\n", __func__);
+
     //! Initialization Completed
     bInitialized = TRUE;
     fprintf(gpFile, "%s() => Initialization Completed Successfully\n", __func__);
     
     return vkResult;
-}
-
-cl_int initializeOpenCL(void)
-{
-    // Function Declarations
-    BOOL openCLPlatformSupportsRequiredExtensions(cl_platform_id);
-    const char* oclGetErrorString(cl_int);
-
-    // Variable Declarations
-    cl_uint platformCount;
-    cl_platform_id* oclPlatformIDs = NULL;
-    cl_device_id* oclDeviceIDs = NULL;
-    cl_uint deviceCount;
-    BOOL bSupportsExtensions = FALSE;
-    
-    //* Code
-
-    // Step - 1 : Get Number of OpenCL Supported Platforms
-    oclResult = clGetPlatformIDs(0, NULL, &platformCount);
-    if (oclResult != CL_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => OpenCL Error : Call 1 : clGetPlatformIDs() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-        return oclResult;
-    }
-    else if (platformCount == 0)
-    {
-        fprintf(gpFile, "%s() => clGetPlatformIDs() Returned 0 OpenCL Supported Plaforms !!!\n", __func__);
-        return oclResult;
-    }
-    
-    //* We have 1 or more platforms, fetch them into an array
-    oclPlatformIDs = (cl_platform_id*)malloc(platformCount * sizeof(cl_platform_id));
-    if (oclPlatformIDs == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Allocate Memory To oclPlatformIds !!!\n", __func__);
-        return oclResult;
-    }
-
-    oclResult = clGetPlatformIDs(platformCount, oclPlatformIDs, NULL);
-    if (oclResult != CL_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => OpenCL Error : Call 2 : clGetPlatformIDs() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-        return oclResult;
-    }
-
-    //* Iterate over array to check for device
-    int interopPlatformFound = -1;
-    for (cl_uint i = 0; i < platformCount; i++)
-    {
-        //* Get number of devices for platform
-        oclResult = clGetDeviceIDs(oclPlatformIDs[i], CL_DEVICE_TYPE_GPU, 0, NULL, &deviceCount);
-        if (oclResult != CL_SUCCESS)
-            continue;
-        else if (deviceCount == 0)
-            continue;
-
-        //* Check whether the GPU found at ith platform supports required extensions
-        //*     1) cl_khr_device_uuid
-        //*     2) cl_khr_external_memory
-        if (openCLPlatformSupportsRequiredExtensions(oclPlatformIDs[i]) == FALSE)
-            continue;
-        else
-            bSupportsExtensions = TRUE;
-
-        //* Required Platform Found
-        //* --------------------------------------------------------------------------------------------------------
-        oclPlatformId = oclPlatformIDs[i];
-
-        //* Print properties of selected platform
-        size_t infoSize;
-        char* oclPlatformInfo = NULL;
-        clGetPlatformInfo(oclPlatformId, CL_PLATFORM_NAME, 0, NULL, &infoSize);
-
-        oclPlatformInfo = (char*)malloc(infoSize * sizeof(char));
-        if (oclPlatformInfo == NULL)
-        {
-            fprintf(gpFile, "%s() => Failed To Allocate Memory To oclPlatformInfo !!!\n", __func__);
-            return oclResult;
-        }
-
-        clGetPlatformInfo(oclPlatformId, CL_PLATFORM_NAME, infoSize, oclPlatformInfo, NULL);
-        fprintf(gpFile, "*******************************************************************************\n");
-        fprintf(gpFile, "Selected OpenCL Platform : %s\n", oclPlatformInfo);
-
-        free(oclPlatformInfo);
-        oclPlatformInfo = NULL;
-
-        interopPlatformFound = 1;
-        break;
-        //* --------------------------------------------------------------------------------------------------------
-    } 
-    
-    free(oclPlatformIDs);
-    oclPlatformIDs = NULL;
-
-    if (interopPlatformFound == -1)
-    {
-        fprintf(gpFile, "%s() => No OpenCL Supported Platform with GPU Found !!!\n", __func__);
-        return -32; //* Value for invalid OpenCL platform
-    }
-
-    //* Allocate memory for 1 or more GPU devices in found supported platform
-    oclDeviceIDs = (cl_device_id*)malloc(deviceCount * sizeof(cl_device_id));
-    if (oclDeviceIDs == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Allocate Memory To oclDeviceIDs !!!\n", __func__);
-        return oclResult;
-    }
-
-    //* Get IDs Into Allocated Buffer
-    oclResult = clGetDeviceIDs(oclPlatformId, CL_DEVICE_TYPE_GPU, deviceCount, oclDeviceIDs, NULL);
-    if (oclResult != CL_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => OpenCL Error : clGetDeviceIDs() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-        return oclResult;
-    }
-
-    //* Check UUID between Vulkan and OpenCL
-    VkPhysicalDeviceIDProperties vkPhysicalDeviceIDProperties;
-    memset((void*)&vkPhysicalDeviceIDProperties, 0, sizeof(VkPhysicalDeviceIDProperties));
-    vkPhysicalDeviceIDProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
-    vkPhysicalDeviceIDProperties.pNext = NULL;
-
-    VkPhysicalDeviceProperties2 vkPhysicalDeviceProperties2;
-    memset((void*)&vkPhysicalDeviceProperties2, 0, sizeof(VkPhysicalDeviceProperties2));
-    vkPhysicalDeviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-    vkPhysicalDeviceProperties2.pNext = &vkPhysicalDeviceIDProperties;
-
-    vkGetPhysicalDeviceProperties2(vkPhysicalDevice_selected, &vkPhysicalDeviceProperties2);
-
-    cl_uchar cl_uuid[CL_UUID_SIZE_KHR];
-    int interopDeviceFound = -1;
-
-    //* Iterate Over All IDs and Check For Vulkan Matching UUID
-    for (cl_uint i = 0; i < deviceCount; i++)
-    {
-        //* Get OpenCL Capable Device's UUID
-        oclResult = clGetDeviceInfo(oclDeviceIDs[i], CL_DEVICE_UUID_KHR, CL_UUID_SIZE_KHR, &cl_uuid, NULL);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clGetDeviceInfo() Failed For Index : %d, Reason : %s !!!\n", __func__, i, oclGetErrorString(oclResult));
-            return oclResult;
-        }
-
-        //* Compare OpenCL Device UUID with Vulkan Device UUID
-        BOOL uuidMatch = TRUE;
-        for (uint32_t j = 0; j < CL_UUID_SIZE_KHR; j++)
-        {
-            if (cl_uuid[j] != vkPhysicalDeviceIDProperties.deviceUUID[j])
-            {
-                uuidMatch = FALSE;
-                break;
-            }
-        }
-
-        if (uuidMatch == FALSE)
-            continue;
-        
-        //* Required Device Found
-        //* --------------------------------------------------------------------------------------------------------
-        oclDeviceId = oclDeviceIDs[i];
-
-        //* Print properties of selected device
-        size_t infoSize;
-        char* oclDeviceInfo = NULL;
-
-        clGetDeviceInfo(oclDeviceId, CL_DEVICE_NAME, 0, NULL, &infoSize);
-
-        oclDeviceInfo = (char*)malloc(infoSize * sizeof(char));
-        if (oclDeviceInfo == NULL)
-        {
-            fprintf(gpFile, "%s() => Failed To Allocate Memory To oclDeviceInfo !!!\n", __func__);
-            return oclResult;
-        }
-
-        clGetDeviceInfo(oclDeviceId, CL_DEVICE_NAME, infoSize, oclDeviceInfo, NULL);
-        fprintf(gpFile, "Selected OpenCL Device : %s\n", oclDeviceInfo);
-        if (bSupportsExtensions)
-            fprintf(gpFile, "Supported Extensions For Interop : cl_khr_device_uuid, cl_khr_external_memory\n");
-
-        fprintf(gpFile, "*******************************************************************************\n\n");
-
-        free(oclDeviceInfo);
-        oclDeviceInfo = NULL;
-
-        interopDeviceFound = 1;
-        break;
-        //* --------------------------------------------------------------------------------------------------------
-    }
-
-    free(oclDeviceIDs);
-    oclDeviceIDs = NULL;
-
-    if (interopDeviceFound == -1)
-    {
-        fprintf(gpFile, "%s() => No OpenCL Supported Device Found !!!\n", __func__);
-        return -2; //* Value for unavailable device
-    }
-
-    //* Create OpenCL Context
-    oclContext = clCreateContext(NULL, 1, &oclDeviceId, NULL, NULL, &oclResult);
-    if (oclResult != CL_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => OpenCL Error : clCreateContext() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-        return oclResult;
-    }
-
-    //* Create OpenCL Command Queue
-    oclCommandQueue = clCreateCommandQueueWithProperties(oclContext, oclDeviceId, 0, &oclResult);
-    if (oclResult != CL_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => OpenCL Error : clCreateCommandQueueWithProperties() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-        return oclResult;
-    }
-
-    //* Create OpenCL Program From OpenCL Kernel Source Code
-
-    // OpenCL Kernel Source Code
-    const char* oclKernelSourceCode = 
-        "__kernel void sineWaveKernel(__global float4* pos, unsigned int width, unsigned int height, float time)" \
-        "{" \
-            "unsigned int i = get_global_id(0);" \
-            "unsigned int j = get_global_id(1);" \
-
-            "float u = (float)i / (float)width;" \
-            "float v = (float)j / (float)height;" \
-
-            "u = u * 2.0f - 1.0f;" \
-            "v = v * 2.0f - 1.0f;" \
-
-            "float frequency = 4.0f;" \
-
-            "float w = sin(u * frequency + time) * cos(v * frequency + time) * 0.5f;" \
-
-            "pos[j * width + i] = (float4)(u, w, v, 1.0f);" \
-        "}";
-
-    //* Create OpenCL Progam From Above Source Code
-    oclProgram = clCreateProgramWithSource(oclContext, 1, (const char**)&oclKernelSourceCode, NULL, &oclResult);
-    if (oclResult != CL_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => OpenCL Error : clCreateProgramWithSource() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-        return oclResult;
-    }
-
-    //* Build OpenCL Program
-    oclResult = clBuildProgram(oclProgram, 0, NULL, "-cl-fast-relaxed-math", NULL, NULL);
-    if (oclResult != CL_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => OpenCL Error : clBuildProgram() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-
-        size_t length;
-		char buffer[1024];
-
-        oclResult = clGetProgramBuildInfo(oclProgram, oclDeviceId, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
-        
-        fprintf(gpFile, "\nOpenCL Program Build Log : %s\n", buffer);
-
-        return oclResult;
-    }
-
-    //* Create OpenCl Kernel
-    oclKernel = clCreateKernel(oclProgram, "sineWaveKernel", &oclResult);
-    if (oclResult != CL_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => OpenCL Error : clCreateKernel() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-        return oclResult;
-    }
-
-    // Assumption : Using OS greater than Windows 8.1 and Win32 Application (Not Win64 UWP Application)
-    vkExternalMemoryHandleTypeFlagBits = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-
-    return CL_SUCCESS;
-}
-
-BOOL openCLPlatformSupportsRequiredExtensions(cl_platform_id ocl_platform_id)
-{
-    // Variable Declarations
-    size_t extensionSize;
-    char* oclPlatformExtensions = NULL;
-
-    // Code
-
-    //* List Current Platform's Extensions
-    clGetPlatformInfo(ocl_platform_id, CL_PLATFORM_EXTENSIONS, 0, NULL, &extensionSize);
-
-    oclPlatformExtensions = (char*)malloc(extensionSize * sizeof(char));
-    if (oclPlatformExtensions == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Allocate Memory To oclPlatformExtensions !!!\n", __func__);
-        return FALSE;
-    }
-
-    clGetPlatformInfo(ocl_platform_id, CL_PLATFORM_EXTENSIONS, extensionSize, oclPlatformExtensions, NULL);
-
-    char* oclPlatformExtensions_copy_for_strtok = NULL;
-    oclPlatformExtensions_copy_for_strtok = (char*)malloc(extensionSize * sizeof(char));
-    if (oclPlatformExtensions_copy_for_strtok == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Allocate Memory To oclPlatformExtensions_copy_for_strtok !!!\n", __func__);
-        return FALSE;
-    }
-
-    strcpy(oclPlatformExtensions_copy_for_strtok, oclPlatformExtensions);
-
-    //* Check No. Of Extensions Found
-    char* token = strtok(oclPlatformExtensions_copy_for_strtok, " ");
-    int i = 0;
-    while (token != NULL)
-    {
-        i++;
-        token = strtok(NULL, " ");
-    }
-    int extensionCount = i;
-    fprintf(gpFile, "\nNo. Of OpenCL Extensions Found = %d\n", extensionCount);
-
-    //* Create array of lengths of names of each found extension
-    int* extensionLengths_array = NULL;
-    extensionLengths_array = (int*)malloc(extensionCount * sizeof(int));
-    if (extensionLengths_array == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Allocate Memory To extensionLengths_array !!!\n", __func__);
-        return FALSE;
-    }
-
-    strcpy(oclPlatformExtensions_copy_for_strtok, oclPlatformExtensions);
-
-    token = strtok(oclPlatformExtensions_copy_for_strtok, " ");
-    i = 0;
-    while (token != NULL)
-    {
-        extensionLengths_array[i] = strlen(token) + 1;
-        token = strtok(NULL, " ");
-        i++;
-    }
-
-    //* Accordingly allocate a string array, such that it will hold strings equal to extension count and each string will be of required length
-    //* and each string will be of required length, taken from extensionLengths_array
-    char** clExtensions_array = NULL;
-    clExtensions_array = (char**)malloc(extensionCount * sizeof(char*));
-    if (clExtensions_array == NULL)
-    {
-        fprintf(gpFile, "%s() => Failed To Allocate Memory To clExtensions_array !!!\n", __func__);
-        return FALSE;
-    }
-
-    for (i = 0; i < extensionCount; i++)
-    {
-        clExtensions_array[i] = (char*)malloc(extensionLengths_array[i] * sizeof(char));
-        if (clExtensions_array[i] == NULL)
-        {
-            fprintf(gpFile, "%s() => Failed To Allocate Memory To clExtensions_array[i], Index = %d !!!\n", __func__, i);
-            return FALSE;
-        }
-    }
-
-    //* Populate extensions into the above 2D array
-    strcpy(oclPlatformExtensions_copy_for_strtok, oclPlatformExtensions);
-
-    token = strtok(oclPlatformExtensions_copy_for_strtok, " ");
-    i = 0;
-    while (token != NULL)
-    {
-        memcpy(clExtensions_array[i], token, extensionLengths_array[i]);
-        token = strtok(NULL, " ");
-        i++;
-    }
-
-    free(oclPlatformExtensions_copy_for_strtok);
-    oclPlatformExtensions_copy_for_strtok = NULL;
-
-    //* Print all supported OpenCL Extensions
-    fprintf(gpFile, "-------------------------------------------------------------------------------\n");
-    for (i = 0; i < extensionCount; i++)
-        fprintf(gpFile, "%s\n", clExtensions_array[i]);
-    fprintf(gpFile, "-------------------------------------------------------------------------------\n");
-
-    //* Check whether the following extensions are present
-        //*     1) cl_khr_device_uuid
-        //*     2) cl_khr_external_memory
-    BOOL bDeviceUuidExtensionFound = FALSE;
-    BOOL bExternalMemoryExtensionFound = FALSE;
-
-    for (i = 0; i < extensionCount; i++)
-    {   
-        //* For cl_khr_device_uuid Extension
-        if (strcmp(clExtensions_array[i], "cl_khr_device_uuid") == 0)
-            bDeviceUuidExtensionFound = TRUE;
-
-        //* For cl_khr_external_memory Extension
-        if (strcmp(clExtensions_array[i], "cl_khr_external_memory") == 0)
-            bExternalMemoryExtensionFound = TRUE;
-    }
-
-    //! Free Memory
-    for (int i = 0; i < extensionCount; i++)
-    {
-        free(clExtensions_array[i]);
-        clExtensions_array[i] = NULL;
-    }
-
-    free(clExtensions_array);
-    clExtensions_array = NULL;
-
-    free(token);
-    token = NULL;
-
-    free(extensionLengths_array);
-    extensionLengths_array = NULL;
-
-    free(oclPlatformExtensions);
-    oclPlatformExtensions = NULL;
-
-    if (bDeviceUuidExtensionFound == TRUE && bExternalMemoryExtensionFound == TRUE)
-        return TRUE;
-    
-    return FALSE;
 }
 
 VkResult resize(int width, int height)
@@ -1373,7 +954,7 @@ VkResult resize(int width, int height)
             free(vkCommandBuffer_array);
             vkCommandBuffer_array = NULL;
         }
-
+            
         //* Destroy PipelineLayout
         if (vkPipelineLayout)
         {
@@ -1496,7 +1077,7 @@ VkResult resize(int width, int height)
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
             return vkResult;
         }
-
+        
         //* Create Framebuffers
         vkResult = createFramebuffers();
         if (vkResult != VK_SUCCESS)
@@ -1523,11 +1104,11 @@ VkResult display(void)
 {
     // Function Declarations
     VkResult resize(int, int);
+    VkResult buildCommandBuffer_compute(void);
     VkResult updateUniformBuffer(void);
     void sinewave(uint32_t, uint32_t, float);
     VkResult updateVertexBuffer(void);
     VkResult updateIndirectBuffer(void);
-    const char* oclGetErrorString(cl_int error);
 
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -1584,6 +1165,22 @@ VkResult display(void)
     vkSubmitInfo.signalSemaphoreCount = 1;
     vkSubmitInfo.pSignalSemaphores = &vkSemaphore_renderComplete;
 
+    if (bUseCompute)
+    {
+        buildCommandBuffer_compute();
+
+        vkCommandBuffer_array_compute[0] = vkCommandBuffer_compute;
+        vkCommandBuffer_array_compute[1] = vkCommandBuffer_array[currentImageIndex];    
+
+        vkSubmitInfo.commandBufferCount = 2;
+        vkSubmitInfo.pCommandBuffers = vkCommandBuffer_array_compute;
+    }
+    else
+    {
+        vkSubmitInfo.commandBufferCount = 1;
+        vkSubmitInfo.pCommandBuffers = &vkCommandBuffer_array[currentImageIndex];
+    }
+
     //! Submit above work to the queue
     vkResult = vkQueueSubmit(vkQueue, 1, &vkSubmitInfo, vkFence_array[currentImageIndex]);
     if (vkResult != VK_SUCCESS)
@@ -1616,103 +1213,12 @@ VkResult display(void)
         }
     }
 
-    if (onGPU)
-    {   
-        //! Set OpenCL Kernel Arguments
-
-        //* Arg 0
-        oclResult = clSetKernelArg(oclKernel, 0, sizeof(cl_mem), (void*)&oclPosition);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 0th Argument : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-
-        //* Arg 1
-        oclResult = clSetKernelArg(oclKernel, 1, sizeof(unsigned int), (void*)&meshWidth);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 1st Argument : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-
-        //* Arg 2
-        oclResult = clSetKernelArg(oclKernel, 2, sizeof(unsigned int), (void*)&meshHeight);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 2nd Argument : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-
-        //* Arg 3
-        oclResult = clSetKernelArg(oclKernel, 3, sizeof(float), (void*)&fAnimationSpeed);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clSetKernelArg() Failed For 3rd Argument : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-
-        //! Map Vulkan Buffer For Writing By OpenCL
-        clEnqueueAcquireExternalMemObjectsKHR_fn clEnqueueAcquireExternalMemObjectsKHR = NULL;
-        clEnqueueAcquireExternalMemObjectsKHR = (clEnqueueAcquireExternalMemObjectsKHR_fn)clGetExtensionFunctionAddressForPlatform(oclPlatformId, "clEnqueueAcquireExternalMemObjectsKHR");
-        if (clEnqueueAcquireExternalMemObjectsKHR == NULL)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clGetExtensionFunctionAddressForPlatform() Failed For clEnqueueAcquireExternalMemObjectsKHR : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-        oclResult = clEnqueueAcquireExternalMemObjectsKHR(oclCommandQueue, 1, &oclPosition, 0, NULL, NULL);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clEnqueueAcquireExternalMemObjectsKHR() Failed  : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-
-        //! Run OpenCL Kernel
-        size_t globalWorkSize[2];
-        globalWorkSize[0] = meshWidth;
-        globalWorkSize[1] = meshHeight;
-
-        oclResult = clEnqueueNDRangeKernel(oclCommandQueue, oclKernel, 2, NULL, globalWorkSize, NULL, NULL, NULL, NULL);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clEnqueueNDRangeKernel() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-
-        //! Release Enqueued OpenCL Buffer back to Vulkan
-        clEnqueueReleaseExternalMemObjectsKHR_fn clEnqueueReleaseExternalMemObjectsKHR = NULL;
-        clEnqueueReleaseExternalMemObjectsKHR = (clEnqueueReleaseExternalMemObjectsKHR_fn)clGetExtensionFunctionAddressForPlatform(oclPlatformId, "clEnqueueReleaseExternalMemObjectsKHR");
-        if (clEnqueueReleaseExternalMemObjectsKHR == NULL)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clGetExtensionFunctionAddressForPlatform() Failed For clEnqueueReleaseExternalMemObjectsKHR : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-        oclResult = clEnqueueReleaseExternalMemObjectsKHR(oclCommandQueue, 1, &oclPosition, 0, NULL, NULL);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => OpenCL Error : clEnqueueReleaseExternalMemObjectsKHR() Failed  : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return VK_ERROR_INITIALIZATION_FAILED;
-        }
-
-        clFinish(oclCommandQueue);
-    }
-    else
+    
+    if (!bUseCompute)
     {
-        //! Free Position Array
-        if (pPosition)
-        {
-            free(pPosition);
-            pPosition = NULL;
-        }
-
-        //! Reallocate Position Array
-        pPosition = (float*)malloc(meshArraySize * sizeof(float));
-        if (pPosition == NULL)
-            fprintf(gpFile, "%s() => malloc() Failed For pPosition: %d\n", __func__, vkResult);
-
         //! Create Sinewave
         sinewave(meshWidth, meshHeight, fAnimationSpeed);
-
+        
         //! Update Vertex Buffer
         vkResult = updateVertexBuffer();
         if (vkResult != VK_SUCCESS)
@@ -1772,8 +1278,7 @@ void uninitialize(void)
 {
     // Function Declarations
     void ToggleFullScreen(void);
-    cl_int uninitializeOpenCL(void);
-    const char* oclGetErrorString(cl_int result);
+    void uninitialize_compute(void);
 
     // Code
     if (gbFullScreen)
@@ -1792,6 +1297,8 @@ void uninitialize(void)
         vkDeviceWaitIdle(vkDevice);
         fprintf(gpFile, "%s() => vkDeviceWaitIdle() Succeeded\n", __func__);
     }
+
+    uninitialize_compute();
 
     //* Step - 7 of Fences and Semaphores
     if (vkFence_array)
@@ -1910,28 +1417,6 @@ void uninitialize(void)
     {
         free(pPosition);
         pPosition = NULL;
-    }
-
-    //* Uninitialize OpenCL
-    oclResult = uninitializeOpenCL();
-    if (oclResult != CL_SUCCESS)
-        fprintf(gpFile, "%s() => uninitializeOpenCL() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-    else
-        fprintf(gpFile, "%s() => uninitializeOpenCL() Succeeded\n", __func__);
-
-    //* External Buffer
-    if (vertexData_external.vkDeviceMemory)
-    {
-        vkFreeMemory(vkDevice, vertexData_external.vkDeviceMemory, NULL);
-        vertexData_external.vkDeviceMemory = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vertexData_external.vkDeviceMemory\n", __func__);
-    }
-
-    if (vertexData_external.vkBuffer)
-    {
-        vkDestroyBuffer(vkDevice, vertexData_external.vkBuffer, NULL);
-        vertexData_external.vkBuffer = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyBuffer() Succeeded For vertexData_external.vkBuffer\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer
@@ -2081,70 +1566,6 @@ void uninitialize(void)
         fclose(gpFile);
         gpFile = NULL;
     }
-}
-
-cl_int uninitializeOpenCL(void)
-{
-    // Function Declarations
-    const char* oclGetErrorString(cl_int result);
-
-    // Code
-    if (oclPosition)
-    {
-        oclResult = clReleaseMemObject(oclPosition);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => clReleaseMemObject() Failed For oclPosition : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return oclResult;
-        }
-        oclPosition = NULL;
-    }
-
-    if (oclKernel)
-    {
-        oclResult = clReleaseKernel(oclKernel);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => clReleaseKernel() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return oclResult;
-        }
-        oclKernel = NULL;
-    }
-
-    if (oclProgram)
-    {
-        oclResult = clReleaseProgram(oclProgram);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => clReleaseProgram() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return oclResult;
-        }
-        oclProgram = NULL;
-    }
-
-    if (oclCommandQueue)
-    {
-        oclResult = clReleaseCommandQueue(oclCommandQueue);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => clReleaseCommandQueue() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return oclResult;
-        }
-        oclCommandQueue = NULL;
-    }
-
-    if (oclContext)
-    {
-        oclResult = clReleaseContext(oclContext);
-        if (oclResult != CL_SUCCESS)
-        {
-            fprintf(gpFile, "%s() => clReleaseContext() Failed : %s !!!\n", __func__, oclGetErrorString(oclResult));
-            return oclResult;
-        }
-        oclContext = NULL;
-    }
-
-    return oclResult;
 }
 
 //! Definition of Vulkan Related Functions
@@ -3016,20 +2437,12 @@ VkResult fillDeviceExtensionNames(void)
 
     //* Step - 5
     VkBool32 vulkanSwapchainExtensionFound = VK_FALSE;
-    VkBool32 vulkanExternalMemoryWin32ExtensionFound = VK_FALSE;
-
     for (uint32_t i = 0; i < deviceExtensionCount; i++)
     {
         if (strcmp(deviceExtensionNames_array[i], VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
         {
             vulkanSwapchainExtensionFound = VK_TRUE;
             enabledDeviceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-        }
-
-        if (strcmp(deviceExtensionNames_array[i], VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) == 0)
-        {
-            vulkanExternalMemoryWin32ExtensionFound = VK_TRUE;
-            enabledDeviceExtensionNames_array[enabledDeviceExtensionCount++] = VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME;
         }
     }
 
@@ -3054,16 +2467,6 @@ VkResult fillDeviceExtensionNames(void)
     }
     else
         fprintf(gpFile, "%s() => VK_KHR_SWAPCHAIN_EXTENSION_NAME Extension Found\n", __func__);
-
-    if (vulkanExternalMemoryWin32ExtensionFound == VK_FALSE)
-    {
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        fprintf(gpFile, "%s() => VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME Extension Not Found !!!\n", __func__);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME Extension Found\n", __func__);
-
 
     //* Step - 8
     for (uint32_t i = 0; i < enabledDeviceExtensionCount; i++)
@@ -3621,7 +3024,7 @@ VkResult createCommandPool(void)
     return vkResult;
 }
 
-VkResult createCommandBuffers(void)
+VkResult createCommandBuffers()
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
@@ -3681,7 +3084,7 @@ VkResult createVertexBuffer(void)
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
     vkBufferCreateInfo.size = bufferSize;
-    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     
     //* Step - 6
     vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
@@ -3703,22 +3106,25 @@ VkResult createVertexBuffer(void)
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
     vkMemoryAllocateInfo.memoryTypeIndex = 0;
     
-    //* Step - 8.1
+    //! Resizable BAR Memory
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
-        //* Step - 8.2
         if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
         {
-            //* Step - 8.3
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            if ((vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && 
+                (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
             {
-                //* Step - 8.4
-                vkMemoryAllocateInfo.memoryTypeIndex = i;
-                break;
+                //! Check the heap which it belongs to is > 256 MB (PCIe CAP)
+                uint32_t heapIndex = vkPhysicalDeviceMemoryProperties.memoryTypes[i].heapIndex;
+                if (vkPhysicalDeviceMemoryProperties.memoryHeaps[heapIndex].size > (256 * 1024 * 1024))
+                {
+                    vkMemoryAllocateInfo.memoryTypeIndex = i;
+                    break;
+                }
+               
             }
         }
 
-        //* Step - 8.5
         vkMemoryRequirements.memoryTypeBits >>= 1;
     }
 
@@ -3871,153 +3277,6 @@ VkResult updateIndirectBuffer(void)
     return vkResult;
 }
 
-VkResult createExternalVertexBuffer(void)
-{
-    // Function Declarations
-    const char* oclGetErrorString(cl_int error);
-
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-
-    // Code
-    VkDeviceSize bufferSize = MAX_MESH_SIZE * sizeof(float);
-
-    memset((void*)&vertexData_external, 0, sizeof(VertexData));
-
-    //* Initialize External Memory Buffer
-    VkExternalMemoryBufferCreateInfo vkExternalMemoryBufferCreateInfo;
-    memset((void*)&vkExternalMemoryBufferCreateInfo, 0, sizeof(VkExternalMemoryBufferCreateInfo));
-    vkExternalMemoryBufferCreateInfo.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO;
-    vkExternalMemoryBufferCreateInfo.pNext = NULL;
-    vkExternalMemoryBufferCreateInfo.handleTypes = vkExternalMemoryHandleTypeFlagBits;
-    
-    //* Step - 5
-    VkBufferCreateInfo vkBufferCreateInfo;
-    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
-    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
-    vkBufferCreateInfo.size = bufferSize;
-    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    vkBufferCreateInfo.pNext = &vkExternalMemoryBufferCreateInfo;
-    
-    //* Step - 6
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_external.vkBuffer);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For External Vertex Buffer  : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For External Vertex Buffer\n", __func__);
-    
-    //* Step - 7
-    VkMemoryRequirements vkMemoryRequirements;
-    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, vertexData_external.vkBuffer, &vkMemoryRequirements);
-
-    //* Initialize Exportable Memory Allocation
-    VkExportMemoryAllocateInfoKHR vkExportMemoryAllocateInfoKHR;
-    memset((void*)&vkExportMemoryAllocateInfoKHR, 0, sizeof(VkExportMemoryAllocateInfoKHR));
-    vkExportMemoryAllocateInfoKHR.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
-    vkExportMemoryAllocateInfoKHR.handleTypes = vkExternalMemoryHandleTypeFlagBits;
-    
-    //* Step - 8
-    VkMemoryAllocateInfo vkMemoryAllocateInfo;
-    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
-    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-    vkMemoryAllocateInfo.memoryTypeIndex = 0;
-    vkMemoryAllocateInfo.pNext = &vkExportMemoryAllocateInfoKHR;
-    
-    //* Step - 8.1
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-    {
-        //* Step - 8.2
-        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
-        {
-            //* Step - 8.3
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-            {
-                //* Step - 8.4
-                vkMemoryAllocateInfo.memoryTypeIndex = i;
-                break;
-            }
-        }
-
-        //* Step - 8.5
-        vkMemoryRequirements.memoryTypeBits >>= 1;
-    }
-
-    //* Step - 9
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_external.vkDeviceMemory);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For External Vertex Buffer\n", __func__);
-
-    //* Step - 10
-    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
-    vkResult = vkBindBufferMemory(vkDevice, vertexData_external.vkBuffer, vertexData_external.vkDeviceMemory, 0);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For External Vertex Buffer\n", __func__);
-
-    VkMemoryGetWin32HandleInfoKHR vkMemoryGetWin32HandleInfoKHR;
-    memset((void*)&vkMemoryGetWin32HandleInfoKHR, 0, sizeof(VkMemoryGetWin32HandleInfoKHR));
-    vkMemoryGetWin32HandleInfoKHR.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
-    vkMemoryGetWin32HandleInfoKHR.pNext = NULL;
-    vkMemoryGetWin32HandleInfoKHR.memory = vertexData_external.vkDeviceMemory;
-    vkMemoryGetWin32HandleInfoKHR.handleType = vkExternalMemoryHandleTypeFlagBits;
-    
-    PFN_vkGetMemoryWin32HandleKHR vkGetMemoryWin32HandleKHR = NULL;
-    vkGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(vkDevice, "vkGetMemoryWin32HandleKHR");
-    if (vkGetMemoryWin32HandleKHR == NULL)
-    {
-        vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        fprintf(gpFile, "%s() => vkGetDeviceProcAddr() Failed To Get Function Pointer For vkGetMemoryWin32HandleKHR !!!\n", __func__);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => vkGetDeviceProcAddr() Succeeded To Get Function Pointer For vkGetMemoryWin32HandleKHR\n", __func__);
-
-    HANDLE hMemoryWin32Handle = NULL;
-    vkResult = vkGetMemoryWin32HandleKHR(vkDevice, &vkMemoryGetWin32HandleInfoKHR, &hMemoryWin32Handle);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkGetMemoryWin32HandleKHR() Failed For External Vertex Buffer : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    } 
-    else
-        fprintf(gpFile, "%s() => vkGetMemoryWin32HandleKHR() Succeeded For External Vertex Buffer\n", __func__);
-
-    cl_mem_properties externalMemoryProperties[] = 
-    {
-        CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR, (cl_mem_properties)hMemoryWin32Handle,
-        CL_MEM_DEVICE_HANDLE_LIST_KHR,              
-            (cl_mem_properties)oclDeviceId,
-        CL_MEM_DEVICE_HANDLE_LIST_END_KHR,          
-        0
-    };
-
-    //* Create OpenCL compatible external buffer
-    oclPosition = clCreateBufferWithProperties(
-        oclContext,
-        externalMemoryProperties,
-        CL_MEM_READ_WRITE,
-        (size_t)vkMemoryRequirements.size,
-        NULL,
-        &oclResult
-    );  
-    if (oclResult != CL_SUCCESS)
-        fprintf(gpFile, "%s() => clCreateBufferWithProperties() Failed For oclPosition : %s !!!\n", __func__, oclGetErrorString(oclResult));
-    else
-        fprintf(gpFile, "%s() => clCreateBufferWithProperties() Succeeded For oclPosition\n", __func__);
-
-    CloseHandle(hMemoryWin32Handle);
-    hMemoryWin32Handle = NULL;
-
-    return vkResult;
-}
-
 VkResult createUniformBuffer(void)
 {
     // Function Declarations
@@ -4116,7 +3375,7 @@ VkResult updateUniformBuffer(void)
     glm::mat4 modelViewMatrix = glm::mat4(1.0f);
     glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
 
-    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
     modelViewMatrix = translationMatrix;
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
@@ -4148,11 +3407,6 @@ VkResult updateUniformBuffer(void)
             host_uniformData.color = glm::vec4(1.0, 0.5, 0.0, 1.0);   // Orange
         break;
     }
-
-    if (onGPU)
-        host_uniformData.useGPU = 1;
-    else
-        host_uniformData.useGPU = 0;
 
     //! Map Uniform Buffer
     void* data = NULL;
@@ -4400,10 +3654,16 @@ VkResult createDescriptorPool(void)
     // Code
 
     //* Vulkan expects decriptor pool size before creating actual descriptor pool
-    VkDescriptorPoolSize vkDescriptorPoolSize;
-    memset((void*)&vkDescriptorPoolSize, 0, sizeof(VkDescriptorPoolSize));
-    vkDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vkDescriptorPoolSize.descriptorCount = 1;
+    VkDescriptorPoolSize vkDescriptorPoolSize_array[2];
+    memset((void*)vkDescriptorPoolSize_array, 0, sizeof(VkDescriptorPoolSize) * _ARRAYSIZE(vkDescriptorPoolSize_array));
+
+    // Graphics UBO
+    vkDescriptorPoolSize_array[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkDescriptorPoolSize_array[0].descriptorCount = 1;
+
+    // Compute SSBO
+    vkDescriptorPoolSize_array[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkDescriptorPoolSize_array[1].descriptorCount = 1;
    
     //* Create the pool
     VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo;
@@ -4411,9 +3671,9 @@ VkResult createDescriptorPool(void)
     vkDescriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     vkDescriptorPoolCreateInfo.pNext = NULL;
     vkDescriptorPoolCreateInfo.flags = 0;
-    vkDescriptorPoolCreateInfo.poolSizeCount = 1;
-    vkDescriptorPoolCreateInfo.pPoolSizes = &vkDescriptorPoolSize;
-    vkDescriptorPoolCreateInfo.maxSets = 1;
+    vkDescriptorPoolCreateInfo.poolSizeCount = _ARRAYSIZE(vkDescriptorPoolSize_array);
+    vkDescriptorPoolCreateInfo.pPoolSizes = vkDescriptorPoolSize_array;
+    vkDescriptorPoolCreateInfo.maxSets = 2;     //! 1 - GFX, 2 - Compute
 
     vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
     if (vkResult != VK_SUCCESS)
@@ -4567,34 +3827,24 @@ VkResult createPipeline(void)
     //* Code
 
     //! Vertex Input State
-    VkVertexInputBindingDescription vkVertexInputBindingDescription_array[2];
+    VkVertexInputBindingDescription vkVertexInputBindingDescription_array[1];
     memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
-
-    //! CPU Position
+    
+    //! Position
     vkVertexInputBindingDescription_array[0].binding = 0;
     vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 4; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    //! GPU Position
-    vkVertexInputBindingDescription_array[1].binding = 1;
-    vkVertexInputBindingDescription_array[1].stride = sizeof(float) * 4; 
-    vkVertexInputBindingDescription_array[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[2];
+    VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[1];
     memset((void*)vkVertexInputAttributeDescription_array, 0, sizeof(VkVertexInputAttributeDescription) * _ARRAYSIZE(vkVertexInputAttributeDescription_array));
     
-    //! CPU Position
+    //! Position
     vkVertexInputAttributeDescription_array[0].binding = 0;
     vkVertexInputAttributeDescription_array[0].location = 0;
     vkVertexInputAttributeDescription_array[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     vkVertexInputAttributeDescription_array[0].offset = 0;
-    
-    //! GPU Position
-    vkVertexInputAttributeDescription_array[1].binding = 1;
-    vkVertexInputAttributeDescription_array[1].location = 1;
-    vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    vkVertexInputAttributeDescription_array[1].offset = 0;
-    
+
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
     memset((void*)&vkPipelineVertexInputStateCreateInfo, 0, sizeof(VkPipelineVertexInputStateCreateInfo));
     vkPipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -4973,19 +4223,8 @@ VkResult buildCommandBuffers(void)
                 vkDeviceSize_offset_position
             );
 
-            //! Bind with External Vertex Buffer
-            memset((void*)vkDeviceSize_offset_position, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_position));
-            vkCmdBindVertexBuffers(
-                vkCommandBuffer_array[i], 
-                1, 
-                1, 
-                &vertexData_external.vkBuffer, 
-                vkDeviceSize_offset_position
-            );
-
             //! Vulkan Drawing Function
             vkCmdDrawIndirect(vkCommandBuffer_array[i], vertexData_indirect_buffer.vkBuffer, 0, 1, sizeof(VkDrawIndirectCommand));
-            
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
@@ -5003,6 +4242,7 @@ VkResult buildCommandBuffers(void)
     return vkResult;
 }
 
+
 VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     VkDebugReportFlagsEXT vkDebugReportFlagsEXT,
     VkDebugReportObjectTypeEXT vkDebugReportObjectTypeEXT,
@@ -5019,85 +4259,581 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     return VK_FALSE;
 }
 
-//! OpenCL Helper Function
-const char* oclGetErrorString(cl_int error)
+
+//! Compute Shader Related
+VkResult initialize_compute(void)
+{
+    // Function Declarations
+    VkResult createCommandBuffer_compute(void);
+    VkResult createStorageBuffer_compute(void);
+    VkResult createShader_compute(void);
+    VkResult createDescriptorSetLayout_compute(void);
+    VkResult createPipelineLayout_compute(void);
+    VkResult createDescriptorSet_compute(void);
+    VkResult createPipeline_compute(void);
+    VkResult buildCommandBuffer_compute(void);
+
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    vkResult = createCommandBuffer_compute();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => createCommandBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => createCommandBuffer_compute() Succeeded\n", __func__);
+
+    vkResult = createStorageBuffer_compute();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => createStorageBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => createStorageBuffer_compute() Succeeded\n", __func__);
+
+    vkResult = createShader_compute();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => createShader_compute() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => createShader_compute() Succeeded\n", __func__);
+
+    vkResult = createDescriptorSetLayout_compute();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => createDescriptorSetLayout_compute() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => createDescriptorSetLayout_compute() Succeeded\n", __func__);
+
+    vkResult = createPipelineLayout_compute();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => createPipelineLayout_compute() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => createPipelineLayout_compute() Succeeded\n", __func__);
+
+    vkResult = createDescriptorSet_compute();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => createDescriptorSet_compute() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => createDescriptorSet_compute() Succeeded\n", __func__);
+
+    vkResult = createPipeline_compute();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => createPipeline_compute() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => createPipeline_compute() Succeeded\n", __func__);
+
+    vkResult = buildCommandBuffer_compute();
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => buildCommandBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => buildCommandBuffer_compute() Succeeded\n", __func__);
+
+    return vkResult;
+}
+
+VkResult createCommandBuffer_compute(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    VkCommandBufferAllocateInfo vkCommandBufferAllocateInfo;
+    memset((void*)&vkCommandBufferAllocateInfo, 0, sizeof(VkCommandBufferAllocateInfo));
+    vkCommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO; 
+    vkCommandBufferAllocateInfo.pNext = NULL;
+    vkCommandBufferAllocateInfo.commandPool = vkCommandPool;
+    vkCommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    vkCommandBufferAllocateInfo.commandBufferCount = 1;
+
+    vkResult = vkAllocateCommandBuffers(vkDevice, &vkCommandBufferAllocateInfo, &vkCommandBuffer_compute);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Failed For vkCommandBuffer_compute : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkAllocateCommandBuffers() Succeeded For vkCommandBuffer_compute\n", __func__);
+
+    return vkResult;
+}
+
+VkResult createStorageBuffer_compute(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    VkDeviceSize bufferSize = 4096 * 4096 * 4 * sizeof(float);
+
+    memset((void*)&computeBuffer, 0, sizeof(ComputeData));
+
+    //* Step - 5
+    VkBufferCreateInfo vkBufferCreateInfo;
+    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
+    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
+    vkBufferCreateInfo.pNext = NULL;
+    vkBufferCreateInfo.size = bufferSize;
+    vkBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    //!                                 COMPUTE WRITE                          GRAPHICS READ                TRANSFER DATA VIA BARRIER
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    
+    //* Step - 6
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &computeBuffer.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateBuffer() Failed For Compute Storage Buffer  : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateBuffer() Succeeded For Compute Storage Buffer\n", __func__);
+    
+    //* Step - 7
+    VkMemoryRequirements vkMemoryRequirements;
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, computeBuffer.vkBuffer, &vkMemoryRequirements);
+
+    //* Step - 8
+    VkMemoryAllocateInfo vkMemoryAllocateInfo;
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    
+    //* Step - 8.1
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Step - 9
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &computeBuffer.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Compute Storage Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Compute Storage Buffer\n", __func__);
+
+    //* Step - 10
+    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
+    vkResult = vkBindBufferMemory(vkDevice, computeBuffer.vkBuffer, computeBuffer.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Failed For Compute Storage Buffer : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkBindBufferMemory() Succeeded For Compute Storage Buffer\n", __func__);
+    
+
+    return vkResult;
+}
+
+VkResult createShader_compute(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    //! Compute Shader
+    //! ---------------------------------------------------------------------------------------------------------------------------
+    //* Step - 6
+    const char* szFileName = "Shader.comp.spv";
+    FILE *fp = NULL;
+    size_t size;
+
+    fp = fopen(szFileName, "rb");
+    if (fp == NULL)
+    {
+        fprintf(gpFile, "%s() => Failed To Open SPIR-V Shader File : %s !!!", __func__, szFileName);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => Succeeded In Opening SPIR-V Shader File : %s\n", __func__, szFileName);
+
+    fseek(fp, 0L, SEEK_END);
+    size = ftell(fp);
+    if (size == 0)
+    {
+        fprintf(gpFile, "%s() => Empty SPIR-V Shader File : %s !!!", __func__, szFileName);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    fseek(fp, 0L, SEEK_SET);
+
+    char* shaderData = (char*)malloc(size * sizeof(char));
+    if (shaderData == NULL)
+    {
+        fprintf(gpFile, "%s() => malloc() Failed For shaderData !!!\n", __func__);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    size_t retVal = fread(shaderData, size, 1, fp);
+    if (retVal != 1)
+    {
+        fprintf(gpFile, "%s() => Failed To Read From SPIR-V Shader File : %s !!!", __func__, szFileName);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => Successfully Read Shader From SPIR-V Shader File : %s\n", __func__, szFileName);
+    
+    if (fp)
+    {
+        fclose(fp);
+        fp = NULL;
+        fprintf(gpFile, "%s() => Closed SPIR-V File : %s\n", __func__, szFileName);
+    }
+
+    //* Step - 7
+    VkShaderModuleCreateInfo vkShaderModuleCreateInfo;
+    memset((void*)&vkShaderModuleCreateInfo, 0, sizeof(VkShaderModuleCreateInfo));
+    vkShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    vkShaderModuleCreateInfo.pNext = NULL;
+    vkShaderModuleCreateInfo.flags = 0; //! Reserved, must be 0
+    vkShaderModuleCreateInfo.pCode = (uint32_t*)shaderData;
+    vkShaderModuleCreateInfo.codeSize = size;
+
+    //* Step - 8
+    vkResult = vkCreateShaderModule(vkDevice, &vkShaderModuleCreateInfo, NULL, &vkShaderModule_compute_shader);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Failed For Compute Shader : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateShaderModule() Succeeded For Compute Shader\n", __func__);
+
+    //* Step - 9
+    if (shaderData)
+    {
+        free(shaderData);
+        shaderData = NULL;
+        fprintf(gpFile, "%s() => free() Succeeded For shaderData\n", __func__);
+    }
+
+    fprintf(gpFile, "%s() => Compute Shader Module Successfully Created\n", __func__);
+    //! ---------------------------------------------------------------------------------------------------------------------------
+
+    return vkResult;
+}
+
+VkResult createDescriptorSetLayout_compute(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    //! Initialize VkDescriptorSetLayoutBinding
+    VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding;
+    memset((void*)&vkDescriptorSetLayoutBinding, 0, sizeof(VkDescriptorSetLayoutBinding));
+    vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkDescriptorSetLayoutBinding.binding = 1;
+    vkDescriptorSetLayoutBinding.descriptorCount = 1;
+    vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    vkDescriptorSetLayoutBinding.pImmutableSamplers = NULL;
+
+    //* Step - 3
+    VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo;
+    memset((void*)&vkDescriptorSetLayoutCreateInfo, 0, sizeof(VkDescriptorSetLayoutCreateInfo));
+    vkDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    vkDescriptorSetLayoutCreateInfo.pNext = NULL;
+    vkDescriptorSetLayoutCreateInfo.flags = 0;
+    vkDescriptorSetLayoutCreateInfo.bindingCount = 1;   //! An integer value where you want to bind descriptor set
+    vkDescriptorSetLayoutCreateInfo.pBindings = &vkDescriptorSetLayoutBinding;
+
+    //* Step - 4
+    vkResult = vkCreateDescriptorSetLayout(vkDevice, &vkDescriptorSetLayoutCreateInfo, NULL, &vkDescriptorSetLayout_compute);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Failed For Compute : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateDescriptorSetLayout() Succeeded For Compute\n", __func__);
+
+    return vkResult;
+}
+
+VkResult createPipelineLayout_compute(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    VkPushConstantRange vkPushConstantRange;
+    memset((void*)&vkPushConstantRange, 0, sizeof(VkPushConstantRange));
+    vkPushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    vkPushConstantRange.offset = 0;
+    vkPushConstantRange.size = sizeof(PushConstants);
+
+    //* Step - 3
+    VkPipelineLayoutCreateInfo vkPipelineLayoutCreateInfo;
+    memset((void*)&vkPipelineLayoutCreateInfo, 0, sizeof(VkPipelineLayoutCreateInfo));
+    vkPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    vkPipelineLayoutCreateInfo.pNext = NULL;
+    vkPipelineLayoutCreateInfo.flags = 0;
+    vkPipelineLayoutCreateInfo.setLayoutCount = 1;
+    vkPipelineLayoutCreateInfo.pSetLayouts = &vkDescriptorSetLayout_compute;
+    vkPipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+    vkPipelineLayoutCreateInfo.pPushConstantRanges = &vkPushConstantRange;
+
+    //* Step - 4
+    vkResult = vkCreatePipelineLayout(vkDevice, &vkPipelineLayoutCreateInfo, NULL, &vkPipelineLayout_compute);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreatePipelineLayout() Failed For Compute : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreatePipelineLayout() Succeeded For Compute\n", __func__);
+
+    return vkResult;
+}
+
+VkResult createDescriptorSet_compute(void)
+{
+    // Variable Declarations
+    VkResult vkResult;
+
+    // Code
+
+    //* Initialize DescriptorSetAllocationInfo
+    VkDescriptorSetAllocateInfo vkDescriptorSetAllocateInfo;
+    memset((void*)&vkDescriptorSetAllocateInfo, 0, sizeof(VkDescriptorSetAllocateInfo));
+    vkDescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    vkDescriptorSetAllocateInfo.pNext = NULL;
+    vkDescriptorSetAllocateInfo.descriptorPool = vkDescriptorPool;
+    vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
+    vkDescriptorSetAllocateInfo.pSetLayouts = &vkDescriptorSetLayout_compute;
+
+    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet_compute);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Failed For vkDescriptorSet_compute : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }  
+    else
+        fprintf(gpFile, "%s() => vkAllocateDescriptorSets() Succeeded For vkDescriptorSet_compute\n", __func__);
+    
+    VkDescriptorBufferInfo vkDescriptorBufferInfo;
+    memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
+    vkDescriptorBufferInfo.buffer = vertexData_position.vkBuffer;
+    vkDescriptorBufferInfo.offset = 0;
+    vkDescriptorBufferInfo.range = VK_WHOLE_SIZE;
+
+    /* Update above descriptor set directly to the shader
+    There are 2 ways :-
+        1) Writing directly to the shader
+        2) Copying from one shader to another shader
+    */
+    VkWriteDescriptorSet vkWriteDescriptorSet;
+    memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
+    vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet.pNext = NULL;
+    vkWriteDescriptorSet.dstSet = vkDescriptorSet_compute;
+    vkWriteDescriptorSet.dstArrayElement = 0;
+    vkWriteDescriptorSet.descriptorCount = 1;
+    vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
+    vkWriteDescriptorSet.pImageInfo = NULL;
+    vkWriteDescriptorSet.pTexelBufferView = NULL;
+    vkWriteDescriptorSet.dstBinding = 1;
+
+    vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
+
+    return vkResult;
+}
+
+VkResult createPipeline_compute(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    //* Code
+
+    //! Shader Stage State
+    VkPipelineShaderStageCreateInfo vkPipelineShaderStageCreateInfo;
+    memset((void*)&vkPipelineShaderStageCreateInfo, 0, sizeof(VkPipelineShaderStageCreateInfo));
+    
+    //* Vertex Shader
+    vkPipelineShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vkPipelineShaderStageCreateInfo.pNext = NULL;
+    vkPipelineShaderStageCreateInfo.flags = 0;
+    vkPipelineShaderStageCreateInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    vkPipelineShaderStageCreateInfo.module = vkShaderModule_compute_shader;
+    vkPipelineShaderStageCreateInfo.pName = "main";
+    vkPipelineShaderStageCreateInfo.pSpecializationInfo = NULL;
+
+    VkComputePipelineCreateInfo vkComputePipelineCreateInfo;
+    memset((void*)&vkComputePipelineCreateInfo, 0, sizeof(VkComputePipelineCreateInfo));
+    vkComputePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    vkComputePipelineCreateInfo.pNext = NULL;
+    vkComputePipelineCreateInfo.flags = 0;
+    vkComputePipelineCreateInfo.stage = vkPipelineShaderStageCreateInfo;
+    vkComputePipelineCreateInfo.layout = vkPipelineLayout_compute;
+
+    VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo;
+    memset((void*)&vkPipelineCacheCreateInfo, 0, sizeof(VkPipelineCacheCreateInfo));
+    vkPipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+    vkPipelineCacheCreateInfo.pNext = NULL;
+    vkPipelineCacheCreateInfo.flags = 0;
+    
+    VkPipelineCache vkPipelineCache_compute = VK_NULL_HANDLE;
+    vkResult = vkCreatePipelineCache(vkDevice, &vkPipelineCacheCreateInfo, NULL, &vkPipelineCache_compute);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreatePipelineCache() Failed For Compute : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreatePipelineCache() Succeeded For Compute\n", __func__);
+    
+    vkResult = vkCreateComputePipelines(vkDevice, vkPipelineCache_compute, 1, &vkComputePipelineCreateInfo, NULL, &vkPipeline_compute);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateComputePipelines() Failed : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateComputePipelines() Succeeded\n", __func__);
+
+    //* Destroy Pipeline Cache
+    if (vkPipelineCache_compute)
+    {
+        vkDestroyPipelineCache(vkDevice, vkPipelineCache_compute, NULL);
+        vkPipelineCache_compute = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyPipelineCache() Succeeded\n", __func__);
+    }
+   
+
+    return vkResult;
+}
+
+VkResult buildCommandBuffer_compute(void)
+{
+    // Variable Declarations
+    VkResult vkResult = VK_SUCCESS;
+
+    // Code
+    vkResult = vkResetCommandBuffer(vkCommandBuffer_compute, 0);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkResetCommandBuffer() Failed : %d\n", __func__, vkResult);
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }
+
+    VkCommandBufferBeginInfo vkCommandBufferBeginInfo;
+    memset((void*)&vkCommandBufferBeginInfo, 0, sizeof(VkCommandBufferBeginInfo));
+    vkCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    vkCommandBufferBeginInfo.pNext = NULL;
+    vkCommandBufferBeginInfo.flags = 0;     //! 0 specifies that we will use only the primary command buffer, and not going to use this command buffer simultaneously between multiple threads
+
+    vkResult = vkBeginCommandBuffer(vkCommandBuffer_compute, &vkCommandBufferBeginInfo);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkBeginCommandBuffer() Failed For vkCommandBuffer_compute : %d\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+
+    vkCmdBindPipeline(vkCommandBuffer_compute, VK_PIPELINE_BIND_POINT_COMPUTE, vkPipeline_compute);
+
+    vkCmdBindDescriptorSets(
+        vkCommandBuffer_compute,
+        VK_PIPELINE_BIND_POINT_COMPUTE,
+        vkPipelineLayout_compute,
+        0,
+        1,
+        &vkDescriptorSet_compute,
+        0,
+        0
+    );
+
+    PushConstants pushData;
+    memset((void*)&pushData, 0, sizeof(PushConstants));
+    pushData.width = meshWidth;
+    pushData.height = meshHeight;
+    pushData.time = fAnimationSpeed;
+
+    vkCmdPushConstants(
+        vkCommandBuffer_compute,
+        vkPipelineLayout_compute,
+        VK_SHADER_STAGE_COMPUTE_BIT,
+        0,
+        sizeof(PushConstants),
+        &pushData
+    );
+
+    vkCmdDispatch(vkCommandBuffer_compute, (meshWidth + 15) / 16, (meshHeight + 15) / 16, 1);
+
+    //! Barrier -> Wait For Compute Shader To Finish Writing To Buffer
+    VkBufferMemoryBarrier vkBufferMemoryBarrier_compute;
+    memset((void*)&vkBufferMemoryBarrier_compute, 0, sizeof(VkBufferMemoryBarrier));
+    vkBufferMemoryBarrier_compute.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    vkBufferMemoryBarrier_compute.pNext = NULL;
+    vkBufferMemoryBarrier_compute.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    vkBufferMemoryBarrier_compute.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+    vkBufferMemoryBarrier_compute.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    vkBufferMemoryBarrier_compute.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    vkBufferMemoryBarrier_compute.buffer = vertexData_position.vkBuffer;
+    vkBufferMemoryBarrier_compute.offset = 0;
+    vkBufferMemoryBarrier_compute.size = VK_WHOLE_SIZE;
+
+    vkCmdPipelineBarrier(
+        vkCommandBuffer_compute,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        0,
+        0,
+        NULL,
+        1,
+        &vkBufferMemoryBarrier_compute,
+        0,
+        NULL
+    );
+
+    vkResult = vkEndCommandBuffer(vkCommandBuffer_compute);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkEndCommandBuffer() Failed For vkCommandBuffer_compute : %d\n", __func__, vkResult);
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        return vkResult;
+    }
+
+    return vkResult;
+}
+
+void uninitialize_compute(void)
 {
     // Code
-    switch (error)
+    if (vkPipeline_compute)
     {
-        // Run-time and JIT Errors
-        case 0: return "CL_SUCCESS";
-        case -1: return "CL_DEVICE_NOT_FOUND";
-        case -2: return "CL_DEVICE_NOT_AVAILABLE";
-        case -3: return "CL_COMPILER_NOT_AVAILABLE";
-        case -4: return "CL_MEM_OBJECT_ALLOCATION_FAILURE";
-        case -5: return "CL_OUT_OF_RESOURCES";
-        case -6: return "CL_OUT_OF_HOST_MEMORY";
-        case -7: return "CL_PROFILING_INFO_NOT_AVAILABLE";
-        case -8: return "CL_MEM_COPY_OVERLAP";
-        case -9: return "CL_IMAGE_FORMAT_MISMATCH";
-        case -10: return "CL_IMAGE_FORMAT_NOT_SUPPORTED";
-        case -11: return "CL_BUILD_PROGRAM_FAILURE";
-        case -12: return "CL_MAP_FAILURE";
-        case -13: return "CL_MISALIGNED_SUB_BUFFER_OFFSET";
-        case -14: return "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST";
-        case -15: return "CL_COMPILE_PROGRAM_FAILURE";
-        case -16: return "CL_LINKER_NOT_AVAILABLE";
-        case -17: return "CL_LINK_PROGRAM_FAILURE";
-        case -18: return "CL_DEVICE_PARTITION_FAILED";
-        case -19: return "CL_KERNEL_ARG_INFO_NOT_AVAILABLE";
-
-        // Compile-time errors
-        case -30: return "CL_INVALID_VALUE";
-        case -31: return "CL_INVALID_DEVICE_TYPE";
-        case -32: return "CL_INVALID_PLATFORM";
-        case -33: return "CL_INVALID_DEVICE";
-        case -34: return "CL_INVALID_CONTEXT";
-        case -35: return "CL_INVALID_QUEUE_PROPERTIES";
-        case -36: return "CL_INVALID_COMMAND_QUEUE";
-        case -37: return "CL_INVALID_hostPtr";
-        case -38: return "CL_INVALID_MEM_OBJECT";
-        case -39: return "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
-        case -40: return "CL_INVALID_IMAGE_SIZE";
-        case -41: return "CL_INVALID_SAMPLER";
-        case -42: return "CL_INVALID_BINARY";
-        case -43: return "CL_INVALID_BUILD_OPTIONS";
-        case -44: return "CL_INVALID_PROGRAM";
-        case -45: return "CL_INVALID_PROGRAM_EXECUTABLE";
-        case -46: return "CL_INVALID_KERNEL_NAME";
-        case -47: return "CL_INVALID_KERNEL_DEFINITION";
-        case -48: return "CL_INVALID_KERNEL";
-        case -49: return "CL_INVALID_ARG_INDEX";
-        case -50: return "CL_INVALID_ARG_VALUE";
-        case -51: return "CL_INVALID_ARG_SIZE";
-        case -52: return "CL_INVALID_KERNEL_ARGS";
-        case -53: return "CL_INVALID_WORK_DIMENSION";
-        case -54: return "CL_INVALID_WORK_GROUP_SIZE";
-        case -55: return "CL_INVALID_WORK_ITEM_SIZE";
-        case -56: return "CL_INVALID_GLOBAL_OFFSET";
-        case -57: return "CL_INVALID_EVENT_WAIT_LIST";
-        case -58: return "CL_INVALID_EVENT";
-        case -59: return "CL_INVALID_OPERATION";
-        case -60: return "CL_INVALID_GL_OBJECT";
-        case -61: return "CL_INVALID_BUFFER_SIZE";
-        case -62: return "CL_INVALID_MIP_LEVEL";
-        case -63: return "CL_INVALID_GLOBAL_WORK_SIZE";
-        case -64: return "CL_INVALID_PROPERTY";
-        case -65: return "CL_INVALID_IMAGE_DESCRIPTOR";
-        case -66: return "CL_INVALID_COMPILER_OPTIONS";
-        case -67: return "CL_INVALID_LINKER_OPTIONS";
-        case -68: return "CL_INVALID_DEVICE_PARTITION_COUNT";
-
-        // Extension Errors
-        case -1000: return "CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR";
-        case -1001: return "CL_PLATFORM_NOT_FOUND_KHR";
-        case -1002: return "CL_INVALID_D3D10_DEVICE_KHR";
-        case -1003: return "CL_INVALID_D3D10_RESOURCE_KHR";
-        case -1004: return "CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR";
-        case -1005: return "CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR";
-
-        default:
-            return "Unknown OpenCL error !!!";
+        vkDestroyPipeline(vkDevice, vkPipeline_compute, NULL);
+        vkPipeline_compute = VK_NULL_HANDLE;
     }
+
+    if (vkPipelineLayout_compute)
+    {
+        vkDestroyPipelineLayout(vkDevice, vkPipelineLayout_compute, NULL);
+        vkPipelineLayout_compute = VK_NULL_HANDLE;
+    }
+
+    if (vkDescriptorSetLayout_compute)
+    {
+        vkDestroyDescriptorSetLayout(vkDevice, vkDescriptorSetLayout_compute, NULL);
+        vkDescriptorSet_compute = VK_NULL_HANDLE;
+        vkDescriptorSetLayout_compute = VK_NULL_HANDLE;
+    }
+    
+    if (vkShaderModule_compute_shader)
+    {
+        vkDestroyShaderModule(vkDevice, vkShaderModule_compute_shader, NULL);
+        vkShaderModule_compute_shader = VK_NULL_HANDLE;
+    }
+
+    if (computeBuffer.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, computeBuffer.vkDeviceMemory, NULL);
+        computeBuffer.vkDeviceMemory = VK_NULL_HANDLE;
+    }
+
+    if (computeBuffer.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, computeBuffer.vkBuffer, NULL);
+        computeBuffer.vkBuffer = VK_NULL_HANDLE;
+    }
+
+    if (vkCommandBuffer_compute)
+    {
+        vkFreeCommandBuffers(vkDevice, vkCommandPool, 1, &vkCommandBuffer_compute);
+        vkCommandBuffer_compute = NULL;
+    }
+
 }
+
 

@@ -17,6 +17,8 @@ We switched to Vertex Pulling. By binding your buffers as Storage Buffers (SSBOs
 
 # Resizable BAR - Compute Shader
 
+Using resizable bar - gives option  to bypass device_local only which needs staging buffer for updating data to buffer
+
 Resizable BAR (ReBAR)ReBAR is a PCIe technology that removed the "256MB window" bottleneck.
 
 - Without ReBAR: The CPU can only see 256MB of VRAM at a time. To update your vertex buffer, the driver has to constantly map and unmap small chunks of memory, creating massive CPU overhead.
