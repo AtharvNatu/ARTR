@@ -151,22 +151,9 @@ VertexData vertexData_texcoord;
 //? Uniform Related Variables
 typedef struct
 {
-    // Matrices Related Uniforms
     glm::mat4 modelMatrix;
     glm::mat4 viewMatrix;
     glm::mat4 projectionMatrix;
-
-    // Light Related Uniforms
-    glm::vec4 lightAmbient;
-    glm::vec4 lightDiffuse;
-    glm::vec4 lightSpecular;
-    glm::vec4 lightPosition;
-
-    glm::vec4 materialAmbient;
-    glm::vec4 materialDiffuse;
-    glm::vec4 materialSpecular;
-    float materialShininess;
-
 } MVP_UniformData;
 
 typedef struct
@@ -176,12 +163,6 @@ typedef struct
 } UniformData;
 
 UniformData uniformData;
-
-//? Texture Related Variables
-VkImage vkImage_texture = VK_NULL_HANDLE;
-VkDeviceMemory vkDeviceMemory_texture = VK_NULL_HANDLE;
-VkImageView vkImageView_texture = VK_NULL_HANDLE;
-VkSampler vkSampler_texture = VK_NULL_HANDLE;
 
 //? Shader Related Variables
 VkShaderModule vkShaderModule_vertex_shader = VK_NULL_HANDLE;
@@ -1726,35 +1707,6 @@ VkResult uninitialize(void)
         vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
         uniformData.vkBuffer = VK_NULL_HANDLE;
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkDestroyBuffer() Succeeded For uniformData.vkBuffer\n", __func__);
-    }
-
-    //* Texture Related
-    if (vkSampler_texture)
-    {
-        vkDestroySampler(vkDevice, vkSampler_texture, NULL);
-        vkSampler_texture = VK_NULL_HANDLE;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkDestroySampler() Succeeded For vkSampler_texture\n", __func__);
-    }
-
-    if (vkImageView_texture)
-    {
-        vkDestroyImageView(vkDevice, vkImageView_texture, NULL);
-        vkImageView_texture = NULL;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkDestroyImageView() Succeeded For vkImage_texture\n", __func__);
-    }
-
-    if (vkDeviceMemory_texture)
-    {
-        vkFreeMemory(vkDevice, vkDeviceMemory_texture, NULL);
-        vkDeviceMemory_texture = VK_NULL_HANDLE;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkFreeMemory() Succeeded For vkDeviceMemory_texture\n", __func__);
-    }
-
-    if (vkImage_texture)
-    {
-        vkDestroyImage(vkDevice, vkImage_texture, NULL);
-        vkImage_texture = NULL;
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkDestroyImage() Succeeded For vkImage_texture\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer
@@ -3771,8 +3723,8 @@ VkResult updateUniformBuffer(void)
     VkResult vkResult = VK_SUCCESS;
 
     // Code
-    MVP_UniformData host_uniformData;
-    memset((void*)&host_uniformData, 0, sizeof(MVP_UniformData));
+    MVP_UniformData mvp_UniformData;
+    memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
 
     //! Update Matrices
     glm::mat4 translationMatrix = glm::mat4(1.0f);
@@ -3789,10 +3741,10 @@ VkResult updateUniformBuffer(void)
     rotationMatrix_z = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 0.0f, 1.0f));
     rotationMatrix = rotationMatrix_x * rotationMatrix_y * rotationMatrix_z;
 
-    host_uniformData.modelMatrix = glm::mat4(1.0f);
-    host_uniformData.modelMatrix = translationMatrix * rotationMatrix;
-    host_uniformData.viewMatrix = glm::mat4(1.0f);
-    
+    mvp_UniformData.modelMatrix = glm::mat4(1.0f);
+    mvp_UniformData.modelMatrix = translationMatrix * scaleMatrix * rotationMatrix;
+    mvp_UniformData.viewMatrix = glm::mat4(1.0f);
+
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
     perspectiveProjectionMatrix = glm::perspective(
         glm::radians(45.0f),
@@ -3802,29 +3754,19 @@ VkResult updateUniformBuffer(void)
     );
     //! 2D Matrix with Column Major (Like OpenGL)
     perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
-    host_uniformData.projectionMatrix = perspectiveProjectionMatrix;
-
-    host_uniformData.lightAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    host_uniformData.lightDiffuse = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    host_uniformData.lightSpecular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    host_uniformData.lightPosition = glm::vec4(100.0f, 100.0f, 100.0f, 1.0f);
-
-    host_uniformData.materialAmbient = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    host_uniformData.materialDiffuse = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    host_uniformData.materialAmbient = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    host_uniformData.materialShininess = 128.0f;
+    mvp_UniformData.projectionMatrix = perspectiveProjectionMatrix;
 
     //! Map Uniform Buffer
     void* data = NULL;
     vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
     if (vkResult != VK_SUCCESS)
     {
-        __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
 
     //! Copy the data to the mapped buffer (present on device memory)
-    memcpy(data, &host_uniformData, sizeof(MVP_UniformData));
+    memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
 
     //! Unmap memory
     vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
@@ -4042,7 +3984,7 @@ VkResult createPipelineLayout(void)
 VkResult createDescriptorPool(void)
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 
@@ -4078,7 +4020,7 @@ VkResult createDescriptorPool(void)
 VkResult createDescriptorSet(void)
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 
@@ -7257,7 +7199,7 @@ VkResult createPipelineLayout_fbo(void)
 VkResult createDescriptorPool_fbo(void)
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 
@@ -7293,7 +7235,7 @@ VkResult createDescriptorPool_fbo(void)
 VkResult createDescriptorSet_fbo(void)
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 

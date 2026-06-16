@@ -2755,7 +2755,6 @@ int main(int argc, char* argv[])
     vkMemoryAllocateInfo.memoryTypeIndex = 0;
 
     VkBool32 foundMatchingMemoryType_depth = VK_FALSE;
-
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)

@@ -3933,7 +3933,7 @@ VkResult createPipelineLayout(void)
 VkResult createDescriptorPool(void)
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 
@@ -3969,7 +3969,7 @@ VkResult createDescriptorPool(void)
 VkResult createDescriptorSet(void)
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 
@@ -7134,7 +7134,7 @@ VkResult createPipelineLayout_fbo(void)
 VkResult createDescriptorPool_fbo(void)
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 
@@ -7170,7 +7170,7 @@ VkResult createDescriptorPool_fbo(void)
 VkResult createDescriptorSet_fbo(void)
 {
     // Variable Declarations
-    VkResult vkResult;
+    VkResult vkResult = VK_SUCCESS;
 
     // Code
 
