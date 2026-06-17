@@ -1,21 +1,31 @@
-//
-//  ViewController.m
-//  Template
-//
-//  Created by Atharv on 17/06/26.
-//
-
 #import "ViewController.h"
-
-@interface ViewController ()
-
-@end
 
 @implementation ViewController
 
-- (void)viewDidLoad {
+-(void) viewDidLoad
+{
+    // Code
     [super viewDidLoad];
-    // Do any additional setup after loading the view.
+}
+
+// Following code will assist the setting done in General Settings for landscape mode
+-(UIInterfaceOrientationMask) supportedInterfaceOrientations
+{
+    // Code
+    return UIInterfaceOrientationMaskLandscape;
+}
+
+// Hide Status Bar - Assist the status bar setting done in General Settings
+-(BOOL) prefersStatusBarHidden
+{
+    // Code
+    return YES;
+}
+
+-(void) dealloc
+{
+    // Code
+    [super dealloc];
 }
 
 

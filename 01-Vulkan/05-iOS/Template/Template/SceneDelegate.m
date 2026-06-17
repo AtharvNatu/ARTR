@@ -1,56 +1,92 @@
-//
-//  SceneDelegate.m
-//  Template
-//
-//  Created by Atharv on 17/06/26.
-//
-
 #import "SceneDelegate.h"
+#import "ViewController.h"
+#import "View.h"
 
-@interface SceneDelegate ()
-
-@end
 
 @implementation SceneDelegate
-
-
-- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
-    // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-    // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-    // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
+{
+    @private
+    UIWindow* window;
 }
 
-
-- (void)sceneDidDisconnect:(UIScene *)scene {
-    // Called as the scene is being released by the system.
-    // This occurs shortly after the scene enters the background, or when its session is discarded.
-    // Release any resources associated with this scene that can be re-created the next time the scene connects.
-    // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
+-(void) scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions
+{
+    // Variable Declarations
+    UIWindowScene *windowScene = nil;
+    ViewController *viewController = nil;
+    View *view = nil;
+    CGRect rect;
+    
+    // Code
+    
+    // Verify that the provided scene is of type UIWindowScene
+    if ([scene isKindOfClass:[UIWindowScene class]] == NO)
+    {
+        return;
+    }
+    
+    // Cast and store the scene as a UIWindowScene instance
+    windowScene = (UIWindowScene*)scene;
+    
+    // Create and initialize the application window with the scene
+    window = [[UIWindow alloc]initWithWindowScene:windowScene];
+    
+    // Set the window's background color to black
+    [window setBackgroundColor:[UIColor blackColor]];
+    
+    // Create our custom view controller which will work as main view controller for all views - Root View Controller
+    viewController = [[viewController alloc]init];
+    
+    // Set viewController as our Window's Root View Controller
+    [window setRootViewController:viewController];
+    
+    // Window increments the view controller's reference count when we assign it as the Root View Controller. To adjust this count, call release
+    [viewController release];
+    
+    // Create a custom view with dimensions equal to the scene's bounds
+    rect = [[[windowScene effectiveGeometry] coordinateSpace] bounds];
+    
+    view = [[view alloc]initWithFrame:rect];
+    
+    // Set this view as the view controller's view
+    [viewController setView:view];
+    
+    // ViewController increments the view's reference count. To adjust this count, call release
+    [view release];
+    
+    // Set focus and visibility
+    [window makeKeyAndVisible];
 }
 
-
-- (void)sceneDidBecomeActive:(UIScene *)scene {
-    // Called when the scene has moved from an inactive state to an active state.
-    // Use this method to restart any tasks that were paused (or not yet started) when the scene was inactive.
+-(void) sceneDidDisconnect:(UIScene *)scene
+{
+    // Code
 }
 
-
-- (void)sceneWillResignActive:(UIScene *)scene {
-    // Called when the scene will move from an active state to an inactive state.
-    // This may occur due to temporary interruptions (ex. an incoming phone call).
+-(void) sceneDidBecomeActive:(UIScene *)scene
+{
+    // Code
 }
 
-
-- (void)sceneWillEnterForeground:(UIScene *)scene {
-    // Called as the scene transitions from the background to the foreground.
-    // Use this method to undo the changes made on entering the background.
+-(void) sceneWillResignActive:(UIScene *)scene
+{
+    // Code
 }
 
+-(void) sceneWillEnterForeground:(UIScene *)scene
+{
+    // Code
+}
 
-- (void)sceneDidEnterBackground:(UIScene *)scene {
-    // Called as the scene transitions from the foreground to the background.
-    // Use this method to save data, release shared resources, and store enough scene-specific state information
-    // to restore the scene back to its current state.
+-(void) sceneDidEnterBackground:(UIScene *)scene
+{
+    // Code
+}
+
+-(void) dealloc
+{
+    // Code
+    [super dealloc];
 }
 
 
