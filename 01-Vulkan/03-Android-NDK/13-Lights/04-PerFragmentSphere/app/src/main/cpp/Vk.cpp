@@ -647,7 +647,7 @@ VkResult initialize(void)
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createCommandBuffers() Succeeded\n", __func__);
 
     //* Generate Sphere
-    sphere = new Sphere(1.5f, 50, 16);
+    sphere = new Sphere(1.5f, 64, 64);;
     numVertices = sphere->get_number_of_vertices();
     numIndices = sphere->get_number_of_indices();
 
