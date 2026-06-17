@@ -1212,7 +1212,6 @@ VkResult resize(int width, int height)
             vkDeviceMemory_depth = VK_NULL_HANDLE;
         }
 
-        
         //* Destroy Swapchain Image and Image Views
         for (uint32_t i = 0; i < swapchainImageCount; i++)
             vkDestroyImageView(vkDevice, swapchainImageView_array[i], NULL);

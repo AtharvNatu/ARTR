@@ -498,8 +498,7 @@ int main(int argc, char* argv[])
 
     if (bWindowMinimized == NO)
     {
-        [self resize: frameSize.width :frameSize.height];
-        [self resize_fbo: fboWidth :fboHeight];
+        [self resize:frameSize.width :frameSize.height];
     }
 
     return frameSize;
@@ -1182,7 +1181,6 @@ int main(int argc, char* argv[])
             vkDeviceMemory_depth = VK_NULL_HANDLE;
         }
 
-        
         //* Destroy Swapchain Image and Image Views
         for (uint32_t i = 0; i < swapchainImageCount; i++)
             vkDestroyImageView(vkDevice, swapchainImageView_array[i], NULL);
@@ -1212,6 +1210,15 @@ int main(int argc, char* argv[])
             vkDestroySwapchainKHR(vkDevice, vkSwapchainKHR, NULL);
             vkSwapchainKHR = VK_NULL_HANDLE;
         }
+
+        //! As FBO scene is texture for cube, and fbo scene uses animation, so the texture related data structure should be destroyed and recreated at resize
+        vkResult = vkResetDescriptorPool(vkDevice, vkDescriptorPool, 0);
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => vkResetDescriptorPool() Failed\n", __func__);
+            return vkResult;
+        }
+
         //?--------------------------------------------------------------------------------------------------
         
         //? RECREATE FOR RESIZE
@@ -1269,6 +1276,14 @@ int main(int argc, char* argv[])
         if (vkResult != VK_SUCCESS)
         {
             fprintf(gpFile, "%s() => createFramebuffers() Failed : %d !!!\n", __func__, vkResult);
+            return vkResult;
+        }
+
+        //* Create Descriptor Set
+        vkResult = [self createDescriptorSet];
+        if (vkResult != VK_SUCCESS)
+        {
+            fprintf(gpFile, "%s() => createDescriptorSet() Failed : %d !!!\n", __func__, vkResult);
             return vkResult;
         }
 
@@ -1953,7 +1968,7 @@ int main(int argc, char* argv[])
 
     //* Step - 5
     VkBool32 vulkanSurfaceExtensionFound = VK_FALSE;
-    VkBool32 macOsSurfaceExtensionFound = VK_FALSE;
+    VkBool32 metalSurfaceExtensionFound = VK_FALSE;
     VkBool32 vulkanPortabilityEnumerationExtensionFound = VK_FALSE;     //* Since Vulkan 1.3.216.0
     VkBool32 debugReportExtensionFound = VK_FALSE;
 
@@ -1967,7 +1982,7 @@ int main(int argc, char* argv[])
            
         if (strcmp(instanceExtensionNames_array[i], VK_EXT_METAL_SURFACE_EXTENSION_NAME) == 0)
         {
-            macOsSurfaceExtensionFound = VK_TRUE;
+            metalSurfaceExtensionFound = VK_TRUE;
             enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
         } 
            
@@ -2011,7 +2026,7 @@ int main(int argc, char* argv[])
     else
         fprintf(gpFile, "%s() => VK_KHR_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
 
-    if (macOsSurfaceExtensionFound == VK_FALSE)
+    if (metalSurfaceExtensionFound == VK_FALSE)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         fprintf(gpFile, "%s() => VK_EXT_METAL_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
@@ -2234,7 +2249,7 @@ int main(int argc, char* argv[])
     vkMetalSurfaceCreateInfoEXT.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
     vkMetalSurfaceCreateInfoEXT.pNext = NULL;
     vkMetalSurfaceCreateInfoEXT.flags = 0;
-    vkMetalSurfaceCreateInfoEXT.pLayer = (CAMetalLayer*)self.layer;
+    vkMetalSurfaceCreateInfoEXT.pLayer = (CAMetalLayer*)[gpView layer];
 
     //* Step - 4
     vkResult = vkCreateMetalSurfaceEXT(vkInstance, &vkMetalSurfaceCreateInfoEXT, NULL, &vkSurfaceKHR);
@@ -4674,14 +4689,14 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     if (fbo_height <= 0)
         fbo_height = 1;
 
-    if (bInitialized_fbo == FALSE)
+    if (bInitialized_fbo == NO)
     {
         fprintf(gpFile, "%s() => Initialization Not Yet Completed or Failed !!!\n", __func__);
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         return vkResult;
     }
 
-    bInitialized_fbo = FALSE;
+    bInitialized_fbo = NO;
     {
         fboWidth = fbo_width;
         fboHeight = fbo_height;
@@ -4836,7 +4851,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
         }
         //?--------------------------------------------------------------------------------------------------
     }
-    bInitialized_fbo = TRUE;
+    bInitialized_fbo = YES;
 
     return vkResult;
 }
@@ -5325,7 +5340,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
     vkImageViewCreateInfo.pNext = NULL;
     vkImageViewCreateInfo.flags = 0;
     vkImageViewCreateInfo.format = vkFormat_depth_fbo;
-    vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     vkImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
     vkImageViewCreateInfo.subresourceRange.levelCount = 1;
     vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;

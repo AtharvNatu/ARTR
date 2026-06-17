@@ -1685,7 +1685,7 @@ int main(int argc, char* argv[])
 
     //* Step - 5
     VkBool32 vulkanSurfaceExtensionFound = VK_FALSE;
-    VkBool32 macOsSurfaceExtensionFound = VK_FALSE;
+    VkBool32 metalSurfaceExtensionFound = VK_FALSE;
     VkBool32 vulkanPortabilityEnumerationExtensionFound = VK_FALSE;     //* Since Vulkan 1.3.216.0
     VkBool32 debugReportExtensionFound = VK_FALSE;
 
@@ -1699,7 +1699,7 @@ int main(int argc, char* argv[])
            
         if (strcmp(instanceExtensionNames_array[i], VK_EXT_METAL_SURFACE_EXTENSION_NAME) == 0)
         {
-            macOsSurfaceExtensionFound = VK_TRUE;
+            metalSurfaceExtensionFound = VK_TRUE;
             enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
         } 
            
@@ -1743,7 +1743,7 @@ int main(int argc, char* argv[])
     else
         fprintf(gpFile, "%s() => VK_KHR_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
 
-    if (macOsSurfaceExtensionFound == VK_FALSE)
+    if (metalSurfaceExtensionFound == VK_FALSE)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         fprintf(gpFile, "%s() => VK_EXT_METAL_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
@@ -1966,7 +1966,7 @@ int main(int argc, char* argv[])
     vkMetalSurfaceCreateInfoEXT.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
     vkMetalSurfaceCreateInfoEXT.pNext = NULL;
     vkMetalSurfaceCreateInfoEXT.flags = 0;
-    vkMetalSurfaceCreateInfoEXT.pLayer = (CAMetalLayer*)self.layer;
+    vkMetalSurfaceCreateInfoEXT.pLayer = (CAMetalLayer*)[gpView layer];
 
     //* Step - 4
     vkResult = vkCreateMetalSurfaceEXT(vkInstance, &vkMetalSurfaceCreateInfoEXT, NULL, &vkSurfaceKHR);
