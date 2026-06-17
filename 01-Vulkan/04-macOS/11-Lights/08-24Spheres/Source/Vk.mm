@@ -1,4 +1,5 @@
 // Header Files
+#include "vulkan/vulkan_core.h"
 #import <Foundation/Foundation.h>
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CVDisplayLink.h>    // For CoreVideo
@@ -39,7 +40,7 @@ NSView* gpView = nil;
 uint32_t enabledInstanceExtensionCount = 0;
 
 //* VK_KHR_SURFACE_EXTENSION_NAME,
-//* VK_MVK_MACOS_SURFACE_EXTENSION_NAME,
+//* VK_EXT_METAL_SURFACE_EXTENSION_NAME,
 //* VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
 //* VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 const char *enabledInstanceExtensionNames_array[4];
@@ -88,6 +89,12 @@ int winHeight = WIN_HEIGHT;
 uint32_t swapchainImageCount = UINT32_MAX;
 VkImage *swapchainImage_array = NULL;
 VkImageView *swapchainImageView_array = NULL;
+
+//? MSAA Color Image
+VkSampleCountFlagBits sampleCount_MSAA;
+VkImage vkImage_colorMSAA = VK_NULL_HANDLE;
+VkDeviceMemory vkDeviceMemory_colorMSAA = VK_NULL_HANDLE;
+VkImageView vkImageView_colorMSAA = VK_NULL_HANDLE;
 
 //? For Depth Image
 VkFormat vkFormat_depth = VK_FORMAT_UNDEFINED;
@@ -535,6 +542,9 @@ int main(int argc, char* argv[])
     else
         fprintf(gpFile, "%s() => printVkInfo() Succeeded\n", __func__);
 
+    //! Get Max MSAA Sample Count
+    sampleCount_MSAA = [self getMaxUsableSampleCount];
+
     //! Create Vulkan Device
     vkResult = [self createVulkanDevice];
     if (vkResult != VK_SUCCESS)
@@ -590,7 +600,7 @@ int main(int argc, char* argv[])
         fprintf(gpFile, "%s() => createCommandBuffers() Succeeded\n", __func__);
 
     //* Generate Sphere
-    sphere = new Sphere(1.5f, 50, 32);
+    sphere = new Sphere(1.5f, 128, 128);
     numVertices = sphere->get_number_of_vertices();
     numIndices = sphere->get_number_of_indices();
 
@@ -843,6 +853,25 @@ int main(int argc, char* argv[])
             vkRenderPass = VK_NULL_HANDLE;
         }
 
+        //* Destroying MSAA Color Image
+        if (vkImageView_colorMSAA)
+        {
+            vkDestroyImageView(vkDevice, vkImageView_colorMSAA, NULL);
+            vkImageView_colorMSAA = VK_NULL_HANDLE;
+        }
+
+        if (vkImage_colorMSAA)
+        {
+            vkDestroyImage(vkDevice, vkImage_colorMSAA, NULL);
+            vkImage_colorMSAA = VK_NULL_HANDLE;
+        }
+
+        if (vkDeviceMemory_colorMSAA)
+        {
+            vkFreeMemory(vkDevice, vkDeviceMemory_colorMSAA, NULL);
+            vkDeviceMemory_colorMSAA = VK_NULL_HANDLE;
+        }
+
         //* Destroying Depth Image
         if (vkImageView_depth)
         {
@@ -861,7 +890,6 @@ int main(int argc, char* argv[])
             vkFreeMemory(vkDevice, vkDeviceMemory_depth, NULL);
             vkDeviceMemory_depth = VK_NULL_HANDLE;
         }
-
         
         //* Destroy Swapchain Image and Image Views
         for (uint32_t i = 0; i < swapchainImageCount; i++)
@@ -1125,7 +1153,7 @@ int main(int argc, char* argv[])
     if (chosenAxis == 'x' || chosenAxis == 'y' || chosenAxis == 'z')
     {
         // Radians
-        lightAngle = lightAngle + 5.0f;
+        lightAngle = lightAngle + 0.02f;
         if (lightAngle > (float)(M_PI * 2.0f))
             lightAngle = lightAngle - (float)(M_PI * 2.0f);
     }
@@ -1336,6 +1364,28 @@ int main(int argc, char* argv[])
         vkDestroyCommandPool(vkDevice, vkCommandPool, NULL);
         vkCommandPool = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyCommandPool() Succeeded\n", __func__);
+    }
+
+    //* Destroying MSAA Color Image
+    if (vkImageView_colorMSAA)
+    {
+        vkDestroyImageView(vkDevice, vkImageView_colorMSAA, NULL);
+        vkImageView_colorMSAA = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyImageView() Succeeded For vkImageView_colorMSAA\n", __func__);
+    }
+
+    if (vkImage_colorMSAA)
+    {
+        vkDestroyImage(vkDevice, vkImage_colorMSAA, NULL);
+        vkImage_colorMSAA = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkDestroyImage() Succeeded For vkImage_colorMSAA\n", __func__);
+    }
+
+    if (vkDeviceMemory_colorMSAA)
+    {
+        vkFreeMemory(vkDevice, vkDeviceMemory_colorMSAA, NULL);
+        vkDeviceMemory_colorMSAA = VK_NULL_HANDLE;
+        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vkDeviceMemory_colorMSAA\n", __func__);
     }
 
     //* Destroying Depth Image
@@ -1626,10 +1676,10 @@ int main(int argc, char* argv[])
             enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_SURFACE_EXTENSION_NAME;
         }
            
-        if (strcmp(instanceExtensionNames_array[i], VK_MVK_MACOS_SURFACE_EXTENSION_NAME) == 0)
+        if (strcmp(instanceExtensionNames_array[i], VK_EXT_METAL_SURFACE_EXTENSION_NAME) == 0)
         {
             macOsSurfaceExtensionFound = VK_TRUE;
-            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_MVK_MACOS_SURFACE_EXTENSION_NAME;
+            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
         } 
            
         if (strcmp(instanceExtensionNames_array[i], VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
@@ -1675,11 +1725,11 @@ int main(int argc, char* argv[])
     if (macOsSurfaceExtensionFound == VK_FALSE)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        fprintf(gpFile, "%s() => VK_MVK_MACOS_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        fprintf(gpFile, "%s() => VK_EXT_METAL_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => VK_MVK_MACOS_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
+        fprintf(gpFile, "%s() => VK_EXT_METAL_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
 
     if (vulkanPortabilityEnumerationExtensionFound == VK_FALSE)
     {
@@ -1885,24 +1935,24 @@ int main(int argc, char* argv[])
     // Code
 
     //* Step - 1
-    VkMacOSSurfaceCreateInfoMVK vkMacOSSurfaceCreateInfoMVK;
+    VkMetalSurfaceCreateInfoEXT vkMetalSurfaceCreateInfoEXT;
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 2
-    memset((void*)&vkMacOSSurfaceCreateInfoMVK, 0, sizeof(VkMacOSSurfaceCreateInfoMVK));
+    memset((void*)&vkMetalSurfaceCreateInfoEXT, 0, sizeof(VkMetalSurfaceCreateInfoEXT));
 
     //* Step - 3
-    vkMacOSSurfaceCreateInfoMVK.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-    vkMacOSSurfaceCreateInfoMVK.pNext = NULL;
-    vkMacOSSurfaceCreateInfoMVK.flags = 0;
-    vkMacOSSurfaceCreateInfoMVK.pView = gpView;
+    vkMetalSurfaceCreateInfoEXT.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+    vkMetalSurfaceCreateInfoEXT.pNext = NULL;
+    vkMetalSurfaceCreateInfoEXT.flags = 0;
+    vkMetalSurfaceCreateInfoEXT.pLayer = (CAMetalLayer*)self.layer;
 
     //* Step - 4
-    vkResult = vkCreateMacOSSurfaceMVK(vkInstance, &vkMacOSSurfaceCreateInfoMVK, NULL, &vkSurfaceKHR);
+    vkResult = vkCreateMetalSurfaceEXT(vkInstance, &vkMetalSurfaceCreateInfoEXT, NULL, &vkSurfaceKHR);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateMacOSSurfaceMVK() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateMetalSurfaceEXT() Failed : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateMacOSSurfaceMVK() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateMetalSurfaceEXT() Succeeded\n", __func__);
 
     return vkResult;
 }
@@ -2224,6 +2274,32 @@ int main(int argc, char* argv[])
         vkPhysicalDevice_array = NULL;
     }
     return vkResult;
+}
+
+-(VkSampleCountFlagBits) getMaxUsableSampleCount
+{
+    // Code
+    VkPhysicalDeviceProperties vkPhysicalDeviceProperties;
+    vkGetPhysicalDeviceProperties(vkPhysicalDevice_selected, &vkPhysicalDeviceProperties);
+
+    VkSampleCountFlags vkSampleCountFlags = 
+    vkPhysicalDeviceProperties.limits.framebufferColorSampleCounts & 
+    vkPhysicalDeviceProperties.limits.framebufferDepthSampleCounts;
+
+    if (vkSampleCountFlags & VK_SAMPLE_COUNT_64_BIT)
+        return VK_SAMPLE_COUNT_64_BIT;
+    if (vkSampleCountFlags & VK_SAMPLE_COUNT_32_BIT)
+        return VK_SAMPLE_COUNT_32_BIT;
+    if (vkSampleCountFlags & VK_SAMPLE_COUNT_16_BIT)
+        return VK_SAMPLE_COUNT_16_BIT;
+    if (vkSampleCountFlags & VK_SAMPLE_COUNT_8_BIT) 
+        return VK_SAMPLE_COUNT_8_BIT;
+    if (vkSampleCountFlags & VK_SAMPLE_COUNT_4_BIT) 
+        return VK_SAMPLE_COUNT_4_BIT;
+    if (vkSampleCountFlags & VK_SAMPLE_COUNT_2_BIT) 
+        return VK_SAMPLE_COUNT_2_BIT;
+
+    return VK_SAMPLE_COUNT_1_BIT;
 }
 
 -(VkResult) fillDeviceExtensionNames
@@ -2747,7 +2823,113 @@ int main(int argc, char* argv[])
             fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For Index : %d\n", __func__, i);
     }
 
-    //! For Depth Image
+    //! MSAA Color Image
+    //! ----------------------------------------------------------------------------------------------------------------
+    VkImageCreateInfo vkImageCreateInfo;
+    memset((void*)&vkImageCreateInfo, 0, sizeof(VkImageCreateInfo));
+    vkImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    vkImageCreateInfo.pNext = NULL;
+    vkImageCreateInfo.flags = 0;
+    vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+    vkImageCreateInfo.format = vkFormat_color;
+    vkImageCreateInfo.extent.width = vkExtent2D_swapchain.width;
+    vkImageCreateInfo.extent.height = vkExtent2D_swapchain.height;
+    vkImageCreateInfo.extent.depth = 1;
+    vkImageCreateInfo.mipLevels = 1;
+    vkImageCreateInfo.arrayLayers = 1;
+    vkImageCreateInfo.samples = sampleCount_MSAA;
+    vkImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    vkImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    vkImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vkImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    vkResult = vkCreateImage(vkDevice, &vkImageCreateInfo, NULL, &vkImage_colorMSAA);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateImage() Failed For MSAA Color Image : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateImage() Succeeded For MSAA Color Image\n", __func__);
+
+    VkMemoryRequirements vkMemoryRequirements;
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetImageMemoryRequirements(vkDevice, vkImage_colorMSAA, &vkMemoryRequirements);
+
+    VkMemoryAllocateInfo vkMemoryAllocateInfo;
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+
+    VkBool32 foundMatchingMemoryType_colorMSAA = VK_FALSE;
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            {
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                foundMatchingMemoryType_colorMSAA = VK_TRUE;
+                break;
+            }
+        }
+
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Check For memoryTypeIndex != 0 On MoltenVK
+    if (foundMatchingMemoryType_colorMSAA == VK_FALSE)
+    {
+        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        fprintf(gpFile, "%s() => Device Local Memory Not Found For MSAA Color Image : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vkDeviceMemory_colorMSAA);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For MSAA Color Image : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }     
+    else
+        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For MSAA Color Image\n", __func__);
+
+    vkResult = vkBindImageMemory(vkDevice, vkImage_colorMSAA, vkDeviceMemory_colorMSAA, 0);
+    if (vkResult != VK_SUCCESS)
+    {
+        fprintf(gpFile, "%s() => vkBindImageMemory() Failed For MSAA Color Image : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        fprintf(gpFile, "%s() => vkBindImageMemory() Succeeded For MSAA Color Image\n", __func__);
+
+    //* Create Image View
+    memset((void*)&vkImageViewCreateInfo, 0, sizeof(VkImageViewCreateInfo));
+    vkImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    vkImageViewCreateInfo.pNext = NULL;
+    vkImageViewCreateInfo.flags = 0;
+    vkImageViewCreateInfo.format = vkFormat_color;
+    vkImageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+    vkImageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+    vkImageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+    vkImageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+    vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    vkImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+    vkImageViewCreateInfo.subresourceRange.levelCount = 1;
+    vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+    vkImageViewCreateInfo.subresourceRange.layerCount = 1;
+    vkImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    vkImageViewCreateInfo.image = vkImage_colorMSAA;
+
+    //* Step - 6
+    vkResult = vkCreateImageView(vkDevice, &vkImageViewCreateInfo, NULL, &vkImageView_colorMSAA);
+    if (vkResult != VK_SUCCESS)
+        fprintf(gpFile, "%s() => vkCreateImageView() Failed For MSAA Color Image : %d !!!\n", __func__, vkResult);
+    else
+        fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For MSAA Color Image\n", __func__);
+    //! ----------------------------------------------------------------------------------------------------------------
+
+    //! MSAA Depth Image
+    //! ----------------------------------------------------------------------------------------------------------------
     vkResult = [self getSupportedDepthFormat];
     if (vkResult != VK_SUCCESS)
     {
@@ -2758,7 +2940,6 @@ int main(int argc, char* argv[])
         fprintf(gpFile, "%s() => getSupportedDepthFormat() Succeded\n", __func__);
 
     //* For Depth Image, initialize VkImageCreateInfo
-    VkImageCreateInfo vkImageCreateInfo;
     memset((void*)&vkImageCreateInfo, 0, sizeof(VkImageCreateInfo));
     vkImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     vkImageCreateInfo.pNext = NULL;
@@ -2770,22 +2951,22 @@ int main(int argc, char* argv[])
     vkImageCreateInfo.extent.depth = 1;
     vkImageCreateInfo.mipLevels = 1;
     vkImageCreateInfo.arrayLayers = 1;
-    vkImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    vkImageCreateInfo.samples = sampleCount_MSAA;
     vkImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    vkImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    vkImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     vkImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
     vkResult = vkCreateImage(vkDevice, &vkImageCreateInfo, NULL, &vkImage_depth);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateImage() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateImage() Failed For Depth Image : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateImage() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateImage() Succeeded For Depth Image\n", __func__);
 
     //! Memory Requirements For Depth Image
-    VkMemoryRequirements vkMemoryRequirements;
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
     vkGetImageMemoryRequirements(vkDevice, vkImage_depth, &vkMemoryRequirements);
 
-    VkMemoryAllocateInfo vkMemoryAllocateInfo;
     memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
     vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     vkMemoryAllocateInfo.pNext = NULL;
@@ -2793,7 +2974,6 @@ int main(int argc, char* argv[])
     vkMemoryAllocateInfo.memoryTypeIndex = 0;
 
     VkBool32 foundMatchingMemoryType_depth = VK_FALSE;
-
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
@@ -2813,7 +2993,7 @@ int main(int argc, char* argv[])
     if (foundMatchingMemoryType_depth == VK_FALSE)
     {
         vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
-        fprintf(gpFile, "%s() => Device Local Memory Not Found : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => Device Local Memory Not Found For Depth Image : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
 
@@ -2863,6 +3043,7 @@ int main(int argc, char* argv[])
         fprintf(gpFile, "%s() => vkCreateImageView() Failed For Depth : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For Depth\n", __func__);
+    //! ----------------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
@@ -3748,42 +3929,60 @@ int main(int argc, char* argv[])
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 1
-    VkAttachmentDescription vkAttachmentDescription_array[2];   //! Size changed to 2 to accomodate depth
+    VkAttachmentDescription vkAttachmentDescription_array[3];
     memset((void*)vkAttachmentDescription_array, 0, sizeof(VkAttachmentDescription) * _ARRAYSIZE(vkAttachmentDescription_array));
 
-    //! Color Attachment (Graphics Pipeline)
+    //! MSAA Color Attachment
     vkAttachmentDescription_array[0].flags = 0;
     vkAttachmentDescription_array[0].format = vkFormat_color;
-    vkAttachmentDescription_array[0].samples = VK_SAMPLE_COUNT_1_BIT; //* No MSAA
+    vkAttachmentDescription_array[0].samples = sampleCount_MSAA;
     vkAttachmentDescription_array[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    vkAttachmentDescription_array[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    vkAttachmentDescription_array[0].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     vkAttachmentDescription_array[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     vkAttachmentDescription_array[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     vkAttachmentDescription_array[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    vkAttachmentDescription_array[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    vkAttachmentDescription_array[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    //! Depth Attachment
+    //* This is the framebuffer attachment to where the MSAA image will be resolved to and which will be presented to the swapchin
+    //! Resolve Color Attachment (Graphics Pipeline)
     vkAttachmentDescription_array[1].flags = 0;
-    vkAttachmentDescription_array[1].format = vkFormat_depth;
-    vkAttachmentDescription_array[1].samples = VK_SAMPLE_COUNT_1_BIT;
+    vkAttachmentDescription_array[1].format = vkFormat_color;
+    vkAttachmentDescription_array[1].samples = VK_SAMPLE_COUNT_1_BIT; //* No MSAA
     vkAttachmentDescription_array[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     vkAttachmentDescription_array[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     vkAttachmentDescription_array[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     vkAttachmentDescription_array[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     vkAttachmentDescription_array[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    vkAttachmentDescription_array[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    vkAttachmentDescription_array[1].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    //! MSAA Depth Attachment
+    vkAttachmentDescription_array[2].flags = 0;
+    vkAttachmentDescription_array[2].format = vkFormat_depth;
+    vkAttachmentDescription_array[2].samples = sampleCount_MSAA;
+    vkAttachmentDescription_array[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    vkAttachmentDescription_array[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    vkAttachmentDescription_array[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    vkAttachmentDescription_array[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vkAttachmentDescription_array[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vkAttachmentDescription_array[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     //* Step - 2
-    //! Color Attachment Reference
+    //! MSAA Color Attachment Reference
     VkAttachmentReference vkAttachmentReference_color;
     memset((void*)&vkAttachmentReference_color, 0, sizeof(VkAttachmentReference));
     vkAttachmentReference_color.attachment = 0;   //* 0 specifies 0th index in above array
     vkAttachmentReference_color.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+    //! Resolove Attachment Reference
+    VkAttachmentReference vkAttachmentReference_resolve;
+    memset((void*)&vkAttachmentReference_resolve, 0, sizeof(VkAttachmentReference));
+    vkAttachmentReference_resolve.attachment = 1;   //* 1 specifies 1st index in above array
+    vkAttachmentReference_resolve.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
     //! Depth Attachment Reference
     VkAttachmentReference vkAttachmentReference_depth;
     memset((void*)&vkAttachmentReference_depth, 0, sizeof(VkAttachmentReference));
-    vkAttachmentReference_depth.attachment = 1;   //* 1 specifies 1st index in above array
+    vkAttachmentReference_depth.attachment = 2;   //* 2 specifies 2nd index in above array
     vkAttachmentReference_depth.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     //* Step - 3
@@ -3795,9 +3994,9 @@ int main(int argc, char* argv[])
     vkSubpassDescription.pInputAttachments = NULL;
     vkSubpassDescription.colorAttachmentCount = 1;  //! This should be the count of vkAttachmentReference used for color
     vkSubpassDescription.pColorAttachments = &vkAttachmentReference_color;
+    vkSubpassDescription.pResolveAttachments = &vkAttachmentReference_resolve;
     vkSubpassDescription.pDepthStencilAttachment = &vkAttachmentReference_depth;
     vkSubpassDescription.pPreserveAttachments = NULL;
-    vkSubpassDescription.pResolveAttachments = NULL;
 
     //! Explicit subpass dependencies are defined below to prevent synchronization validation errors. 
     //! While the application may function without them and bypass core validation, 
@@ -3811,7 +4010,7 @@ int main(int argc, char* argv[])
     vkSubpassDependency_array[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     vkSubpassDependency_array[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     vkSubpassDependency_array[0].srcAccessMask = 0;
-    vkSubpassDependency_array[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    vkSubpassDependency_array[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
     vkSubpassDependency_array[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     //! Depth Subpass Dependency
@@ -3820,7 +4019,7 @@ int main(int argc, char* argv[])
     vkSubpassDependency_array[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
     vkSubpassDependency_array[1].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
     vkSubpassDependency_array[1].srcAccessMask = 0;
-    vkSubpassDependency_array[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    vkSubpassDependency_array[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
     vkSubpassDependency_array[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     //* Step - 4
@@ -3981,7 +4180,12 @@ int main(int argc, char* argv[])
     vkPipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     vkPipelineMultisampleStateCreateInfo.pNext = NULL;
     vkPipelineMultisampleStateCreateInfo.flags = 0;
-    vkPipelineMultisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    vkPipelineMultisampleStateCreateInfo.rasterizationSamples = sampleCount_MSAA;
+    vkPipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
+    vkPipelineMultisampleStateCreateInfo.minSampleShading = 1.0f;
+    vkPipelineMultisampleStateCreateInfo.pSampleMask = NULL;
+    vkPipelineMultisampleStateCreateInfo.alphaToCoverageEnable = VK_FALSE;
+    vkPipelineMultisampleStateCreateInfo.alphaToOneEnable = VK_FALSE;
 
     //! Shader Stage State
     VkPipelineShaderStageCreateInfo vkPipelineShaderStageCreateInfo_array[2];
@@ -4078,7 +4282,7 @@ int main(int argc, char* argv[])
     for (uint32_t i = 0; i < swapchainImageCount; i++)
     {
         //* Step - 3
-        VkImageView vkImageView_attachments_array[2];
+        VkImageView vkImageView_attachments_array[3];
         memset((void*)vkImageView_attachments_array, 0, sizeof(VkImageView) * _ARRAYSIZE(vkImageView_attachments_array));
 
         //* Step - 4
@@ -4094,8 +4298,9 @@ int main(int argc, char* argv[])
         vkFramebufferCreateInfo.height = vkExtent2D_swapchain.height;
         vkFramebufferCreateInfo.layers = 1;
 
-        vkImageView_attachments_array[0] = swapchainImageView_array[i];
-        vkImageView_attachments_array[1] = vkImageView_depth;
+        vkImageView_attachments_array[0] = vkImageView_colorMSAA;
+        vkImageView_attachments_array[1] = swapchainImageView_array[i];
+        vkImageView_attachments_array[2] = vkImageView_depth;
 
         vkResult = vkCreateFramebuffer(vkDevice, &vkFramebufferCreateInfo, NULL, &vkFramebuffer_array[i]);
         if (vkResult != VK_SUCCESS)
@@ -4217,10 +4422,11 @@ int main(int argc, char* argv[])
             fprintf(gpFile, "%s() => vkBeginCommandBuffer() Succeeded For Index : %d\n", __func__, i);
 
         //* Step - 4 => Set Clear Value
-        VkClearValue vkClearValue_array[2];
+        VkClearValue vkClearValue_array[3];
         memset((void*)vkClearValue_array, 0, sizeof(VkClearValue) * _ARRAYSIZE(vkClearValue_array));
         vkClearValue_array[0].color = vkClearColorValue;
-        vkClearValue_array[1].depthStencil = vkClearDepthStencilValue;
+        vkClearValue_array[1].color = vkClearColorValue;
+        vkClearValue_array[2].depthStencil = vkClearDepthStencilValue;
 
         //* Step - 5
         VkRenderPassBeginInfo vkRenderPassBeginInfo;
@@ -4288,10 +4494,10 @@ int main(int argc, char* argv[])
             
             //! First Sphere -> Emerald
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 30.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 50.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 30.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4322,10 +4528,10 @@ int main(int argc, char* argv[])
 
             //! Second Sphere -> Jade
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 120.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 50.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 120.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4356,10 +4562,10 @@ int main(int argc, char* argv[])
 
             //! Third Sphere -> Obsidian
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 210.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 50.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 210.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4390,10 +4596,10 @@ int main(int argc, char* argv[])
 
             //! Fourth Sphere -> Pearl
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 300.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 50.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 300.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4424,10 +4630,10 @@ int main(int argc, char* argv[])
 
             //! Fifth Sphere -> Ruby
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 390.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 50.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 390.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4458,10 +4664,10 @@ int main(int argc, char* argv[])
 
             //! Sixth Sphere -> Turquoise
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 50.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 480.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 50.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 480.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4494,10 +4700,10 @@ int main(int argc, char* argv[])
 
             //! First Sphere -> Brass
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 30.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 250.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 30.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4528,10 +4734,10 @@ int main(int argc, char* argv[])
 
             //! Second Sphere -> Bronze
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 120.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 250.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 120.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4562,10 +4768,10 @@ int main(int argc, char* argv[])
 
             //! Third Sphere -> Chrome
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 210.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 250.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 210.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4596,10 +4802,10 @@ int main(int argc, char* argv[])
 
             //! Fourth Sphere -> Copper
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 300.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 250.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 300.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4630,10 +4836,10 @@ int main(int argc, char* argv[])
 
             //! Fifth Sphere -> Gold
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 390.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 250.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 390.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4664,10 +4870,10 @@ int main(int argc, char* argv[])
 
             //! Sixth Sphere -> Silver
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 250.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 480.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 250.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 480.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4701,10 +4907,10 @@ int main(int argc, char* argv[])
             
             //! First Sphere -> Black
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 30.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 450.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 30.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4735,10 +4941,10 @@ int main(int argc, char* argv[])
 
             //! Second Sphere -> Cyan
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 120.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 450.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 120.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4769,10 +4975,10 @@ int main(int argc, char* argv[])
 
             //! Third Sphere -> Green
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 210.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 450.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 210.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4803,10 +5009,10 @@ int main(int argc, char* argv[])
 
             //! Fourth Sphere -> Red
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 300.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 450.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 300.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4837,10 +5043,10 @@ int main(int argc, char* argv[])
 
             //! Fifth Sphere -> White
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 390.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 450.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 390.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4871,10 +5077,10 @@ int main(int argc, char* argv[])
 
             //! Sixth Sphere -> Yellow
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 450.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 480.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 450.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 480.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4907,10 +5113,10 @@ int main(int argc, char* argv[])
             
             //! First Sphere -> Black
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 30.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 650.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 30.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4941,10 +5147,10 @@ int main(int argc, char* argv[])
 
             //! Second Sphere -> Jade
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 120.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 650.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 120.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -4975,10 +5181,10 @@ int main(int argc, char* argv[])
 
             //! Third Sphere -> Green
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 210.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 650.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 210.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -5009,10 +5215,10 @@ int main(int argc, char* argv[])
 
             //! Fourth Sphere -> Red
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 300.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 650.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 300.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -5043,10 +5249,10 @@ int main(int argc, char* argv[])
 
             //! Fifth Sphere -> White
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 390.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 650.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 390.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 
@@ -5077,10 +5283,10 @@ int main(int argc, char* argv[])
 
             //! Sixth Sphere -> Yellow
             memset((void*)&vkViewport, 0, sizeof(VkViewport));
-            vkViewport.x = 650.0f * (float)winWidth / 800.0f;
-            vkViewport.y = 480.0f * (float)winHeight / 600.0f;
-            vkViewport.width = (float)winWidth / 8.0f;
-            vkViewport.height = (float)winHeight / 8.0f;
+            vkViewport.x = 650.0f * (float)vkExtent2D_swapchain.width / 800.0f;
+            vkViewport.y = 480.0f * (float)vkExtent2D_swapchain.height / 600.0f;
+            vkViewport.width = (float)vkExtent2D_swapchain.width / 8.0f;
+            vkViewport.height = (float)vkExtent2D_swapchain.height / 8.0f;
             vkViewport.minDepth = 0.0f;
             vkViewport.maxDepth = 1.0f;
 

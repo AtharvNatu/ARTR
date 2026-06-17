@@ -208,7 +208,6 @@ VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
 VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
 
 //? Pipeline Related Variables
-VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
@@ -4269,6 +4268,7 @@ VkResult buildCommandBuffers(void)
 {
     // Code
     VkResult vkResult = VK_SUCCESS;
+    VkViewport vkViewport;
 
     //! Loop per swapchain image
     for (uint32_t i = 0; i < swapchainImageCount; i++)

@@ -39,7 +39,7 @@ NSView* gpView = nil;
 uint32_t enabledInstanceExtensionCount = 0;
 
 //* VK_KHR_SURFACE_EXTENSION_NAME,
-//* VK_MVK_MACOS_SURFACE_EXTENSION_NAME,
+//* VK_EXT_METAL_SURFACE_EXTENSION_NAME,
 //* VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
 //* VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 const char *enabledInstanceExtensionNames_array[4];
@@ -565,7 +565,7 @@ int main(int argc, char* argv[])
         fprintf(gpFile, "%s() => createCommandBuffers() Succeeded\n", __func__);
 
     //* Generate Sphere
-    sphere = new Sphere(1.5f, 50, 32);
+    sphere = new Sphere(1.5f, 50, 16);
     numVertices = sphere->get_number_of_vertices();
     numIndices = sphere->get_number_of_indices();
 
@@ -1594,10 +1594,10 @@ int main(int argc, char* argv[])
             enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_SURFACE_EXTENSION_NAME;
         }
            
-        if (strcmp(instanceExtensionNames_array[i], VK_MVK_MACOS_SURFACE_EXTENSION_NAME) == 0)
+        if (strcmp(instanceExtensionNames_array[i], VK_EXT_METAL_SURFACE_EXTENSION_NAME) == 0)
         {
             macOsSurfaceExtensionFound = VK_TRUE;
-            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_MVK_MACOS_SURFACE_EXTENSION_NAME;
+            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
         } 
            
         if (strcmp(instanceExtensionNames_array[i], VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
@@ -1643,11 +1643,11 @@ int main(int argc, char* argv[])
     if (macOsSurfaceExtensionFound == VK_FALSE)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        fprintf(gpFile, "%s() => VK_MVK_MACOS_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        fprintf(gpFile, "%s() => VK_EXT_METAL_SURFACE_EXTENSION_NAME Extension Not Found !!!\n", __func__);
         return vkResult;
     }
     else
-        fprintf(gpFile, "%s() => VK_MVK_MACOS_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
+        fprintf(gpFile, "%s() => VK_EXT_METAL_SURFACE_EXTENSION_NAME Extension Found\n", __func__);
 
     if (vulkanPortabilityEnumerationExtensionFound == VK_FALSE)
     {
@@ -1853,24 +1853,24 @@ int main(int argc, char* argv[])
     // Code
 
     //* Step - 1
-    VkMacOSSurfaceCreateInfoMVK vkMacOSSurfaceCreateInfoMVK;
+    VkMetalSurfaceCreateInfoEXT vkMetalSurfaceCreateInfoEXT;
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 2
-    memset((void*)&vkMacOSSurfaceCreateInfoMVK, 0, sizeof(VkMacOSSurfaceCreateInfoMVK));
+    memset((void*)&vkMetalSurfaceCreateInfoEXT, 0, sizeof(VkMetalSurfaceCreateInfoEXT));
 
     //* Step - 3
-    vkMacOSSurfaceCreateInfoMVK.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-    vkMacOSSurfaceCreateInfoMVK.pNext = NULL;
-    vkMacOSSurfaceCreateInfoMVK.flags = 0;
-    vkMacOSSurfaceCreateInfoMVK.pView = gpView;
+    vkMetalSurfaceCreateInfoEXT.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+    vkMetalSurfaceCreateInfoEXT.pNext = NULL;
+    vkMetalSurfaceCreateInfoEXT.flags = 0;
+    vkMetalSurfaceCreateInfoEXT.pLayer = (CAMetalLayer*)self.layer;
 
     //* Step - 4
-    vkResult = vkCreateMacOSSurfaceMVK(vkInstance, &vkMacOSSurfaceCreateInfoMVK, NULL, &vkSurfaceKHR);
+    vkResult = vkCreateMetalSurfaceEXT(vkInstance, &vkMetalSurfaceCreateInfoEXT, NULL, &vkSurfaceKHR);
     if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateMacOSSurfaceMVK() Failed : %d !!!\n", __func__, vkResult);
+        fprintf(gpFile, "%s() => vkCreateMetalSurfaceEXT() Failed : %d !!!\n", __func__, vkResult);
     else
-        fprintf(gpFile, "%s() => vkCreateMacOSSurfaceMVK() Succeeded\n", __func__);
+        fprintf(gpFile, "%s() => vkCreateMetalSurfaceEXT() Succeeded\n", __func__);
 
     return vkResult;
 }

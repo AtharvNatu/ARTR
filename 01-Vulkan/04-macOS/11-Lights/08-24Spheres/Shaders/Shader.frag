@@ -7,7 +7,7 @@ layout(location = 2) in vec3 viewerVector;
 
 layout(location = 0) out vec4 FragColor;
 
-layout(binding = 0) uniform uniformData 
+layout(binding = 0) uniform ubo 
 {
     // Matrices Related Uniforms
     mat4 modelMatrix;
@@ -20,32 +20,34 @@ layout(binding = 0) uniform uniformData
     vec4 lightSpecular;
     vec4 lightPosition;
 
-    // Material Related Uniforms
+    // Key Press Related Uniform
+    uint keyPressed;
+
+} uniformData;
+
+layout(push_constant) uniform PushModel
+{
     vec4 materialAmbient;
     vec4 materialDiffuse;
     vec4 materialSpecular;
     float materialShininess;
 
-    // Key Press Related Uniform
-    uint keyPressed;
-
-} ubo;
+} pushData;
 
 void main(void)
 {
     // Code
     vec3 phong_ads_light;
 
-    if (ubo.keyPressed == 1)
+    if (uniformData.keyPressed == 1)
     {
+        vec4 ambient = uniformData.lightAmbient * pushData.materialAmbient;
         vec3 normalizedTransformedNormals = normalize(transformedNormals);
         vec3 normalizedLightDirection = normalize(lightDirection);
-        vec3 normalizedViewerVector = normalize(viewerVector);
-
-        vec4 ambient = ubo.lightAmbient * ubo.materialAmbient;
-        vec4 diffuse = ubo.lightDiffuse * ubo.materialDiffuse * max(dot(normalizedLightDirection, normalizedTransformedNormals), 0.0);
+        vec4 diffuse = uniformData.lightDiffuse * pushData.materialDiffuse * max(dot(normalizedLightDirection, normalizedTransformedNormals), 0.0);
         vec3 reflectionVector = reflect(-normalizedLightDirection, normalizedTransformedNormals);
-        vec4 specular = ubo.lightSpecular * ubo.materialSpecular * pow(max(dot(reflectionVector, normalizedViewerVector), 0.0), ubo.materialShininess);
+        vec3 normalizedViewerVector = normalize(viewerVector);
+        vec4 specular = uniformData.lightSpecular * pushData.materialSpecular * pow(max(dot(reflectionVector, normalizedViewerVector), 0.0), pushData.materialShininess);
 
         phong_ads_light = vec3(ambient) + vec3(diffuse) + vec3(specular);
     }
