@@ -21,9 +21,7 @@
     
     // Verify that the provided scene is of type UIWindowScene
     if ([scene isKindOfClass:[UIWindowScene class]] == NO)
-    {
         return;
-    }
     
     // Cast and store the scene as a UIWindowScene instance
     windowScene = (UIWindowScene*)scene;
@@ -35,7 +33,7 @@
     [window setBackgroundColor:[UIColor blackColor]];
     
     // Create our custom view controller which will work as main view controller for all views - Root View Controller
-    viewController = [[viewController alloc]init];
+    viewController = [[ViewController alloc]init];
     
     // Set viewController as our Window's Root View Controller
     [window setRootViewController:viewController];
@@ -46,7 +44,7 @@
     // Create a custom view with dimensions equal to the scene's bounds
     rect = [[[windowScene effectiveGeometry] coordinateSpace] bounds];
     
-    view = [[view alloc]initWithFrame:rect];
+    view = [[View alloc]initWithFrame:rect];
     
     // Set this view as the view controller's view
     [viewController setView:view];
