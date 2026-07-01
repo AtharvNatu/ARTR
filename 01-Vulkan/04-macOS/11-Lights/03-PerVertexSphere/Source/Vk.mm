@@ -7,9 +7,6 @@
 //! Vulkan Related MoltenVk Header
 #include <MoltenVK/mvk_vulkan.h>
 
-//! Vulkan Specific Header File
-#include <vulkan/vulkan.h>
-
 //! GLM Related Macros and Header Files
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -1502,7 +1499,7 @@ int main(int argc, char* argv[])
     vkInstanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     vkInstanceCreateInfo.pNext = NULL;
 
-    //! Following flag is needed, if Khronos Vulkan ICD Loader is used instead of linking with MoltenVk Framework
+    // ! The following flag must be specified when using the Khronos Vulkan ICD Loader instead of linking directly against the MoltenVK Framework
     vkInstanceCreateInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     vkInstanceCreateInfo.pApplicationInfo = &vkApplicationInfo;
     vkInstanceCreateInfo.enabledExtensionCount = enabledInstanceExtensionCount;
