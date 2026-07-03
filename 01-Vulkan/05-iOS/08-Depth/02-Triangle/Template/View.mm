@@ -465,7 +465,7 @@ VkPipeline vkPipeline = VK_NULL_HANDLE;
     else
         printf("%s() => createShaders() Succeeded\n", __func__);
 
-    //! Create DescriptorSetLayout
+    //! Create Descriptor Set Layout
     vkResult = [self createDescriptorSetLayout];
     if (vkResult != VK_SUCCESS)
     {

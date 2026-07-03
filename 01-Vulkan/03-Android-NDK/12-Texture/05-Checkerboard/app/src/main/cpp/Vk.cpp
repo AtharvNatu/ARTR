@@ -673,7 +673,7 @@ VkResult initialize(void)
     else
         __android_log_print(ANDROID_LOG_INFO, "ADN:", "%s() => createShaders() Succeeded\n", __func__);
 
-    //! Create DescriptorSetLayout
+    //! Create Descriptor Set Layout
     vkResult = createDescriptorSetLayout();
     if (vkResult != VK_SUCCESS)
     {

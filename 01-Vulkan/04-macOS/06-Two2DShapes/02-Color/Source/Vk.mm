@@ -562,7 +562,7 @@ int main(int argc, char* argv[])
     else
         fprintf(gpFile, "%s() => createShaders() Succeeded\n", __func__);
 
-    //! Create DescriptorSetLayout
+    //! Create Descriptor Set Layout
     vkResult = [self createDescriptorSetLayout];
     if (vkResult != VK_SUCCESS)
     {
@@ -1141,6 +1141,7 @@ int main(int argc, char* argv[])
     {
         vkDestroyDescriptorPool(vkDevice, vkDescriptorPool, NULL);
         vkDescriptorPool = VK_NULL_HANDLE;
+        vkDescriptorSet_rectangle = VK_NULL_HANDLE;
         vkDescriptorSet_triangle = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet_triangle Successfully\n", __func__);
     }
@@ -3868,7 +3869,6 @@ int main(int argc, char* argv[])
     vkVertexInputAttributeDescription_array[1].location = 1;
     vkVertexInputAttributeDescription_array[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     vkVertexInputAttributeDescription_array[1].offset = 0;
-
 
     VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo;
     memset((void*)&vkPipelineVertexInputStateCreateInfo, 0, sizeof(VkPipelineVertexInputStateCreateInfo));

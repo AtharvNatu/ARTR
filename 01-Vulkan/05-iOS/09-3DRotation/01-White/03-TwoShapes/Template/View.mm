@@ -1,8 +1,4 @@
-// Header Files
-#import <Foundation/Foundation.h>
-#import <Cocoa/Cocoa.h>
-#import <QuartzCore/CVDisplayLink.h>    // For CoreVideo
-#import <QuartzCore/CAMetalLayer.h>     // Metal-Based Core Animation Layer
+#import "View.h"
 
 //! Vulkan Related MoltenVk Header
 #include <MoltenVK/mvk_vulkan.h>
@@ -14,31 +10,23 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Macros
-#define WIN_WIDTH           1000
-#define WIN_HEIGHT          800
 #define _ARRAYSIZE(x)       (sizeof(x) / sizeof((x)[0]))
 
 // Global Variable Declarations
-BOOL bActiveWindow = NO;
-BOOL bFullscreen = NO;
-BOOL bWindowMinimized = NO;
-
-char gszLogFileName[] = "Log.txt";
+int winWidth = 0;
+int winHeight = 0;
 const char *gpSzAppName = "ARTR";
-FILE *gpFile = NULL;
-NSView* gpView = nil;
 
 //! Vulkan Related Global Variables
-
-//? Instance Extension Related Variables
 uint32_t enabledInstanceExtensionCount = 0;
-VkBool32 vulkanPortabilityEnumerationExtensionFound = VK_FALSE;     //* Since Vulkan 1.3.216.0
 
 //* VK_KHR_SURFACE_EXTENSION_NAME,
 //* VK_EXT_METAL_SURFACE_EXTENSION_NAME,
 //* VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
-//* VK_EXT_DEBUG_REPORT_EXTENSION_NAME
-const char *enabledInstanceExtensionNames_array[4];
+//* VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+//* VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+const char *enabledInstanceExtensionNames_array[5];
+VkBool32 vulkanPortabilityEnumerationExtensionFound = VK_FALSE;
 
 //? Vulkan Instance
 VkInstance vkInstance = VK_NULL_HANDLE;
@@ -59,7 +47,7 @@ uint32_t enabledDeviceExtensionCount = 0;
 
 //* VK_KHR_SWAPCHAIN_EXTENSTION_NAME,
 //* VK_KHR_PORTABILITY_SUBSET_EXTENSTION_NAME
-const char *enabledDeviceExtensionNames_array[2]; 
+const char *enabledDeviceExtensionNames_array[2];
 
 //? Vulkan Device Creation Related Variables
 VkDevice vkDevice = VK_NULL_HANDLE;
@@ -77,8 +65,6 @@ VkPresentModeKHR vkPresentModeKHR = VK_PRESENT_MODE_FIFO_KHR;
 //? Swapchain
 VkSwapchainKHR vkSwapchainKHR = VK_NULL_HANDLE;
 VkExtent2D vkExtent2D_swapchain;
-int winWidth = WIN_WIDTH;
-int winHeight = WIN_HEIGHT;
 
 //? Swapchain Images and Image Views -> For Color Images
 uint32_t swapchainImageCount = UINT32_MAX;
@@ -120,8 +106,8 @@ uint32_t currentImageIndex = UINT32_MAX;
 BOOL bValidation = YES;
 uint32_t enabledValidationLayerCount = 0;
 const char *enabledValidationLayerNames_array[1];   //* For VK_LAYER_KHRONOS_validation
-VkDebugReportCallbackEXT vkDebugReportCallbackEXT = VK_NULL_HANDLE;
-PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT_fnptr = NULL;
+VkDebugUtilsMessengerEXT vkDebugUtilsMessengerEXT = VK_NULL_HANDLE;
+PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT_fnptr = NULL;
 
 //? Vertex Buffer Related Variables
 typedef struct
@@ -131,7 +117,8 @@ typedef struct
 } VertexData;
 
 //? Position Related Variables
-VertexData vertexData_position;
+VertexData vertexData_position_pyramid;
+VertexData vertexData_position_cube;
 
 //? Uniform Related Variables
 typedef struct
@@ -147,7 +134,8 @@ typedef struct
     VkDeviceMemory vkDeviceMemory;
 } UniformData;
 
-UniformData uniformData;
+UniformData uniformData_pyramid;
+UniformData uniformData_cube;
 
 //? Shader Related Variables
 VkShaderModule vkShaderModule_vertex_shader = VK_NULL_HANDLE;
@@ -163,284 +151,204 @@ VkPipelineLayout vkPipelineLayout = VK_NULL_HANDLE;
 VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
 
 //? Descriptor Set
-VkDescriptorSet vkDescriptorSet = VK_NULL_HANDLE;
+VkDescriptorSet vkDescriptorSet_pyramid = VK_NULL_HANDLE;
+VkDescriptorSet vkDescriptorSet_cube = VK_NULL_HANDLE;
 
 //? Pipeline Related Variables
 VkViewport vkViewport;
 VkRect2D vkRect2D_scissor;
 VkPipeline vkPipeline = VK_NULL_HANDLE;
 
-// Global Function Declarations
-CVReturn DisplayLinkCallback(CVDisplayLinkRef, const CVTimeStamp*, const CVTimeStamp*, CVOptionFlags, CVOptionFlags*, void*);
+//* Animation
+float fAngle = 0.0f;
+const float animationSpeed = 1.0f;
 
-// Forward Interface Declarations
-@interface AppDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
-@end
-
-@interface View : NSView <NSWindowDelegate>
-@end
-
-// Entry Point Function
-int main(int argc, char* argv[])
-{
-    // Code
-
-    //* Create AutoreleasePool For Reference Counting
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-
-    //* Create Application Object For This Application
-    NSApp = [NSApplication sharedApplication];
-
-    //* Set Activation Policy
-    [NSApp setActivationPolicy:(NSApplicationActivationPolicyRegular)];
-
-    //* Set AppDelegate Object For NSApp
-    [NSApp setDelegate:[[AppDelegate alloc]init]];
-
-    //* Start Game Loop
-    [NSApp run];
-
-    //* Tell AutoreleasePool To Release All Objects Created By This Application
-    [pool release];
-
-    return 0;
-}
-
-// AppDelegate Interface Implementation
-@implementation AppDelegate
-{
-    @private
-    NSWindow *window;
-    View *view;
-}
-
--(void) applicationDidFinishLaunching:(NSNotification *)notification 
-{
-    // Code
-    NSBundle *appBundle = [NSBundle mainBundle];
-    NSString *appDirectoryName = [appBundle bundlePath];
-    NSString *parentDirectoryPath = [appDirectoryName stringByDeletingLastPathComponent];
-    NSString *logFileNameWithPath = [NSString stringWithFormat:@"%@/%s", parentDirectoryPath, gszLogFileName];
-    const char* pszLogFileNameWithPath = [logFileNameWithPath cStringUsingEncoding:NSASCIIStringEncoding];
-
-    // Log File
-    gpFile = fopen(pszLogFileNameWithPath, "w");
-    if (gpFile == NULL)
-    {
-        NSLog(@"Failed To Create Log File ... Exiting !!!");
-        [self release];
-        [NSApp terminate:self];
-        return;
-    }
-    else 
-        printf("Program Started Successfully");
-
-    // Create Window
-    NSRect winRect = NSMakeRect(0.0, 0.0, WIN_WIDTH, WIN_HEIGHT);
-
-    window = [[NSWindow alloc]initWithContentRect: winRect
-                              styleMask: NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable
-                              backing: NSBackingStoreBuffered
-                              defer: NO];
-
-    [window setTitle:@"Atharv Natu : macOS : Vulkan Depth-Enabled Triangle"];
-    [window setBackgroundColor:[NSColor blackColor]];
-    [window center];
-
-    // Create View
-    view = [[View alloc]initWithFrame:winRect];
-
-    // Set The Created View As The Content View Of Our Window
-    [window setContentView:view];
-
-    // Set App Icon
-    NSString *iconFilePath = [[NSBundle mainBundle] pathForResource:@"Arch" ofType:@"png"];
-
-    NSImage *icon = [[NSImage alloc]initWithContentsOfFile:iconFilePath];
-    if (icon)
-    {
-        // Runtime Icon -> For Dock
-        [NSApp setApplicationIconImage:icon];
-
-        // App Icon -> For Finder
-        [[NSWorkspace sharedWorkspace]setIcon:icon 
-                                    forFile:appDirectoryName 
-                                    options:0];
-        [icon release];
-        icon = nil;
-    }
-    else
-        printf("\nFailed To Set App Icon !!!");
-
-    // Set Window's Delegate To This Object
-    [window setDelegate:view];
-    [window makeKeyAndOrderFront:self];
-
-    // Tell NSApp To Activate This Window And Ignore Other Window
-    [NSApp activateIgnoringOtherApps:YES];
-}
-
--(void) applicationWillTerminate:(NSNotification *)notification 
-{
-    // Code
-    [self release];
-}
-
--(void) dealloc 
-{
-    // Code
-    if (view)
-    {
-        [view release];
-        view = nil;
-    }
-
-    if (window)
-    {
-        [window release];
-        window = nil;
-    }
-
-    [super dealloc];
-}
-
-@end
-
-
-// View Interface Implementation
 @implementation View
 {
     @private
-    CVDisplayLinkRef displayLink;
+    CADisplayLink* displayLink;
+    BOOL bDisplayLinkActive;
 }
 
--(id) initWithFrame:(NSRect)frame 
+-(id) initWithFrame:(CGRect)frameRect
 {
+    // Variable Declarations
+    UITapGestureRecognizer* singleTapGestureRecognizer = nil;
+    UITapGestureRecognizer* doubleTapGestureRecognizer = nil;
+    UISwipeGestureRecognizer* swipeGestureRecognizer = nil;
+    UILongPressGestureRecognizer* longPressGestureRecognizer = nil;
+    
     // Code
-    self = [super initWithFrame:frame];
+    self = [super initWithFrame:frameRect];
     if (self)
     {
-        //* Transform Our View To CAMetalLayer Backing View (NSView -> Metal Backing View)
-        [self setWantsLayer:YES];
-
-        //* Set Global View Object
-        gpView = (NSView*)self;
-
+        winWidth = [self bounds].size.width;
+        winHeight = [self bounds].size.height;
+        
+        // Initialize
         VkResult vkResult = [self initialize];
-        if (vkResult != VK_SUCCESS)
-            printf("\n%s() => initialize() Failed : %d !!!\n", __func__, vkResult);
-        else
-            printf("\n%s() => initialize() Succeeded\n", __func__);
-
-        //* Create A Display Link Capable Of Being Used By All Active Displays
-        CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
-
-        //* Set The Display Link As Our Rendering Output Callback
-        CVDisplayLinkSetOutputCallback(displayLink, &DisplayLinkCallback, self);
-
-        //* Activate The Display Link
-        CVDisplayLinkStart(displayLink);
+           if (vkResult != VK_SUCCESS)
+               printf("\n%s() => initialize() Failed : %d !!!\n", __func__, vkResult);
+           else
+               printf("\n%s() => initialize() Succeeded\n", __func__);
+        
+        // Become First Responder
+        [self becomeFirstResponder];
+        
+        // Gesture Recognition
+        
+        // Single Tap
+        singleTapGestureRecognizer = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(onSingleTap:)];
+        [singleTapGestureRecognizer setNumberOfTapsRequired:1];
+        [singleTapGestureRecognizer setNumberOfTouchesRequired:1];
+        [singleTapGestureRecognizer setDelegate:self];
+        [self addGestureRecognizer:singleTapGestureRecognizer];
+        
+        // Double Tap
+        doubleTapGestureRecognizer = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(onDoubleTap:)];
+        [doubleTapGestureRecognizer setNumberOfTapsRequired:2];
+        [doubleTapGestureRecognizer setNumberOfTouchesRequired:1];
+        [doubleTapGestureRecognizer setDelegate:self];
+        [self addGestureRecognizer:doubleTapGestureRecognizer];
+        
+        // Prevent single-tap from triggering during a double-tap
+        [singleTapGestureRecognizer requireGestureRecognizerToFail:doubleTapGestureRecognizer];
+        
+        // Swipe
+        swipeGestureRecognizer = [[UISwipeGestureRecognizer alloc]initWithTarget:self action:@selector(onSwipe:)];
+        [swipeGestureRecognizer setDelegate:self];
+        [self addGestureRecognizer:swipeGestureRecognizer];
+        
+        // Long Press
+        longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc]initWithTarget:self action:@selector(onLongPress:)];
+        [longPressGestureRecognizer setDelegate:self];
+        [self addGestureRecognizer:longPressGestureRecognizer];
+        
+        // When custom gesture recognizer objects are registered/added to the View (self), it retains them by incrementing the reference count. So, we must decrement it.
+        [longPressGestureRecognizer release];
+        longPressGestureRecognizer = nil;
+        
+        [swipeGestureRecognizer release];
+        swipeGestureRecognizer = nil;
+        
+        [doubleTapGestureRecognizer release];
+        doubleTapGestureRecognizer = nil;
+        
+        [singleTapGestureRecognizer release];
+        singleTapGestureRecognizer = nil;
+        
+        bDisplayLinkActive = NO;
+        
     }
-
+    
     return self;
 }
 
--(void) windowDidBecomeKey:(NSNotification *)notification 
++(Class) layerClass
 {
     // Code
-    bActiveWindow = YES;
+    return [CAMetalLayer class];
 }
 
--(void) windowDidResignKey:(NSNotification *)notification 
+/*
+ * Implement this method only when custom drawing is required.
+ * Do not leave it as an empty stub. An empty implementation causes both
+ * drawRect() and the renderer's render() method to perform painting during
+ * animations, resulting in unnecessary concurrent paint operations and
+ * degraded performance. If custom drawing is not needed, do not implement
+ * this method.
+ 
+-(void) drawRect:(CGRect)rect
 {
     // Code
-    bActiveWindow = NO;
+}
+ */
+
+-(void) drawView
+{
+    // Code
+    [self render];
+    
+    [self update];
 }
 
--(NSSize) windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize 
+-(void) layoutSubviews
 {
     // Code
-    CVDisplayLinkStop(displayLink);
+    [super layoutSubviews];
+    
+    // Set winWidth and winHeight according to the view's layout
+    winWidth = [self bounds].size.width * [self contentScaleFactor];
+    winHeight = [self bounds].size.height * [self contentScaleFactor];
+    
+    CGSize size = CGSizeMake(winWidth, winHeight);
+    [((CAMetalLayer*)[self layer])setDrawableSize:size];
+    
+    // Resize
+    [self resize:winWidth :winHeight];
+}
 
-    if (bWindowMinimized == NO)
+-(void) startDisplayLink
+{
+    // Initialize Display Link
+    if (!bDisplayLinkActive)
     {
-        [self resize: frameSize.width :frameSize.height];
+        NSUInteger animationFrameInterval = 60;
+        displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawView)];
+        [displayLink setPreferredFramesPerSecond:animationFrameInterval];
+        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+        bDisplayLinkActive = YES;
     }
-
-    return frameSize;
+    
 }
 
--(void) windowDidResize:(NSNotification *)notification 
+-(void) stopDisplayLink
+{
+    if (bDisplayLinkActive)
+    {
+        [displayLink invalidate];
+        displayLink = nil;
+        bDisplayLinkActive = NO;
+    }
+}
+
+-(BOOL) canBecomeFirstResponder
 {
     // Code
-    CVDisplayLinkStart(displayLink);
-}
-
--(void) windowWillMiniaturize:(NSNotification *)notification 
-{
-    // Code
-    bWindowMinimized = YES;
-    CVDisplayLinkStop(displayLink);
-}
-
--(void) windowDidMiniaturize:(NSNotification *)notification 
-{
-    // Code - Empty Body -> Written For Delegate Implementation
-}
-
--(void) windowDidDeminiaturize:(NSNotification *)notification 
-{
-    // Code
-    bWindowMinimized = NO;
-    CVDisplayLinkStart(displayLink);
-}
-
--(void) windowWillClose:(NSNotification *)notification 
-{
-    // Code
-    [self uninitialize];
-    [NSApp terminate:self];
-}
-
--(BOOL) acceptsFirstResponder
-{
-    // Code
-    [[self window]makeFirstResponder:self];
     return YES;
 }
 
--(void) keyDown:(NSEvent *)event
+-(void) touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event
 {
     // Code
-    int key = (int)[[event characters]characterAtIndex:0];
-    switch(key)
-    {
-        case 27:
-            if (bFullscreen)
-            {
-                [[self window]toggleFullScreen:nil];
-                bFullscreen = NO;
-            }
-            [[self window]performClose:self];
-        break;
+}
 
-        case 'F':
-        case 'f':
-            if (bFullscreen == NO)
-            {
-                [[self window]toggleFullScreen:self];
-                bFullscreen = YES;
-            }
-            else 
-            {
-                [[self window]toggleFullScreen:self];
-                bFullscreen = NO;
-            }  
-        break;
+-(void) onSingleTap:(UITapGestureRecognizer*)gestureRecognizer
+{
+    // Code
+}
 
-        default:
-        break;
-    }
+-(void) onDoubleTap:(UITapGestureRecognizer*)gestureRecognizer
+{
+    // Code
+}
+
+-(void) onSwipe:(UISwipeGestureRecognizer*)gestureRecognizer
+{
+    // Code
+    [self uninitialize];
+    exit(0);
+}
+
+-(void) onLongPress:(UILongPressGestureRecognizer*)gestureRecognizer
+{
+    // Code
+}
+
+-(void) dealloc
+{
+    // Code
+    [super dealloc];
 }
 
 -(VkResult) initialize
@@ -563,7 +471,7 @@ int main(int argc, char* argv[])
     else
         printf("%s() => createShaders() Succeeded\n", __func__);
 
-    //! Create DescriptorSetLayout
+    //! Create Descriptor Set Layout
     vkResult = [self createDescriptorSetLayout];
     if (vkResult != VK_SUCCESS)
     {
@@ -666,7 +574,7 @@ int main(int argc, char* argv[])
     memset((void*)&vkClearColorValue, 0, sizeof(VkClearColorValue));
     vkClearColorValue.float32[0] = 0.0f;    //* R
     vkClearColorValue.float32[1] = 0.0f;    //* G
-    vkClearColorValue.float32[2] = 1.0f;    //* B
+    vkClearColorValue.float32[2] = 0.0f;    //* B
     vkClearColorValue.float32[3] = 1.0f;    //* A
 
     //! Set Default Clear Depth and Stencil Values
@@ -803,7 +711,7 @@ int main(int argc, char* argv[])
         // {
         //     vkDestroyImage(vkDevice, swapchainImage_array[i], NULL);
         //     printf("%s() => vkDestroyImage() Succeeded\n", __func__);
-        // } 
+        // }
 
         if (swapchainImage_array)
         {
@@ -889,66 +797,6 @@ int main(int argc, char* argv[])
     bInitialized = YES;
 
     return vkResult;
-}
-
--(void) drawRect:(NSRect)dirtyRect
-{
-    // Code
-
-    //* To Prevent Flickering (Image Tearing) Happening Due To Synchronization Issues - Call Rendering Function
-    [self drawView];
-}
-
--(CVReturn) getFrameForTime:(const CVTimeStamp *)pOutputTime
-{
-    // Code
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-
-    //* Render The Scene
-    [self drawView];
-
-    [pool release];
-
-    return kCVReturnSuccess;
-}
-
-//! For setWantsLayer() To Return True We Must Override/Implement The Following 2 Static Functions
-//!     1) Needed For Draw
-//!     2) Needed For Update
-
-+(Class) layerClass
-{
-    // Code
-    return [CAMetalLayer class];
-}
-
-//* Continuosly Demand The Updated Layer, Which Is Updated By Rendering
--(BOOL) wantsUpdateLayer 
-{
-    // Code
-    return YES;
-}
-
-//* To Have The Result Of setWantsLayer, The Following Function Needs To Return Resized Layer, If Resizing Is Done
--(CALayer*) makeBackingLayer 
-{
-    // Code
-    CALayer* layer = [[[self class]layerClass]layer];
-
-    CGSize viewSize = [self convertSizeToBacking:CGSizeMake(1.0, 1.0)];
-
-    [layer setContentsScale:MIN(viewSize.width, viewSize.height)];
-
-    return layer;
-}
-
-
--(void) drawView
-{
-    // Code
-    [self render];
-
-    [self update];
 }
 
 -(VkResult) render
@@ -1047,24 +895,15 @@ int main(int argc, char* argv[])
 -(void) update
 {
     // Code
+    fAngle += animationSpeed;
+       if (fAngle >= 360.0f)
+           fAngle = 0.0f;
 }
 
 -(void) uninitialize
 {
     // Code
-    if (displayLink)
-    {
-        CVDisplayLinkStop(displayLink);
-        CVDisplayLinkRelease(displayLink);
-        displayLink = NULL;
-    }
-
-    if (bFullscreen)
-    {
-        [[self window]toggleFullScreen:nil];
-        bFullscreen = NO;
-    }
-
+    
     //* Step - 5 of Device Creation (Destroy Vulkan Device)
     //! vkDeviceWaitIdle(vkDevice) should be the 1st API to maintain synchronization
     if (vkDevice)
@@ -1135,8 +974,9 @@ int main(int argc, char* argv[])
     {
         vkDestroyDescriptorPool(vkDevice, vkDescriptorPool, NULL);
         vkDescriptorPool = VK_NULL_HANDLE;
-        vkDescriptorSet = VK_NULL_HANDLE;
-        printf("%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet Successfully\n", __func__);
+        vkDescriptorSet_cube = VK_NULL_HANDLE;
+        vkDescriptorSet_pyramid = VK_NULL_HANDLE;
+        printf("%s() => vkDestroyDescriptorPool() => Destroyed vkDescriptorPool and vkDescriptorSet_pyramid Successfully\n", __func__);
     }
 
     //* Step - 5 of PipelineLayout
@@ -1169,35 +1009,65 @@ int main(int argc, char* argv[])
         vkShaderModule_vertex_shader = VK_NULL_HANDLE;
         printf("%s() => vkDestroyShaderModule() Succeeded For Vertex Shader\n", __func__);
     }
-
-    //* Destroy Uniform Buffer
-    if (uniformData.vkDeviceMemory)
+    
+    //* Destroy Uniform Buffer For Cube
+    if (uniformData_cube.vkDeviceMemory)
     {
-        vkFreeMemory(vkDevice, uniformData.vkDeviceMemory, NULL);
-        uniformData.vkDeviceMemory = VK_NULL_HANDLE;
-        printf("%s() => vkFreeMemory() Succeeded For uniformData.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, uniformData_cube.vkDeviceMemory, NULL);
+        uniformData_cube.vkDeviceMemory = VK_NULL_HANDLE;
+        printf("%s() => vkFreeMemory() Succeeded For uniformData_cube.vkDeviceMemory\n", __func__);
     }
 
-    if (uniformData.vkBuffer)
+    if (uniformData_cube.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, uniformData.vkBuffer, NULL);
-        uniformData.vkBuffer = VK_NULL_HANDLE;
-        printf("%s() => vkDestroyBuffer() Succeeded For uniformData.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, uniformData_cube.vkBuffer, NULL);
+        uniformData_cube.vkBuffer = VK_NULL_HANDLE;
+        printf("%s() => vkDestroyBuffer() Succeeded For uniformData_cube.vkBuffer\n", __func__);
     }
 
     //* Step - 14 of Vertex Buffer
-    if (vertexData_position.vkDeviceMemory)
+    if (vertexData_position_cube.vkDeviceMemory)
     {
-        vkFreeMemory(vkDevice, vertexData_position.vkDeviceMemory, NULL);
-        vertexData_position.vkDeviceMemory = VK_NULL_HANDLE;
-        printf("%s() => vkFreeMemory() Succeeded For vertexData_position.vkDeviceMemory\n", __func__);
+        vkFreeMemory(vkDevice, vertexData_position_cube.vkDeviceMemory, NULL);
+        vertexData_position_cube.vkDeviceMemory = VK_NULL_HANDLE;
+        printf("%s() => vkFreeMemory() Succeeded For vertexData_position_cube.vkDeviceMemory\n", __func__);
     }
 
-    if (vertexData_position.vkBuffer)
+    if (vertexData_position_cube.vkBuffer)
     {
-        vkDestroyBuffer(vkDevice, vertexData_position.vkBuffer, NULL);
-        vertexData_position.vkBuffer = VK_NULL_HANDLE;
-        printf("%s() => vkDestroyBuffer() Succeeded For vertexData_position.vkBuffer\n", __func__);
+        vkDestroyBuffer(vkDevice, vertexData_position_cube.vkBuffer, NULL);
+        vertexData_position_cube.vkBuffer = VK_NULL_HANDLE;
+        printf("%s() => vkDestroyBuffer() Succeeded For vertexData_position_cube.vkBuffer\n", __func__);
+    }
+
+    //* Destroy Uniform Buffer For Pyramid
+    if (uniformData_pyramid.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, uniformData_pyramid.vkDeviceMemory, NULL);
+        uniformData_pyramid.vkDeviceMemory = VK_NULL_HANDLE;
+        printf("%s() => vkFreeMemory() Succeeded For uniformData_pyramid.vkDeviceMemory\n", __func__);
+    }
+
+    if (uniformData_pyramid.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, uniformData_pyramid.vkBuffer, NULL);
+        uniformData_pyramid.vkBuffer = VK_NULL_HANDLE;
+        printf("%s() => vkDestroyBuffer() Succeeded For uniformData_pyramid.vkBuffer\n", __func__);
+    }
+
+    //* Step - 14 of Vertex Buffer
+    if (vertexData_position_pyramid.vkDeviceMemory)
+    {
+        vkFreeMemory(vkDevice, vertexData_position_pyramid.vkDeviceMemory, NULL);
+        vertexData_position_pyramid.vkDeviceMemory = VK_NULL_HANDLE;
+        printf("%s() => vkFreeMemory() Succeeded For vertexData_position_pyramid.vkDeviceMemory\n", __func__);
+    }
+
+    if (vertexData_position_pyramid.vkBuffer)
+    {
+        vkDestroyBuffer(vkDevice, vertexData_position_pyramid.vkBuffer, NULL);
+        vertexData_position_pyramid.vkBuffer = VK_NULL_HANDLE;
+        printf("%s() => vkDestroyBuffer() Succeeded For vertexData_position_pyramid.vkBuffer\n", __func__);
     }
 
     //* Step - 5 of Command Buffer
@@ -1261,7 +1131,7 @@ int main(int argc, char* argv[])
     // {
     //     vkDestroyImage(vkDevice, swapchainImage_array[i], NULL);
     //     printf("%s() => vkDestroyImage() Succeeded\n", __func__);
-    // } 
+    // }
 
     if (swapchainImage_array)
     {
@@ -1297,11 +1167,11 @@ int main(int argc, char* argv[])
         printf("%s() => vkDestroySurfaceKHR() Succeeded\n", __func__);
     }
 
-    if (vkDebugReportCallbackEXT && vkDestroyDebugReportCallbackEXT_fnptr)
+    if (vkDebugUtilsMessengerEXT && vkDestroyDebugUtilsMessengerEXT_fnptr)
     {
-        vkDestroyDebugReportCallbackEXT_fnptr(vkInstance, vkDebugReportCallbackEXT, NULL);
-        vkDebugReportCallbackEXT = VK_NULL_HANDLE;
-        vkDestroyDebugReportCallbackEXT_fnptr = NULL;
+        vkDestroyDebugUtilsMessengerEXT_fnptr(vkInstance, vkDebugUtilsMessengerEXT, NULL);
+        vkDebugUtilsMessengerEXT = VK_NULL_HANDLE;
+        vkDestroyDebugUtilsMessengerEXT_fnptr = NULL;
     }
 
     //* Step - 5 of Instance Creation
@@ -1310,13 +1180,6 @@ int main(int argc, char* argv[])
         vkDestroyInstance(vkInstance, NULL);
         vkInstance = VK_NULL_HANDLE;
         printf("%s() => vkDestroyInstance() Succeeded\n", __func__);
-    }
-
-    if (gpFile)
-    {
-        printf("Program Terminated Successfully\n");
-        fclose(gpFile);
-        gpFile = NULL;
     }
 }
 
@@ -1334,7 +1197,7 @@ int main(int argc, char* argv[])
     {
         printf("%s() => fillInstanceExtensionNames() Failed : %d !!!\n", __func__, vkResult);
         return VK_ERROR_INITIALIZATION_FAILED;
-    }      
+    }
     else
         printf("%s() => fillInstanceExtensionNames() Succeeded\n", __func__);
 
@@ -1346,7 +1209,7 @@ int main(int argc, char* argv[])
         {
             printf("%s() => fillValidationLayerNames() Failed : %d !!!\n", __func__, vkResult);
             return VK_ERROR_INITIALIZATION_FAILED;
-        }      
+        }
         else
             printf("%s() => fillValidationLayerNames() Succeeded\n", __func__);
     }
@@ -1369,7 +1232,15 @@ int main(int argc, char* argv[])
     vkInstanceCreateInfo.pNext = NULL;
 
     //! The following flag must be specified when using the Khronos Vulkan ICD Loader instead of linking directly against the MoltenVK Framework
-    vkInstanceCreateInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    //! Condition checking is mandatory on iOS
+    if (vulkanPortabilityEnumerationExtensionFound)
+    {
+        vkInstanceCreateInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    }
+    else
+        vkInstanceCreateInfo.flags = 0;
+    
+
     vkInstanceCreateInfo.pApplicationInfo = &vkApplicationInfo;
     vkInstanceCreateInfo.enabledExtensionCount = enabledInstanceExtensionCount;
     vkInstanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensionNames_array;
@@ -1391,7 +1262,7 @@ int main(int argc, char* argv[])
     {
         printf("%s() => vkCreateInstance() Failed Due To Incompatible Driver : %d!!!\n", __func__, vkResult);
         return vkResult;
-    } 
+    }
     else if (vkResult == VK_ERROR_EXTENSION_NOT_PRESENT)
     {
         printf("%s() => vkCreateInstance() Failed Because Required Extension Is Not Present : %d!!!\n", __func__, vkResult);
@@ -1402,7 +1273,7 @@ int main(int argc, char* argv[])
         printf("%s() => vkCreateInstance() Failed : %d!!!\n", __func__, vkResult);
         return vkResult;
     }
-    else 
+    else
         printf("%s() => vkCreateInstance() Succeeded\n", __func__);
 
     //! Handling Validation Callbacks
@@ -1413,7 +1284,7 @@ int main(int argc, char* argv[])
         {
             printf("%s() => createValidationCallbackFunction() Failed : %d !!!\n", __func__, vkResult);
             return VK_ERROR_INITIALIZATION_FAILED;
-        }      
+        }
         else
             printf("%s() => createValidationCallbackFunction() Succeeded\n", __func__);
     }
@@ -1499,7 +1370,8 @@ int main(int argc, char* argv[])
     //* Step - 5
     VkBool32 vulkanSurfaceExtensionFound = VK_FALSE;
     VkBool32 metalSurfaceExtensionFound = VK_FALSE;
-    VkBool32 debugReportExtensionFound = VK_FALSE;
+    VkBool32 getPhysicalDeviceProperties2ExtensionFound = VK_FALSE;
+    VkBool32 debugUtilsExtensionFound = VK_FALSE;
 
     for (uint32_t i = 0; i < instanceExtensionCount; i++)
     {
@@ -1513,23 +1385,28 @@ int main(int argc, char* argv[])
         {
             metalSurfaceExtensionFound = VK_TRUE;
             enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
-        } 
+        }
            
         if (strcmp(instanceExtensionNames_array[i], VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0)
         {
             vulkanPortabilityEnumerationExtensionFound = VK_TRUE;
             enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
-        } 
-
-        if (strcmp(instanceExtensionNames_array[i], VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
+        }
+        if (strcmp(instanceExtensionNames_array[i], VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
         {
-            debugReportExtensionFound = VK_TRUE;
+            getPhysicalDeviceProperties2ExtensionFound = VK_TRUE;
+            enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
+        }
+
+        if (strcmp(instanceExtensionNames_array[i], VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+        {
+            debugUtilsExtensionFound = VK_TRUE;
             if (bValidation == YES)
-                enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
+                enabledInstanceExtensionNames_array[enabledInstanceExtensionCount++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
             else
             {
-                // Array will not have entry of VK_EXT_DEBUG_REPORT_EXTENSION_NAME
-            }            
+                // Array will not have entry of VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+            }
         }
     }
 
@@ -1572,24 +1449,33 @@ int main(int argc, char* argv[])
     }
     else
         printf("%s() => VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME Extension Found\n", __func__);
+    
+    if (getPhysicalDeviceProperties2ExtensionFound == VK_FALSE)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        printf("%s() => VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME Extension Not Found !!!\n", __func__);
+        return vkResult;
+    }
+    else
+        printf("%s() => VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME Extension Found\n", __func__);
 
-    if (debugReportExtensionFound == VK_FALSE)
+    if (debugUtilsExtensionFound == VK_FALSE)
     {
         if (bValidation == YES)
         {
             vkResult = VK_ERROR_INITIALIZATION_FAILED;
-            printf("%s() => VALIDATION ON : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Not Supported !!!\n", __func__);
+            printf("%s() => VALIDATION ON : VK_EXT_DEBUG_UTILS_EXTENSION_NAME Extension Not Supported !!!\n", __func__);
             return vkResult;
         }
         else
-            printf("%s() => VALIDATION OFF : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Not Supported !!!\n", __func__);
+            printf("%s() => VALIDATION OFF : VK_EXT_DEBUG_UTILS_EXTENSION_NAME Extension Not Supported !!!\n", __func__);
     }
     else
     {
         if (bValidation == YES)
-            printf("%s() => VALIDATION ON : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Supported\n", __func__);
+            printf("%s() => VALIDATION ON : VK_EXT_DEBUG_UTILS_EXTENSION_NAME Extension Supported\n", __func__);
         else
-            printf("%s() => VALIDATION OFF : VK_EXT_DEBUG_REPORT_EXTENSION_NAME Extension Supported\n", __func__);
+            printf("%s() => VALIDATION OFF : VK_EXT_DEBUG_UTILS_EXTENSION_NAME Extension Supported\n", __func__);
     }
 
     //* Step - 8
@@ -1607,7 +1493,7 @@ int main(int argc, char* argv[])
     // Code
     uint32_t validationLayerCount = 0;
     vkResult = vkEnumerateInstanceLayerProperties(&validationLayerCount, NULL);
-    if (vkResult != VK_SUCCESS)  
+    if (vkResult != VK_SUCCESS)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         printf("%s() => Call 1 : vkEnumerateInstanceLayerProperties() Failed : %d !!!\n", __func__, vkResult);
@@ -1625,7 +1511,7 @@ int main(int argc, char* argv[])
     }
 
     vkResult = vkEnumerateInstanceLayerProperties(&validationLayerCount, vkLayerProperties_array);
-    if (vkResult != VK_SUCCESS)  
+    if (vkResult != VK_SUCCESS)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
         printf("%s() => Call 2 : vkEnumerateInstanceLayerProperties() Failed : %d !!!\n", __func__, vkResult);
@@ -1717,49 +1603,53 @@ int main(int argc, char* argv[])
 {
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
-    PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT_fnptr = NULL;
-
+    VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT*, void*);
+    PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT_fnptr = NULL;
+    
     // Code
     
-    //* Get the required function pointers
-    vkCreateDebugReportCallbackEXT_fnptr = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(vkInstance, "vkCreateDebugReportCallbackEXT");
-    if (vkCreateDebugReportCallbackEXT_fnptr == NULL)
+    //! Get the required function pointers
+    vkCreateDebugUtilsMessengerEXT_fnptr = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vkInstance, "vkCreateDebugUtilsMessengerEXT");
+    if (vkCreateDebugUtilsMessengerEXT_fnptr == NULL)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        printf("%s() => vkGetInstanceProcAddr() Failed To Get Function Pointer For vkCreateDebugReportCallbackEXT !!!\n", __func__);
-        return vkResult;
+                printf("%s() => vkGetInstanceProcAddr() Failed To Get Function Pointer For vkCreateDebugUtilsMessengerEXT !!!\n", __func__);
+                return vkResult;
     }
     else
-        printf("%s() => vkGetInstanceProcAddr() Succeeded To Get Function Pointer For vkCreateDebugReportCallbackEXT\n", __func__);
-
-    vkDestroyDebugReportCallbackEXT_fnptr = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(vkInstance, "vkDestroyDebugReportCallbackEXT");
-    if (vkDestroyDebugReportCallbackEXT_fnptr == NULL)
+            printf("%s() => vkGetInstanceProcAddr() Succeeded To Get Function Pointer For vkCreateDebugUtilsMessengerEXT\n", __func__);
+    
+    vkDestroyDebugUtilsMessengerEXT_fnptr = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vkInstance, "vkDestroyDebugUtilsMessengerEXT");
+    if (vkDestroyDebugUtilsMessengerEXT_fnptr == NULL)
     {
         vkResult = VK_ERROR_INITIALIZATION_FAILED;
-        printf("%s() => vkGetInstanceProcAddr() Failed To Get Function Pointer For vkDestroyDebugReportCallbackEXT !!!\n", __func__);
-        return vkResult;
+                printf("%s() => vkGetInstanceProcAddr() Failed To Get Function Pointer For vkDestroyDebugUtilsMessengerEXT !!!\n", __func__);
+                return vkResult;
     }
     else
-        printf("%s() => vkGetInstanceProcAddr() Succeeded To Get Function Pointer For vkDestroyDebugReportCallbackEXT\n", __func__);
+            printf("%s() => vkGetInstanceProcAddr() Succeeded To Get Function Pointer For vkDestroyDebugUtilsMessengerEXT\n", __func__);
+    
+    //* Get the Vulkan Debug Utils Callback Object
+    VkDebugUtilsMessengerCreateInfoEXT vkDebugUtilsMessengerCreateInfoEXT;
+    memset((void*)&vkDebugUtilsMessengerCreateInfoEXT, 0, sizeof(VkDebugUtilsMessengerCreateInfoEXT));
+    vkDebugUtilsMessengerCreateInfoEXT.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    vkDebugUtilsMessengerCreateInfoEXT.pNext = NULL;
+    vkDebugUtilsMessengerCreateInfoEXT.flags = 0;
+    vkDebugUtilsMessengerCreateInfoEXT.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+    vkDebugUtilsMessengerCreateInfoEXT.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    vkDebugUtilsMessengerCreateInfoEXT.pfnUserCallback = debugUtilsMessengerCallback;
+    vkDebugUtilsMessengerCreateInfoEXT.pUserData = NULL;
 
-    //* Get the Vulkan Debug Report Callback Object
-    VkDebugReportCallbackCreateInfoEXT vkDebugReportCallbackCreateInfoEXT;
-    memset((void*)&vkDebugReportCallbackCreateInfoEXT, 0, sizeof(VkDebugReportCallbackCreateInfoEXT));
-    vkDebugReportCallbackCreateInfoEXT.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-    vkDebugReportCallbackCreateInfoEXT.pNext = NULL;
-    vkDebugReportCallbackCreateInfoEXT.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-    vkDebugReportCallbackCreateInfoEXT.pUserData = NULL;
-    vkDebugReportCallbackCreateInfoEXT.pfnCallback = debugReportCallback;
-
-    vkResult = vkCreateDebugReportCallbackEXT_fnptr(vkInstance, &vkDebugReportCallbackCreateInfoEXT, NULL, &vkDebugReportCallbackEXT);
+    vkResult = vkCreateDebugUtilsMessengerEXT_fnptr(vkInstance, &vkDebugUtilsMessengerCreateInfoEXT, NULL, &vkDebugUtilsMessengerEXT);
     if (vkResult != VK_SUCCESS)
     {
-        printf("%s() => vkCreateDebugReportCallbackEXT_fnptr() Failed : %d !!!\n", __func__, vkResult);
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }      
+       printf("%s() => vkCreateDebugUtilsMessengerEXT_fnptr() Failed : %d !!!\n", __func__, vkResult);
+       return VK_ERROR_INITIALIZATION_FAILED;
+    }
     else
-        printf("%s() => vkCreateDebugReportCallbackEXT_fnptr() Succeeded\n", __func__);
-
+       printf("%s() => vkCreateDebugUtilsMessengerEXT_fnptr() Succeeded\n", __func__);
+    
+    
     return vkResult;
 }
 
@@ -1778,14 +1668,26 @@ int main(int argc, char* argv[])
     vkMetalSurfaceCreateInfoEXT.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
     vkMetalSurfaceCreateInfoEXT.pNext = NULL;
     vkMetalSurfaceCreateInfoEXT.flags = 0;
-    vkMetalSurfaceCreateInfoEXT.pLayer = (CAMetalLayer*)[gpView layer];
+    vkMetalSurfaceCreateInfoEXT.pLayer = (CAMetalLayer*)[self layer];
 
     //* Step - 4
-    vkResult = vkCreateMetalSurfaceEXT(vkInstance, &vkMetalSurfaceCreateInfoEXT, NULL, &vkSurfaceKHR);
+    
+    //! Use a function pointer to invoke vkCreateMetalSurfaceEXT for compatibility across all iOS devices
+    PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT_fnptr = NULL;
+    
+    vkCreateMetalSurfaceEXT_fnptr = (PFN_vkCreateMetalSurfaceEXT)vkGetInstanceProcAddr(vkInstance, "vkCreateMetalSurfaceEXT");
+    if (vkCreateMetalSurfaceEXT_fnptr == NULL)
+    {
+        vkResult = VK_ERROR_INITIALIZATION_FAILED;
+        printf("%s() => vkGetInstanceProcAddr() Failed To Get Function Pointer For vkCreateMetalSurfaceEXT : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    
+    vkResult = vkCreateMetalSurfaceEXT_fnptr(vkInstance, &vkMetalSurfaceCreateInfoEXT, NULL, &vkSurfaceKHR);
     if (vkResult != VK_SUCCESS)
-        printf("%s() => vkCreateMetalSurfaceEXT() Failed : %d !!!\n", __func__, vkResult);
+        printf("%s() => vkCreateMetalSurfaceEXT_fnptr() Failed : %d !!!\n", __func__, vkResult);
     else
-        printf("%s() => vkCreateMetalSurfaceEXT() Succeeded\n", __func__);
+        printf("%s() => vkCreateMetalSurfaceEXT_fnptr() Succeeded\n", __func__);
 
     return vkResult;
 }
@@ -1800,7 +1702,7 @@ int main(int argc, char* argv[])
     //* Step - 2
     vkResult = vkEnumeratePhysicalDevices(vkInstance, &physicalDeviceCount, NULL);
     if (vkResult == VK_SUCCESS)
-        printf("%s() Call 1 => vkEnumeratePhysicalDevices() Succeeded\n", __func__); 
+        printf("%s() Call 1 => vkEnumeratePhysicalDevices() Succeeded\n", __func__);
     else if (physicalDeviceCount == 0)
     {
         printf("%s() => vkEnumeratePhysicalDevices() Returned 0 Devices !!!\n", __func__);
@@ -1824,7 +1726,7 @@ int main(int argc, char* argv[])
     //* Step - 4
     vkResult = vkEnumeratePhysicalDevices(vkInstance, &physicalDeviceCount, vkPhysicalDevice_array);
     if (vkResult != VK_SUCCESS)
-    {   
+    {
         printf("%s() Call 2 => vkEnumeratePhysicalDevices() Failed : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
@@ -2262,7 +2164,7 @@ int main(int argc, char* argv[])
     {
         printf("%s() => fillDeviceExtensionNames() Failed : %d !!!\n", __func__, vkResult);
         return VK_ERROR_INITIALIZATION_FAILED;
-    }      
+    }
     else
         printf("%s() => fillDeviceExtensionNames() Succeeded\n", __func__);
 
@@ -2298,7 +2200,7 @@ int main(int argc, char* argv[])
     {
         printf("%s() => vkCreateDevice() Failed : %d !!!\n", __func__, vkResult);
         return VK_ERROR_INITIALIZATION_FAILED;
-    }      
+    }
     else
         printf("%s() => vkCreateDevice() Succeeded\n", __func__);
 
@@ -2493,7 +2395,7 @@ int main(int argc, char* argv[])
         vkExtent2D.height = (uint32_t)winHeight;
 
         vkExtent2D_swapchain.width = MAX(
-            vkSurfaceCapabilitiesKHR.minImageExtent.width, 
+            vkSurfaceCapabilitiesKHR.minImageExtent.width,
             MIN(vkSurfaceCapabilitiesKHR.maxImageExtent.width, vkExtent2D.width)
         );
 
@@ -2705,7 +2607,7 @@ int main(int argc, char* argv[])
     {
         printf("%s() => vkAllocateMemory() Failed For Depth : %d !!!\n", __func__, vkResult);
         return vkResult;
-    }     
+    }
     else
         printf("%s() => vkAllocateMemory() Succeeded For Depth\n", __func__);
 
@@ -2726,8 +2628,8 @@ int main(int argc, char* argv[])
     vkImageViewCreateInfo.format = vkFormat_depth;
 
     vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    if (vkFormat_depth == VK_FORMAT_D32_SFLOAT_S8_UINT || 
-        vkFormat_depth == VK_FORMAT_D24_UNORM_S8_UINT || 
+    if (vkFormat_depth == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+        vkFormat_depth == VK_FORMAT_D24_UNORM_S8_UINT ||
         vkFormat_depth == VK_FORMAT_D16_UNORM_S8_UINT)
     {
         vkImageViewCreateInfo.subresourceRange.aspectMask |=  VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -2755,7 +2657,7 @@ int main(int argc, char* argv[])
     // Variable Declarations
     VkResult vkResult = VK_SUCCESS;
     
-    VkFormat vkFormat_depth_array[] = 
+    VkFormat vkFormat_depth_array[] =
     {
         //* Descending Order
         VK_FORMAT_D32_SFLOAT_S8_UINT,
@@ -2777,7 +2679,7 @@ int main(int argc, char* argv[])
             vkFormat_depth = vkFormat_depth_array[i];
             vkResult = VK_SUCCESS;
             break;
-        }    
+        }
     }
 
     return vkResult;
@@ -2812,7 +2714,7 @@ int main(int argc, char* argv[])
     //* Step - 1
     VkCommandBufferAllocateInfo vkCommandBufferAllocateInfo;
     memset((void*)&vkCommandBufferAllocateInfo, 0, sizeof(VkCommandBufferAllocateInfo));
-    vkCommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO; 
+    vkCommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     vkCommandBufferAllocateInfo.pNext = NULL;
     vkCommandBufferAllocateInfo.commandPool = vkCommandPool;
     vkCommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -2845,17 +2747,92 @@ int main(int argc, char* argv[])
     VkResult vkResult = VK_SUCCESS;
 
     //* Step - 3
-    float triangle_position[] = 
+    float pyramid_position[] =
     {
+        // Front Face
         0.0f,   1.0f,   0.0f,
-        -1.0f,  -1.0f,  0.0f,
-        1.0f,   -1.0f,  0.0f  
+        -1.0f,  -1.0f,  1.0f,
+        1.0f,   -1.0f,  1.0f,
+
+        // Right Face
+        0.0f,   1.0f,   0.0f,
+        1.0f,   -1.0f,  1.0f,
+        1.0f,   -1.0f,  -1.0f,
+
+        // Back Face
+        0.0f,   1.0f,   0.0f,
+        1.0f,  -1.0f,   -1.0f,
+        -1.0f, -1.0f,   -1.0f,
+
+        // Left Face
+        0.0f,  1.0f,    0.0f,
+        -1.0f, -1.0f,  -1.0f,
+        -1.0f, -1.0f,   1.0f
+    };
+    
+    float cube_position[] =
+    {
+        // Front Face
+        1.0f,  1.0f,  1.0f,   // Top Right
+       -1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f,  1.0f,   // Bottom Right
+
+        1.0f, -1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f,  1.0f,   // Top Left
+       -1.0f, -1.0f,  1.0f,   // Bottom Left
+
+        // Right Face
+        1.0f,  1.0f, -1.0f,   // Top Right
+        1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+        1.0f,  1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f,  1.0f,   // Bottom Left
+
+        // Back Face
+        1.0f,  1.0f, -1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
+
+        // Left Face
+       -1.0f,  1.0f,  1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f,  1.0f,   // Bottom Right
+
+       -1.0f, -1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
+
+        // Top Face
+        1.0f,  1.0f, -1.0f,   // Top Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+        1.0f,  1.0f,  1.0f,   // Bottom Right
+
+        1.0f,  1.0f,  1.0f,   // Bottom Right
+       -1.0f,  1.0f, -1.0f,   // Top Left
+       -1.0f,  1.0f,  1.0f,   // Bottom Left
+
+        // Bottom Face
+        1.0f, -1.0f,  1.0f,   // Top Right
+       -1.0f, -1.0f,  1.0f,   // Top Left
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+
+        1.0f, -1.0f, -1.0f,   // Bottom Right
+       -1.0f, -1.0f,  1.0f,   // Top Left
+       -1.0f, -1.0f, -1.0f,   // Bottom Left
     };
 
     // Code
-    
+
+    //! Pyramid
+    //! ------------------------------------------------------------------------------------------------------------
     //* Step - 4
-    memset((void*)&vertexData_position, 0, sizeof(VertexData));
+    memset((void*)&vertexData_position_pyramid, 0, sizeof(VertexData));
 
     //* Step - 5
     VkBufferCreateInfo vkBufferCreateInfo;
@@ -2863,20 +2840,20 @@ int main(int argc, char* argv[])
     vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
     vkBufferCreateInfo.pNext = NULL;
-    vkBufferCreateInfo.size = sizeof(triangle_position);
+    vkBufferCreateInfo.size = sizeof(pyramid_position);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     
     //* Step - 6
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position.vkBuffer);
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position_pyramid.vkBuffer);
     if (vkResult != VK_SUCCESS)
-        printf("%s() => vkCreateBuffer() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+        printf("%s() => vkCreateBuffer() Failed For Vertex Buffer For Pyramid : %d !!!\n", __func__, vkResult);
     else
-        printf("%s() => vkCreateBuffer() Succeeded For Vertex Buffer\n", __func__);
+        printf("%s() => vkCreateBuffer() Succeeded For Vertex Buffer For Pyramid\n", __func__);
     
     //* Step - 7
     VkMemoryRequirements vkMemoryRequirements;
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, vertexData_position.vkBuffer, &vkMemoryRequirements);
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_position_pyramid.vkBuffer, &vkMemoryRequirements);
 
     //* Step - 8
     VkMemoryAllocateInfo vkMemoryAllocateInfo;
@@ -2885,9 +2862,9 @@ int main(int argc, char* argv[])
     vkMemoryAllocateInfo.pNext = NULL;
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
     vkMemoryAllocateInfo.memoryTypeIndex = 0;
-
+    
     //* Step - 8.1
-    VkBool32 foundMatchingMemoryType_vertex = VK_FALSE;
+    VkBool32 foundMatchingMemoryType_vertex_pyramid = VK_FALSE;
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         //* Step - 8.2
@@ -2898,7 +2875,7 @@ int main(int argc, char* argv[])
             {
                 //* Step - 8.4
                 vkMemoryAllocateInfo.memoryTypeIndex = i;
-                foundMatchingMemoryType_vertex = VK_TRUE;
+                foundMatchingMemoryType_vertex_pyramid = VK_TRUE;
                 break;
             }
         }
@@ -2908,42 +2885,133 @@ int main(int argc, char* argv[])
     }
 
     //* Check For memoryTypeIndex != 0 On MoltenVK
-    if (foundMatchingMemoryType_vertex == VK_FALSE)
+    if (foundMatchingMemoryType_vertex_pyramid == VK_FALSE)
     {
         vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
-        printf("%s() => Host Visible Memory Not Found : %d !!!\n", __func__, vkResult);
+        printf("%s() => Host Visible Memory Not Found For Vertex Buffer For Pyramid: %d !!!\n", __func__, vkResult);
         return vkResult;
     }
 
     //* Step - 9
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position.vkDeviceMemory);
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position_pyramid.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
-        printf("%s() => vkAllocateMemory() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+        printf("%s() => vkAllocateMemory() Failed For Vertex Buffer For Pyramid : %d !!!\n", __func__, vkResult);
     else
-        printf("%s() => vkAllocateMemory() Succeeded For Vertex Buffer\n", __func__);
+        printf("%s() => vkAllocateMemory() Succeeded For Vertex Buffer For Pyramid\n", __func__);
 
     //* Step - 10
     //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
-    vkResult = vkBindBufferMemory(vkDevice, vertexData_position.vkBuffer, vertexData_position.vkDeviceMemory, 0);
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_position_pyramid.vkBuffer, vertexData_position_pyramid.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
-        printf("%s() => vkBindBufferMemory() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+        printf("%s() => vkBindBufferMemory() Failed For Vertex Buffer For Pyramid : %d !!!\n", __func__, vkResult);
     else
-        printf("%s() => vkBindBufferMemory() Succeeded For Vertex Buffer\n", __func__);
+        printf("%s() => vkBindBufferMemory() Succeeded For Vertex Buffer For Pyramid\n", __func__);
 
     //* Step - 11
     void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, vertexData_position.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    vkResult = vkMapMemory(vkDevice, vertexData_position_pyramid.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
     if (vkResult != VK_SUCCESS)
-        printf("%s() => vkMapMemory() Failed For Vertex Buffer : %d !!!\n", __func__, vkResult);
+        printf("%s() => vkMapMemory() Failed For Vertex Buffer For Pyramid : %d !!!\n", __func__, vkResult);
     else
-        printf("%s() => vkMapMemory() Succeeded For Vertex Buffer\n", __func__);
+        printf("%s() => vkMapMemory() Succeeded For Vertex Buffer For Pyramid\n", __func__);
 
     //* Step - 12
-    memcpy(data, triangle_position, sizeof(triangle_position));
+    memcpy(data, pyramid_position, sizeof(pyramid_position));
 
     //* Step - 13
-    vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
+    vkUnmapMemory(vkDevice, vertexData_position_pyramid.vkDeviceMemory);
+    //! ------------------------------------------------------------------------------------------------------------
 
+    //! Cube
+    //! ------------------------------------------------------------------------------------------------------------
+    //* Step - 4
+    memset((void*)&vertexData_position_cube, 0, sizeof(VertexData));
+
+    //* Step - 5
+    memset((void*)&vkBufferCreateInfo, 0, sizeof(VkBufferCreateInfo));
+    vkBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkBufferCreateInfo.flags = 0;   //! Valid Flags are used in sparse(scattered) buffers
+    vkBufferCreateInfo.pNext = NULL;
+    vkBufferCreateInfo.size = sizeof(cube_position);
+    vkBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    
+    //* Step - 6
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &vertexData_position_cube.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+        printf("%s() => vkCreateBuffer() Failed For Vertex Buffer For Cube : %d !!!\n", __func__, vkResult);
+    else
+        printf("%s() => vkCreateBuffer() Succeeded For Vertex Buffer For Cube\n", __func__);
+    
+    //* Step - 7
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, vertexData_position_cube.vkBuffer, &vkMemoryRequirements);
+
+    //* Step - 8
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+    
+    //* Step - 8.1
+    VkBool32 foundMatchingMemoryType_vertex_cube = VK_FALSE;
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        //* Step - 8.2
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            //* Step - 8.3
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                //* Step - 8.4
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                foundMatchingMemoryType_vertex_cube = VK_TRUE;
+                break;
+            }
+        }
+
+        //* Step - 8.5
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Check For memoryTypeIndex != 0 On MoltenVK
+    if (foundMatchingMemoryType_vertex_cube == VK_FALSE)
+    {
+        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        printf("%s() => Host Visible Memory Not Found For Vertex Buffer For Cube: %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+
+    //* Step - 9
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vertexData_position_cube.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+        printf("%s() => vkAllocateMemory() Failed For Vertex Buffer For Cube: %d !!!\n", __func__, vkResult);
+    else
+        printf("%s() => vkAllocateMemory() Succeeded For Vertex Buffer For Cube\n", __func__);
+
+    //* Step - 10
+    //! Binds Vulkan Device Memory Object Handle with the Vulkan Buffer Object Handle
+    vkResult = vkBindBufferMemory(vkDevice, vertexData_position_cube.vkBuffer, vertexData_position_cube.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+        printf("%s() => vkBindBufferMemory() Failed For Vertex Buffer For Cube: %d !!!\n", __func__, vkResult);
+    else
+        printf("%s() => vkBindBufferMemory() Succeeded For Vertex Buffer For Cube\n", __func__);
+
+    //* Step - 11
+    data = NULL;
+    vkResult = vkMapMemory(vkDevice, vertexData_position_cube.vkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, &data);
+    if (vkResult != VK_SUCCESS)
+        printf("%s() => vkMapMemory() Failed For Vertex Buffer For Cube: %d !!!\n", __func__, vkResult);
+    else
+        printf("%s() => vkMapMemory() Succeeded For Vertex Buffer For Cube\n", __func__);
+
+    //* Step - 12
+    memcpy(data, cube_position, sizeof(cube_position));
+
+    //* Step - 13
+    vkUnmapMemory(vkDevice, vertexData_position_cube.vkDeviceMemory);
+    //! ------------------------------------------------------------------------------------------------------------
+    
     return vkResult;
 }
 
@@ -2961,20 +3029,22 @@ int main(int argc, char* argv[])
     vkBufferCreateInfo.size = sizeof(MVP_UniformData);
     vkBufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-    memset((void*)&uniformData, 0, sizeof(UniformData));
+    //! Pyramid
+    //! ------------------------------------------------------------------------------------------------------------
+    memset((void*)&uniformData_pyramid, 0, sizeof(UniformData));
 
-    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData.vkBuffer);
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData_pyramid.vkBuffer);
     if (vkResult != VK_SUCCESS)
     {
-        printf("%s() => vkCreateBuffer() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        printf("%s() => vkCreateBuffer() Failed For Uniform Data For Pyramid : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
     else
-        printf("%s() => vkCreateBuffer() Succeeded For Uniform Data\n", __func__);
+        printf("%s() => vkCreateBuffer() Succeeded For Uniform Data For Pyramid\n", __func__);
     
     VkMemoryRequirements vkMemoryRequirements;
     memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetBufferMemoryRequirements(vkDevice, uniformData.vkBuffer, &vkMemoryRequirements);
+    vkGetBufferMemoryRequirements(vkDevice, uniformData_pyramid.vkBuffer, &vkMemoryRequirements);
 
     VkMemoryAllocateInfo vkMemoryAllocateInfo;
     memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
@@ -2983,7 +3053,7 @@ int main(int argc, char* argv[])
     vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
     vkMemoryAllocateInfo.memoryTypeIndex = 0;
 
-    VkBool32 foundMatchingMemoryType_uniform = VK_FALSE;
+    VkBool32 foundMatchingMemoryType_uniform_pyramid = VK_FALSE;
     for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
     {
         if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
@@ -2991,7 +3061,7 @@ int main(int argc, char* argv[])
             if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
             {
                 vkMemoryAllocateInfo.memoryTypeIndex = i;
-                foundMatchingMemoryType_uniform = VK_TRUE;
+                foundMatchingMemoryType_uniform_pyramid = VK_TRUE;
                 break;
             }
         }
@@ -3000,23 +3070,88 @@ int main(int argc, char* argv[])
     }
 
     //* Check For memoryTypeIndex != 0 On MoltenVK
-    if (foundMatchingMemoryType_uniform == VK_FALSE)
+    if (foundMatchingMemoryType_uniform_pyramid == VK_FALSE)
     {
         vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
-        printf("%s() => Host Visible Memory Not Found : %d !!!\n", __func__, vkResult);
+        printf("%s() => Host Visible Memory Not Found For Uniform Buffer For Pyramid : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
 
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData.vkDeviceMemory);
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData_pyramid.vkDeviceMemory);
+    if (vkResult != VK_SUCCESS)
+    {
+        printf("%s() => vkAllocateMemory() Failed For Uniform Data For Pyramid : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        printf("%s() => vkAllocateMemory() Succeeded For Uniform Data For Pyramid\n", __func__);
+
+    vkResult = vkBindBufferMemory(vkDevice, uniformData_pyramid.vkBuffer, uniformData_pyramid.vkDeviceMemory, 0);
+    if (vkResult != VK_SUCCESS)
+    {
+        printf("%s() => vkBindBufferMemory() Failed For Uniform Data For Pyramid : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        printf("%s() => vkBindBufferMemory() Succeeded For Uniform Data For Pyramid\n", __func__);
+    //! ------------------------------------------------------------------------------------------------------------
+    
+    //! Cube
+    //! ------------------------------------------------------------------------------------------------------------
+    memset((void*)&uniformData_cube, 0, sizeof(UniformData));
+
+    vkResult = vkCreateBuffer(vkDevice, &vkBufferCreateInfo, NULL, &uniformData_cube.vkBuffer);
+    if (vkResult != VK_SUCCESS)
+    {
+        printf("%s() => vkCreateBuffer() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        printf("%s() => vkCreateBuffer() Succeeded For Uniform Data\n", __func__);
+    
+    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
+    vkGetBufferMemoryRequirements(vkDevice, uniformData_cube.vkBuffer, &vkMemoryRequirements);
+
+    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
+    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    vkMemoryAllocateInfo.pNext = NULL;
+    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
+    vkMemoryAllocateInfo.memoryTypeIndex = 0;
+
+    VkBool32 foundMatchingMemoryType_uniform_cube = VK_FALSE;
+    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+    {
+        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
+        {
+            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+            {
+                vkMemoryAllocateInfo.memoryTypeIndex = i;
+                foundMatchingMemoryType_uniform_cube = VK_TRUE;
+                break;
+            }
+        }
+
+        vkMemoryRequirements.memoryTypeBits >>= 1;
+    }
+
+    //* Check For memoryTypeIndex != 0 On MoltenVK
+    if (foundMatchingMemoryType_uniform_cube == VK_FALSE)
+    {
+        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        printf("%s() => Host Visible Memory Not Found For Uniform Buffer For Cube : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+
+    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &uniformData_cube.vkDeviceMemory);
     if (vkResult != VK_SUCCESS)
     {
         printf("%s() => vkAllocateMemory() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
         return vkResult;
-    }     
+    }
     else
         printf("%s() => vkAllocateMemory() Succeeded For Uniform Data\n", __func__);
 
-    vkResult = vkBindBufferMemory(vkDevice, uniformData.vkBuffer, uniformData.vkDeviceMemory, 0);
+    vkResult = vkBindBufferMemory(vkDevice, uniformData_cube.vkBuffer, uniformData_cube.vkDeviceMemory, 0);
     if (vkResult != VK_SUCCESS)
     {
         printf("%s() => vkBindBufferMemory() Failed For Uniform Data : %d !!!\n", __func__, vkResult);
@@ -3024,7 +3159,8 @@ int main(int argc, char* argv[])
     }
     else
         printf("%s() => vkBindBufferMemory() Succeeded For Uniform Data\n", __func__);
-
+    //! ------------------------------------------------------------------------------------------------------------
+    
     vkResult = [self updateUniformBuffer];
     if (vkResult != VK_SUCCESS)
     {
@@ -3033,7 +3169,7 @@ int main(int argc, char* argv[])
     }
     else
         printf("%s() => updateUniformBuffer() Succeeded\n", __func__);
-
+    
 
     return vkResult;
 }
@@ -3047,9 +3183,17 @@ int main(int argc, char* argv[])
     MVP_UniformData mvp_UniformData;
     memset((void*)&mvp_UniformData, 0, sizeof(MVP_UniformData));
 
-    //! Update Matrices
+    glm::mat4 translationMatrix = glm::mat4(1.0f);
+    glm::mat4 scaleMatrix = glm::mat4(1.0f);
+    glm::mat4 rotationMatrix = glm::mat4(1.0f);
+
+    //! Pyramid
+    //! ------------------------------------------------------------------------------------------------------------
+    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, -6.0f));
+    rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+
     mvp_UniformData.modelMatrix = glm::mat4(1.0f);
-    mvp_UniformData.modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+    mvp_UniformData.modelMatrix = translationMatrix * rotationMatrix;
     mvp_UniformData.viewMatrix = glm::mat4(1.0f);
     
     glm::mat4 perspectiveProjectionMatrix = glm::mat4(1.0f);
@@ -3065,10 +3209,10 @@ int main(int argc, char* argv[])
 
     //! Map Uniform Buffer
     void* data = NULL;
-    vkResult = vkMapMemory(vkDevice, uniformData.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
+    vkResult = vkMapMemory(vkDevice, uniformData_pyramid.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
     if (vkResult != VK_SUCCESS)
     {
-        printf("%s() => vkMapMemory() Failed For Uniform Buffer : %d !!!\n", __func__, vkResult);
+        printf("%s() => vkMapMemory() Failed For Uniform Buffer For Pyramid : %d !!!\n", __func__, vkResult);
         return vkResult;
     }
 
@@ -3076,7 +3220,52 @@ int main(int argc, char* argv[])
     memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
 
     //! Unmap memory
-    vkUnmapMemory(vkDevice, uniformData.vkDeviceMemory);
+    vkUnmapMemory(vkDevice, uniformData_pyramid.vkDeviceMemory);
+    //! ------------------------------------------------------------------------------------------------------------
+
+    //! Cube
+    //! ------------------------------------------------------------------------------------------------------------
+    glm::mat4 rotationMatrix_x = glm::mat4(1.0f);
+    glm::mat4 rotationMatrix_y = glm::mat4(1.0f);
+    glm::mat4 rotationMatrix_z = glm::mat4(1.0f);
+    
+    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, -6.0f));
+    scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.75f, 0.75f, 0.75f));
+    rotationMatrix_x = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+    rotationMatrix_y = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+    rotationMatrix_z = glm::rotate(glm::mat4(1.0f), glm::radians(fAngle), glm::vec3(0.0f, 0.0f, 1.0f));
+    rotationMatrix = rotationMatrix_x * rotationMatrix_y * rotationMatrix_z;
+
+    mvp_UniformData.modelMatrix = glm::mat4(1.0f);
+    mvp_UniformData.modelMatrix = translationMatrix * scaleMatrix * rotationMatrix;
+    mvp_UniformData.viewMatrix = glm::mat4(1.0f);
+    
+    perspectiveProjectionMatrix = glm::mat4(1.0f);
+    perspectiveProjectionMatrix = glm::perspective(
+        glm::radians(45.0f),
+        (float)winWidth / (float)winHeight,
+        0.1f,
+        100.0f
+    );
+    //! 2D Matrix with Column Major (Like OpenGL)
+    perspectiveProjectionMatrix[1][1] = perspectiveProjectionMatrix[1][1] * (-1.0f);
+    mvp_UniformData.projectionMatrix = perspectiveProjectionMatrix;
+
+    //! Map Uniform Buffer
+    data = NULL;
+    vkResult = vkMapMemory(vkDevice, uniformData_cube.vkDeviceMemory, 0, sizeof(MVP_UniformData), 0, &data);
+    if (vkResult != VK_SUCCESS)
+    {
+        printf("%s() => vkMapMemory() Failed For Uniform Buffer For Cube : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+
+    //! Copy the data to the mapped buffer (present on device memory)
+    memcpy(data, &mvp_UniformData, sizeof(MVP_UniformData));
+
+    //! Unmap memory
+    vkUnmapMemory(vkDevice, uniformData_cube.vkDeviceMemory);
+    //! ------------------------------------------------------------------------------------------------------------
 
     return vkResult;
 }
@@ -3090,12 +3279,9 @@ int main(int argc, char* argv[])
     //! ---------------------------------------------------------------------------------------------------------------------------
     //* Step - 6
     NSBundle* appBundle = [NSBundle mainBundle];
-    NSString* appDirectoryName = [appBundle bundlePath];
-    NSString* parentDirectoryPath = [appDirectoryName stringByDeletingLastPathComponent];
 
     const char* szFileName = "Shader.vert.spv";
-    NSString *shaderFileNameWithPath = [NSString stringWithFormat:@"%@/%s", parentDirectoryPath, szFileName];
-    const char* pszShaderFileNameWithPath = [shaderFileNameWithPath cStringUsingEncoding:NSASCIIStringEncoding];
+    const char* pszShaderFileNameWithPath = [[[appBundle resourcePath]stringByAppendingPathComponent:@(szFileName)]cStringUsingEncoding:NSASCIIStringEncoding];
 
     FILE *fp = NULL;
     size_t size;
@@ -3174,8 +3360,7 @@ int main(int argc, char* argv[])
     //! Fragment Shader
     //! ---------------------------------------------------------------------------------------------------------------------------
     szFileName = "Shader.frag.spv";
-    shaderFileNameWithPath = [NSString stringWithFormat:@"%@/%s", parentDirectoryPath, szFileName];
-    pszShaderFileNameWithPath = [shaderFileNameWithPath cStringUsingEncoding:NSASCIIStringEncoding];
+    pszShaderFileNameWithPath = [[[appBundle resourcePath]stringByAppendingPathComponent:@(szFileName)]cStringUsingEncoding:NSASCIIStringEncoding];
 
     fp = NULL;
     fp = fopen(pszShaderFileNameWithPath, "rb");
@@ -3331,11 +3516,11 @@ int main(int argc, char* argv[])
     vkDescriptorPoolCreateInfo.flags = 0;
     vkDescriptorPoolCreateInfo.poolSizeCount = 1;
     vkDescriptorPoolCreateInfo.pPoolSizes = &vkDescriptorPoolSize;
-    vkDescriptorPoolCreateInfo.maxSets = 1;
+    vkDescriptorPoolCreateInfo.maxSets = 2;
 
     vkResult = vkCreateDescriptorPool(vkDevice, &vkDescriptorPoolCreateInfo, NULL, &vkDescriptorPool);
     if (vkResult != VK_SUCCESS)
-        printf("%s() => vkCreateDescriptorPool() Failed : %d !!!\n", __func__, vkResult);  
+        printf("%s() => vkCreateDescriptorPool() Failed : %d !!!\n", __func__, vkResult);
     else
         printf("%s() => vkCreateDescriptorPool() Succeeded\n", __func__);
 
@@ -3349,6 +3534,8 @@ int main(int argc, char* argv[])
 
     // Code
 
+    //! Pyramid
+    //! ------------------------------------------------------------------------------------------------------------
     //* Initialize DescriptorSetAllocationInfo
     VkDescriptorSetAllocateInfo vkDescriptorSetAllocateInfo;
     memset((void*)&vkDescriptorSetAllocateInfo, 0, sizeof(VkDescriptorSetAllocateInfo));
@@ -3358,19 +3545,19 @@ int main(int argc, char* argv[])
     vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
     vkDescriptorSetAllocateInfo.pSetLayouts = &vkDescriptorSetLayout;
 
-    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet);
+    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet_pyramid);
     if (vkResult != VK_SUCCESS)
     {
-        printf("%s() => vkAllocateDescriptorSets() Failed : %d !!!\n", __func__, vkResult);
+        printf("%s() => vkAllocateDescriptorSets() Failed For Pyramid : %d !!!\n", __func__, vkResult);
         return vkResult;
-    }  
+    }
     else
-        printf("%s() => vkAllocateDescriptorSets() Succeeded\n", __func__);
+        printf("%s() => vkAllocateDescriptorSets() Succeeded For Pyramid\n", __func__);
     
     //* Describe whether we want buffer as uniform or image as uniform
     VkDescriptorBufferInfo vkDescriptorBufferInfo;
     memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
-    vkDescriptorBufferInfo.buffer = uniformData.vkBuffer;
+    vkDescriptorBufferInfo.buffer = uniformData_pyramid.vkBuffer;
     vkDescriptorBufferInfo.offset = 0;
     vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
 
@@ -3383,7 +3570,7 @@ int main(int argc, char* argv[])
     memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
     vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     vkWriteDescriptorSet.pNext = NULL;
-    vkWriteDescriptorSet.dstSet = vkDescriptorSet;
+    vkWriteDescriptorSet.dstSet = vkDescriptorSet_pyramid;
     vkWriteDescriptorSet.dstArrayElement = 0;
     vkWriteDescriptorSet.descriptorCount = 1;
     vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -3393,7 +3580,46 @@ int main(int argc, char* argv[])
     vkWriteDescriptorSet.dstBinding = 0;
 
     vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
+    //! ------------------------------------------------------------------------------------------------------------
+    
+    //! Cube
+    //! ------------------------------------------------------------------------------------------------------------
+    memset((void*)&vkDescriptorSetAllocateInfo, 0, sizeof(VkDescriptorSetAllocateInfo));
+    vkDescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    vkDescriptorSetAllocateInfo.pNext = NULL;
+    vkDescriptorSetAllocateInfo.descriptorPool = vkDescriptorPool;
+    vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
+    vkDescriptorSetAllocateInfo.pSetLayouts = &vkDescriptorSetLayout;
 
+    vkResult = vkAllocateDescriptorSets(vkDevice, &vkDescriptorSetAllocateInfo, &vkDescriptorSet_cube);
+    if (vkResult != VK_SUCCESS)
+    {
+        printf("%s() => vkAllocateDescriptorSets() Failed For Cube : %d !!!\n", __func__, vkResult);
+        return vkResult;
+    }
+    else
+        printf("%s() => vkAllocateDescriptorSets() Succeeded For Cube\n", __func__);
+    
+    memset((void*)&vkDescriptorBufferInfo, 0, sizeof(VkDescriptorBufferInfo));
+    vkDescriptorBufferInfo.buffer = uniformData_cube.vkBuffer;
+    vkDescriptorBufferInfo.offset = 0;
+    vkDescriptorBufferInfo.range = sizeof(MVP_UniformData);
+
+    memset((void*)&vkWriteDescriptorSet, 0, sizeof(VkWriteDescriptorSet));
+    vkWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vkWriteDescriptorSet.pNext = NULL;
+    vkWriteDescriptorSet.dstSet = vkDescriptorSet_cube;
+    vkWriteDescriptorSet.dstArrayElement = 0;
+    vkWriteDescriptorSet.descriptorCount = 1;
+    vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
+    vkWriteDescriptorSet.pImageInfo = NULL;
+    vkWriteDescriptorSet.pTexelBufferView = NULL;
+    vkWriteDescriptorSet.dstBinding = 0;
+
+    vkUpdateDescriptorSets(vkDevice, 1, &vkWriteDescriptorSet, 0, NULL);
+    //! ------------------------------------------------------------------------------------------------------------
+    
     return vkResult;
 }
 
@@ -3454,8 +3680,8 @@ int main(int argc, char* argv[])
     vkSubpassDescription.pPreserveAttachments = NULL;
     vkSubpassDescription.pResolveAttachments = NULL;
 
-    //! Explicit subpass dependencies are defined below to prevent synchronization validation errors. 
-    //! While the application may function without them and bypass core validation, 
+    //! Explicit subpass dependencies are defined below to prevent synchronization validation errors.
+    //! While the application may function without them and bypass core validation,
     //! the Synchronization Validation Layer will flag the missing explicit setup.
     VkSubpassDependency vkSubpassDependency_array[2];
     memset((void*)vkSubpassDependency_array, 0, sizeof(VkSubpassDependency) * _ARRAYSIZE(vkSubpassDependency_array));
@@ -3512,7 +3738,7 @@ int main(int argc, char* argv[])
     VkVertexInputBindingDescription vkVertexInputBindingDescription_array[1];
     memset((void*)vkVertexInputBindingDescription_array, 0, sizeof(VkVertexInputBindingDescription) * _ARRAYSIZE(vkVertexInputBindingDescription_array));
     vkVertexInputBindingDescription_array[0].binding = 0;
-    vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 3; 
+    vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 3;
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
     VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[1];
@@ -3547,7 +3773,7 @@ int main(int argc, char* argv[])
     vkPipelineRasterizationStateCreateInfo.pNext = NULL;
     vkPipelineRasterizationStateCreateInfo.flags = 0;
     vkPipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    vkPipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
     vkPipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     vkPipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
@@ -3574,7 +3800,7 @@ int main(int argc, char* argv[])
     vkPipelineViewportStateCreateInfo.viewportCount = 1;    //* We can specify multiple viewports here
     vkPipelineViewportStateCreateInfo.scissorCount = 1;
 
-    //! Viewport Info     
+    //! Viewport Info
     memset((void*)&vkViewport, 0, sizeof(VkViewport));
     vkViewport.x = 0;
     vkViewport.y = 0;
@@ -3877,7 +4103,9 @@ int main(int argc, char* argv[])
         {
             //! Bind with Pipeline
             vkCmdBindPipeline(vkCommandBuffer_array[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
-
+            
+            //! Pyramid
+            //! ----------------------------------------------------------------------------------------------------
             //! Bind the Descriptor Set to the Pipeline
             vkCmdBindDescriptorSets(
                 vkCommandBuffer_array[i],
@@ -3885,7 +4113,7 @@ int main(int argc, char* argv[])
                 vkPipelineLayout,
                 0,
                 1,
-                &vkDescriptorSet,
+                &vkDescriptorSet_pyramid,
                 0,
                 NULL
             );
@@ -3894,15 +4122,44 @@ int main(int argc, char* argv[])
             VkDeviceSize vkDeviceSize_offset_array[1];
             memset((void*)vkDeviceSize_offset_array, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_array));
             vkCmdBindVertexBuffers(
-                vkCommandBuffer_array[i], 
-                0, 
-                1, 
-                &vertexData_position.vkBuffer, 
+                vkCommandBuffer_array[i],
+                0,
+                1,
+                &vertexData_position_pyramid.vkBuffer,
                 vkDeviceSize_offset_array
             );
 
             //! Vulkan Drawing Function
-            vkCmdDraw(vkCommandBuffer_array[i], 3, 1, 0, 0);
+            vkCmdDraw(vkCommandBuffer_array[i], 12, 1, 0, 0);
+            //! ----------------------------------------------------------------------------------------------------
+            
+            //! Cube
+            //! ----------------------------------------------------------------------------------------------------
+            //! Bind the Descriptor Set to the Pipeline
+            vkCmdBindDescriptorSets(
+                vkCommandBuffer_array[i],
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                vkPipelineLayout,
+                0,
+                1,
+                &vkDescriptorSet_cube,
+                0,
+                NULL
+            );
+
+            //! Bind with Vertex Buffer
+            memset((void*)vkDeviceSize_offset_array, 0, sizeof(VkDeviceSize) * _ARRAYSIZE(vkDeviceSize_offset_array));
+            vkCmdBindVertexBuffers(
+                vkCommandBuffer_array[i],
+                0,
+                1,
+                &vertexData_position_cube.vkBuffer,
+                vkDeviceSize_offset_array
+            );
+
+            //! Vulkan Drawing Function
+            vkCmdDraw(vkCommandBuffer_array[i], 36, 1, 0, 0);
+            //! ----------------------------------------------------------------------------------------------------
         }
         //* Step - 7
         vkCmdEndRenderPass(vkCommandBuffer_array[i]);
@@ -3923,43 +4180,19 @@ int main(int argc, char* argv[])
 }
 
 
-VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(
-    VkDebugReportFlagsEXT vkDebugReportFlagsEXT,
-    VkDebugReportObjectTypeEXT vkDebugReportObjectTypeEXT,
-    uint64_t object,
-    size_t location,
-    int32_t messageCode,
-    const char* pLayerPrefix,
-    const char* pMessage,
+@end
+
+
+
+VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT vkDebugUtilsMessageSeverityFlagBitsEXT,
+    VkDebugUtilsMessageTypeFlagsEXT vkDebugReportObjectTypeEXT,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallBackData,
     void* pUserData
 )
 {
     // Code
-    printf("ADN_VALIDATION : debugReportCallback() => %s(%d) = %s\n", pLayerPrefix, messageCode, pMessage);
+    printf("ADN_VALIDATION : debugUtilsMessengerCallback() => %s\n : ", pCallBackData->pMessage);
     return VK_FALSE;
-}
-
-
--(void) dealloc 
-{
-    // Code
-    [super dealloc];
-}
-
-@end
-
-// Callback Implementation
-CVReturn DisplayLinkCallback(
-    CVDisplayLinkRef displayLinkRef, 
-    const CVTimeStamp* now, 
-    const CVTimeStamp* outputTime, 
-    CVOptionFlags flagsIn, 
-    CVOptionFlags* flagsOut, 
-    void* renderer)
-{
-    // Code
-    CVReturn result = [(View*)renderer getFrameForTime:outputTime];
-
-    return result;
 }
 

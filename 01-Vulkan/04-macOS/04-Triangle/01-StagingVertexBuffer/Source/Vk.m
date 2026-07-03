@@ -78,12 +78,6 @@ uint32_t swapchainImageCount = UINT32_MAX;
 VkImage *swapchainImage_array = NULL;
 VkImageView *swapchainImageView_array = NULL;
 
-//? For Depth Image
-VkFormat vkFormat_depth = VK_FORMAT_UNDEFINED;
-VkImage vkImage_depth = VK_NULL_HANDLE;
-VkDeviceMemory vkDeviceMemory_depth = VK_NULL_HANDLE;
-VkImageView vkImageView_depth = VK_NULL_HANDLE;
-
 //? Command Pool
 VkCommandPool vkCommandPool = VK_NULL_HANDLE;
 
@@ -522,7 +516,7 @@ int main(int argc, char* argv[])
     else
         fprintf(gpFile, "%s() => createShaders() Succeeded\n", __func__);
 
-    //! Create DescriptorSetLayout
+    //! Create Descriptor Set Layout
     vkResult = [self createDescriptorSetLayout];
     if (vkResult != VK_SUCCESS)
     {
@@ -698,36 +692,6 @@ int main(int argc, char* argv[])
         {
             vkDestroyRenderPass(vkDevice, vkRenderPass, NULL);
             vkRenderPass = VK_NULL_HANDLE;
-        }
-
-        //* Destroying Depth Image
-        if (vkImageView_depth)
-        {
-            vkDestroyImageView(vkDevice, vkImageView_depth, NULL);
-            vkImageView_depth = VK_NULL_HANDLE;
-        }
-
-        if (vkImage_depth)
-        {
-            vkDestroyImage(vkDevice, vkImage_depth, NULL);
-            vkImage_depth = VK_NULL_HANDLE;
-        }
-
-        if (vkDeviceMemory_depth)
-        {
-            vkFreeMemory(vkDevice, vkDeviceMemory_depth, NULL);
-            vkDeviceMemory_depth = VK_NULL_HANDLE;
-        }
-
-        
-        //* Destroy Swapchain Image and Image Views
-        for (uint32_t i = 0; i < swapchainImageCount; i++)
-            vkDestroyImageView(vkDevice, swapchainImageView_array[i], NULL);
-
-        if (swapchainImageView_array)
-        {
-            free(swapchainImageView_array);
-            swapchainImageView_array = NULL;
         }
 
         //! No need to free swapchain images -> Uncommenting causes the code to crash
@@ -1122,28 +1086,6 @@ int main(int argc, char* argv[])
         vkDestroyCommandPool(vkDevice, vkCommandPool, NULL);
         vkCommandPool = VK_NULL_HANDLE;
         fprintf(gpFile, "%s() => vkDestroyCommandPool() Succeeded\n", __func__);
-    }
-
-    //* Destroying Depth Image
-    if (vkImageView_depth)
-    {
-        vkDestroyImageView(vkDevice, vkImageView_depth, NULL);
-        vkImageView_depth = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyImageView() Succeeded For vkImageView_depth\n", __func__);
-    }
-
-    if (vkImage_depth)
-    {
-        vkDestroyImage(vkDevice, vkImage_depth, NULL);
-        vkImage_depth = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkDestroyImage() Succeeded For vkImage_depth\n", __func__);
-    }
-
-    if (vkDeviceMemory_depth)
-    {
-        vkFreeMemory(vkDevice, vkDeviceMemory_depth, NULL);
-        vkDeviceMemory_depth = VK_NULL_HANDLE;
-        fprintf(gpFile, "%s() => vkFreeMemory() Succeeded For vkDeviceMemory_depth\n", __func__);
     }
 
     //* Step - 7, 8 of Swapchain Image and Image Views
@@ -2533,156 +2475,6 @@ int main(int argc, char* argv[])
             fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For Index : %d\n", __func__, i);
     }
 
-    //! For Depth Image
-    vkResult = [self getSupportedDepthFormat];
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => getSupportedDepthFormat() Failed : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => getSupportedDepthFormat() Succeded\n", __func__);
-
-    //* For Depth Image, initialize VkImageCreateInfo
-    VkImageCreateInfo vkImageCreateInfo;
-    memset((void*)&vkImageCreateInfo, 0, sizeof(VkImageCreateInfo));
-    vkImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    vkImageCreateInfo.pNext = NULL;
-    vkImageCreateInfo.flags = 0;
-    vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    vkImageCreateInfo.format = vkFormat_depth;
-    vkImageCreateInfo.extent.width = vkExtent2D_swapchain.width;
-    vkImageCreateInfo.extent.height = vkExtent2D_swapchain.height;
-    vkImageCreateInfo.extent.depth = 1;
-    vkImageCreateInfo.mipLevels = 1;
-    vkImageCreateInfo.arrayLayers = 1;
-    vkImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    vkImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    vkImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-    vkResult = vkCreateImage(vkDevice, &vkImageCreateInfo, NULL, &vkImage_depth);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateImage() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateImage() Succeeded\n", __func__);
-
-    //! Memory Requirements For Depth Image
-    VkMemoryRequirements vkMemoryRequirements;
-    memset((void*)&vkMemoryRequirements, 0, sizeof(VkMemoryRequirements));
-    vkGetImageMemoryRequirements(vkDevice, vkImage_depth, &vkMemoryRequirements);
-
-    VkMemoryAllocateInfo vkMemoryAllocateInfo;
-    memset((void*)&vkMemoryAllocateInfo, 0, sizeof(VkMemoryAllocateInfo));
-    vkMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    vkMemoryAllocateInfo.pNext = NULL;
-    vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-    vkMemoryAllocateInfo.memoryTypeIndex = 0;
-
-    VkBool32 foundMatchingMemoryType_depth = VK_FALSE;
-
-    for (uint32_t i = 0; i < vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-    {
-        if ((vkMemoryRequirements.memoryTypeBits & 1) == 1)
-        {
-            if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-            {
-                vkMemoryAllocateInfo.memoryTypeIndex = i;
-                foundMatchingMemoryType_depth = VK_TRUE;
-                break;
-            }
-        }
-
-        vkMemoryRequirements.memoryTypeBits >>= 1;
-    }
-
-    //* Check For memoryTypeIndex != 0 On MoltenVK
-    if (foundMatchingMemoryType_depth == VK_FALSE)
-    {
-        vkResult = VK_ERROR_OUT_OF_DEVICE_MEMORY;
-        fprintf(gpFile, "%s() => Device Local Memory Not Found : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-
-    vkResult = vkAllocateMemory(vkDevice, &vkMemoryAllocateInfo, NULL, &vkDeviceMemory_depth);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkAllocateMemory() Failed For Depth : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }     
-    else
-        fprintf(gpFile, "%s() => vkAllocateMemory() Succeeded For Depth\n", __func__);
-
-    vkResult = vkBindImageMemory(vkDevice, vkImage_depth, vkDeviceMemory_depth, 0);
-    if (vkResult != VK_SUCCESS)
-    {
-        fprintf(gpFile, "%s() => vkBindImageMemory() Failed For Depth : %d !!!\n", __func__, vkResult);
-        return vkResult;
-    }
-    else
-        fprintf(gpFile, "%s() => vkBindImageMemory() Succeeded For Depth\n", __func__);
-
-    //! Create Image View For Above Depth Image
-    memset((void*)&vkImageViewCreateInfo, 0, sizeof(VkImageViewCreateInfo));
-    vkImageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    vkImageViewCreateInfo.pNext = NULL;
-    vkImageViewCreateInfo.flags = 0;
-    vkImageViewCreateInfo.format = vkFormat_depth;
-
-    vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    if (vkFormat_depth == VK_FORMAT_D32_SFLOAT_S8_UINT || 
-        vkFormat_depth == VK_FORMAT_D24_UNORM_S8_UINT || 
-        vkFormat_depth == VK_FORMAT_D16_UNORM_S8_UINT)
-    {
-        vkImageViewCreateInfo.subresourceRange.aspectMask |=  VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
-
-    vkImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-    vkImageViewCreateInfo.subresourceRange.levelCount = 1;
-    vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    vkImageViewCreateInfo.subresourceRange.layerCount = 1;
-    vkImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    vkImageViewCreateInfo.image = vkImage_depth;    //! Added here, as previously we had swapchain images, but here we are creating a new depth image
-
-    //* Step - 6
-    vkResult = vkCreateImageView(vkDevice, &vkImageViewCreateInfo, NULL, &vkImageView_depth);
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => vkCreateImageView() Failed For Depth : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => vkCreateImageView() Succeeded For Depth\n", __func__);
-
-    return vkResult;
-}
-
--(VkResult) getSupportedDepthFormat
-{
-    // Variable Declarations
-    VkResult vkResult = VK_SUCCESS;
-    
-    VkFormat vkFormat_depth_array[] = 
-    {
-        //* Descending Order
-        VK_FORMAT_D32_SFLOAT_S8_UINT,
-        VK_FORMAT_D32_SFLOAT,
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_D16_UNORM_S8_UINT,
-        VK_FORMAT_D16_UNORM
-    };
-    
-    // Code
-    for (uint32_t i = 0; i < (sizeof(vkFormat_depth_array) / sizeof(vkFormat_depth_array[0])); i++)
-    {
-        VkFormatProperties vkFormatProperties;
-        memset((void*)&vkFormatProperties, 0, sizeof(VkFormatProperties));
-        vkGetPhysicalDeviceFormatProperties(vkPhysicalDevice_selected, vkFormat_depth_array[i], &vkFormatProperties);
-
-        if (vkFormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-        {
-            vkFormat_depth = vkFormat_depth_array[i];
-            vkResult = VK_SUCCESS;
-            break;
-        }    
-    }
-
     return vkResult;
 }
 
@@ -3514,20 +3306,6 @@ int main(int argc, char* argv[])
     vkPipelineViewportStateCreateInfo.pScissors = &vkRect2D_scissor;
 
     //! Depth Stencil State !//
-    VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilCreateInfo;
-    memset((void*)&vkPipelineDepthStencilCreateInfo, 0, sizeof(VkPipelineDepthStencilStateCreateInfo));
-    vkPipelineDepthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    vkPipelineDepthStencilCreateInfo.flags = 0;
-    vkPipelineDepthStencilCreateInfo.pNext = NULL;
-    vkPipelineDepthStencilCreateInfo.depthTestEnable = VK_TRUE;
-    vkPipelineDepthStencilCreateInfo.depthWriteEnable = VK_TRUE;
-    vkPipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-    vkPipelineDepthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
-    vkPipelineDepthStencilCreateInfo.back.failOp = VK_STENCIL_OP_KEEP;
-    vkPipelineDepthStencilCreateInfo.back.passOp = VK_STENCIL_OP_KEEP;
-    vkPipelineDepthStencilCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
-    vkPipelineDepthStencilCreateInfo.stencilTestEnable = VK_FALSE;
-    vkPipelineDepthStencilCreateInfo.front = vkPipelineDepthStencilCreateInfo.back;
 
     //! Dynamic State !//
 
@@ -3588,7 +3366,7 @@ int main(int argc, char* argv[])
     vkGraphicsPipelineCreateInfo.pRasterizationState = &vkPipelineRasterizationStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pColorBlendState = &vkPipelineColorBlendStateCreateInfo;
     vkGraphicsPipelineCreateInfo.pViewportState = &vkPipelineViewportStateCreateInfo;
-    vkGraphicsPipelineCreateInfo.pDepthStencilState = &vkPipelineDepthStencilCreateInfo;
+    vkGraphicsPipelineCreateInfo.pDepthStencilState = NULL;
     vkGraphicsPipelineCreateInfo.pDynamicState = NULL;
     vkGraphicsPipelineCreateInfo.pMultisampleState = &vkPipelineMultisampleStateCreateInfo;
     vkGraphicsPipelineCreateInfo.stageCount = _ARRAYSIZE(vkPipelineShaderStageCreateInfo_array);
