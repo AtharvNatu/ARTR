@@ -161,6 +161,7 @@ VkPipeline vkPipeline = VK_NULL_HANDLE;
 {
     @private
     CADisplayLink* displayLink;
+    BOOL bDisplayLinkActive;
 }
 
 -(id) initWithFrame:(CGRect)frameRect
@@ -230,11 +231,8 @@ VkPipeline vkPipeline = VK_NULL_HANDLE;
         [singleTapGestureRecognizer release];
         singleTapGestureRecognizer = nil;
         
-        // Initialize Display Link
-        NSUInteger animationFrameInterval = 60;
-        displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawView)];
-        [displayLink setPreferredFramesPerSecond:animationFrameInterval];
-        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+        bDisplayLinkActive = NO;
+        
     }
     
     return self;
@@ -282,6 +280,30 @@ VkPipeline vkPipeline = VK_NULL_HANDLE;
     
     // Resize
     [self resize:winWidth :winHeight];
+}
+
+-(void) startDisplayLink
+{
+    // Initialize Display Link
+    if (!bDisplayLinkActive)
+    {
+        NSUInteger animationFrameInterval = 60;
+        displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawView)];
+        [displayLink setPreferredFramesPerSecond:animationFrameInterval];
+        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+        bDisplayLinkActive = YES;
+    }
+    
+}
+
+-(void) stopDisplayLink
+{
+    if (bDisplayLinkActive)
+    {
+        [displayLink invalidate];
+        displayLink = nil;
+        bDisplayLinkActive = NO;
+    }
 }
 
 -(BOOL) canBecomeFirstResponder
@@ -872,11 +894,6 @@ VkPipeline vkPipeline = VK_NULL_HANDLE;
 -(void) uninitialize
 {
     // Code
-    if (displayLink)
-    {
-        [displayLink invalidate];
-        displayLink = nil;
-    }
     
     //* Step - 5 of Device Creation (Destroy Vulkan Device)
     //! vkDeviceWaitIdle(vkDevice) should be the 1st API to maintain synchronization

@@ -7,6 +7,7 @@
 {
     @private
     UIWindow* window;
+    View* view;
 }
 
 -(void) scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions
@@ -14,7 +15,7 @@
     // Variable Declarations
     UIWindowScene* windowScene = nil;
     ViewController* viewController = nil;
-    View* view = nil;
+    view = nil;
     CGRect rect;
     
     // Code
@@ -45,6 +46,8 @@
     rect = [[[windowScene effectiveGeometry] coordinateSpace] bounds];
     
     view = [[View alloc]initWithFrame:rect];
+    if ([view isKindOfClass:([View class])])
+        [view startDisplayLink];
     
     // Set this view as the view controller's view
     [viewController setView:view];
@@ -59,16 +62,22 @@
 -(void) sceneDidDisconnect:(UIScene *)scene
 {
     // Code
+    if ([view isKindOfClass:([View class])])
+        [view stopDisplayLink];
 }
 
 -(void) sceneDidBecomeActive:(UIScene *)scene
 {
     // Code
+    if ([view isKindOfClass:([View class])])
+        [view startDisplayLink];
 }
 
 -(void) sceneWillResignActive:(UIScene *)scene
 {
     // Code
+    if ([view isKindOfClass:([View class])])
+        [view stopDisplayLink];
 }
 
 -(void) sceneWillEnterForeground:(UIScene *)scene
