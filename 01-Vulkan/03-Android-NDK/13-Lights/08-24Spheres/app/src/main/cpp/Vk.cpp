@@ -349,7 +349,7 @@ void android_main(struct android_app* state)
                 bPendingSingleTap = false;
                 chosenAxis++;
                 if (chosenAxis > 2)
-                    chosenAxis = 0;
+                    chosenAxis = -1;
             }
                 
         }

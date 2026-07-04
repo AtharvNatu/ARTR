@@ -4443,7 +4443,6 @@ int main(int argc, char* argv[])
     return vkResult;
 }
 
-
 -(void) updateTexcoords
 {
     // Variable Declarations

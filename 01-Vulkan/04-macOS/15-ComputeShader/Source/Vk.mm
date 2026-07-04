@@ -3933,7 +3933,6 @@ int main(int argc, char* argv[])
     vkVertexInputBindingDescription_array[0].stride = sizeof(float) * 4; 
     vkVertexInputBindingDescription_array[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-
     VkVertexInputAttributeDescription vkVertexInputAttributeDescription_array[1];
     memset((void*)vkVertexInputAttributeDescription_array, 0, sizeof(VkVertexInputAttributeDescription) * _ARRAYSIZE(vkVertexInputAttributeDescription_array));
     
