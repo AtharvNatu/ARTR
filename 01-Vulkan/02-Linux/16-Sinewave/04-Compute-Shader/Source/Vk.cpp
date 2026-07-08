@@ -4435,7 +4435,6 @@ VkResult initialize_compute(void)
 {
     // Function Declarations
     VkResult createCommandBuffer_compute(void);
-    VkResult createStorageBuffer_compute(void);
     VkResult createShader_compute(void);
     VkResult createDescriptorSetLayout_compute(void);
     VkResult createPipelineLayout_compute(void);
@@ -4452,12 +4451,6 @@ VkResult initialize_compute(void)
         fprintf(gpFile, "%s() => createCommandBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
     else
         fprintf(gpFile, "%s() => createCommandBuffer_compute() Succeeded\n", __func__);
-
-    vkResult = createStorageBuffer_compute();
-    if (vkResult != VK_SUCCESS)
-        fprintf(gpFile, "%s() => createStorageBuffer_compute() Failed : %d !!!\n", __func__, vkResult);
-    else
-        fprintf(gpFile, "%s() => createStorageBuffer_compute() Succeeded\n", __func__);
 
     vkResult = createShader_compute();
     if (vkResult != VK_SUCCESS)
