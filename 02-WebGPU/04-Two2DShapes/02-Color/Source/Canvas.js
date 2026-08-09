@@ -677,8 +677,8 @@ function display()
     //* Rectangle
     //* -----------------------------------------------------------------------------------------------------------------------------
     //! Transformations
-    mat4.identity(modelViewMatrix);
-    mat4.identity(modelViewProjectionMatrix);
+    modelViewMatrix = mat4.create();
+    modelViewProjectionMatrix = mat4.create();
 
     mat4.translate(modelViewMatrix, modelViewMatrix, [1.5, 0.0, -6.0]);
     mat4.multiply(modelViewProjectionMatrix, perspectiveProjectionMatrix, modelViewMatrix);

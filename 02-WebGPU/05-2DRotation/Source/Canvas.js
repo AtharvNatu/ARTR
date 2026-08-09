@@ -13,7 +13,10 @@ let canvasFormat = null;
 let animationFrameId = null;
 
 let buffer_position_triangle = null;
+let buffer_color_triangle = null;
+
 let buffer_position_rectangle = null;
+let buffer_color_rectangle = null;
 
 let buffer_mvpUniform_triangle = null;
 let buffer_mvpUniform_rectangle = null;
@@ -23,6 +26,9 @@ let bindGroup_mvpUniform_rectangle = null;
 
 let render_pipeline = null;
 let perspectiveProjectionMatrix = null;
+
+var angle = 0.0;
+const animationSpeed = 0.5;
 
 //* Animation Related
 var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome
@@ -134,7 +140,10 @@ function onDeviceLost(info)
     queue = null;
 
     buffer_position_triangle = null;
+    buffer_color_triangle = null;
+
     buffer_position_rectangle = null;
+    buffer_color_rectangle = null;
 
     buffer_mvpUniform_triangle = null;
     buffer_mvpUniform_rectangle = null;
@@ -233,7 +242,7 @@ async function initialize()
     { 
         r: 0.0,
         g: 0.0,
-        b: 1.0,
+        b: 0.0,
         a: 1.0
     };
 
@@ -277,6 +286,12 @@ async function initialize()
         1.0,    -1.0,   0.0,    1.0
     ]);
 
+    const vertex_color_triangle = new Float32Array([
+        1.0,    0.0,    0.0,    1.0,
+        0.0,    1.0,    0.0,    1.0,
+        0.0,    0.0,    1.0,    1.0
+    ]);
+
     const vertex_position_rectangle = new Float32Array([
         1.0,    1.0,    0.0,    1.0,
         -1.0,   1.0,    0.0,    1.0,
@@ -287,30 +302,35 @@ async function initialize()
         1.0,    1.0,    0.0,    1.0
     ]);
 
+    const vertex_color_rectangle = new Float32Array([
+        0.0,    0.0,    1.0,    1.0,
+        0.0,    0.0,    1.0,    1.0,
+        0.0,    0.0,    1.0,    1.0,
+        0.0,    0.0,    1.0,    1.0,
+        0.0,    0.0,    1.0,    1.0,
+        0.0,    0.0,    1.0,    1.0,
+    ]);
+
     //! Common Bind Group Layout For Triangle and Rectangle
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
 
-    //! Triangle - Position Buffer, Uniform Buffer, Bind Group
+    //! Triangle - Position Buffer, Color Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
-    //* Vertex Position Buffer
-    const bufferDescriptor_position_triangle = 
-    {
-        size: vertex_position_triangle.byteLength,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    };
+    //* Vertex Buffers
+    buffer_position_triangle = createVertexBuffer(
+        vertex_position_triangle,
+        vertex_position_triangle.byteLength, 
+        vertex_position_triangle.length, 
+        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    );
 
-    buffer_position_triangle = device.createBuffer(bufferDescriptor_position_triangle);
-    if (buffer_position_triangle == null)
-    {
-        console.log("Failed To Create Vertex Position Buffer For Triangle !!!");
-        throw Error("Failed To Create Vertex Position Buffer For Triangle !!!");
-    }
-    else
-        console.log("Vertex Position Buffer For Triangle Successfully Created");
-
-    queue.writeBuffer(buffer_position_triangle, 0, vertex_position_triangle, 0, vertex_position_triangle.length);
-    console.log("Position Data Written To Vertex Position Buffer For Triangle");
+    buffer_color_triangle = createVertexBuffer(
+        vertex_color_triangle, 
+        vertex_color_triangle.byteLength, 
+        vertex_color_triangle.length, 
+        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    );
 
     //* MVP Uniform Buffer
     const mvpUniformBufferSize = 4 * 16;
@@ -323,24 +343,20 @@ async function initialize()
     //! Rectangle - Position Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
-    //* Vertex Position Buffer
-    const bufferDescriptor_position_rectangle = 
-    {
-        size: vertex_position_rectangle.byteLength,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    };
+    //* Vertex Buffers
+    buffer_position_rectangle = createVertexBuffer(
+        vertex_position_rectangle, 
+        vertex_position_rectangle.byteLength, 
+        vertex_position_rectangle.length, 
+        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    );
 
-    buffer_position_rectangle = device.createBuffer(bufferDescriptor_position_rectangle);
-    if (buffer_position_rectangle == null)
-    {
-        console.log("Failed To Create Vertex Position Buffer For Rectangle !!!");
-        throw Error("Failed To Create Vertex Position Buffer For Rectangle !!!");
-    }
-    else
-        console.log("Vertex Position Buffer For Rectangle Successfully Created");
-
-    queue.writeBuffer(buffer_position_rectangle, 0, vertex_position_rectangle, 0, vertex_position_rectangle.length);
-    console.log("Position Data Written To Vertex Position Buffer For Rectangle");
+    buffer_color_rectangle = createVertexBuffer(
+        vertex_color_rectangle, 
+        vertex_color_rectangle.byteLength, 
+        vertex_color_rectangle.length, 
+        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    );
 
     //* MVP Uniform Buffer
     buffer_mvpUniform_rectangle = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
@@ -376,6 +392,8 @@ async function initialize()
     //* Step - 1 : Pipeline Descriptor / PSO
 
     //* Step - 1A: Vertex Buffer Layout
+
+    //! Position Attribute
     const positionVertexAttribute = 
     {
         shaderLocation: 0,  //* Maps to location(0) in Vertex Shader
@@ -393,6 +411,24 @@ async function initialize()
         stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
     };
 
+    //! Color Attribute
+    const colorVertexAttribute = 
+    {
+        shaderLocation: 1,  //* Maps to location(1) in Vertex Shader
+        offset: 0,
+        format: "float32x4"
+    };
+
+    const colorVertexBufferLayout = 
+    {
+        attributes: 
+        [
+            colorVertexAttribute
+        ],
+        arrayStride: 4 * 4,
+        stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
+    };
+
     //* Step - 1B: Vertex Shader State
     const vertexShaderState = 
     {
@@ -400,7 +436,8 @@ async function initialize()
         entryPoint: "main",
         buffers: 
         [
-            positionVertexBufferLayout
+            positionVertexBufferLayout,
+            colorVertexBufferLayout
         ]
     };
 
@@ -455,6 +492,30 @@ async function loadShader(path)
     // Code
     const response = await fetch(path);
     return await response.text();
+}
+
+function createVertexBuffer(_data, _size, _length, _bufferUsage)
+{
+    // Code
+    const bufferDescriptor = 
+    {
+        size: _size,
+        usage: _bufferUsage
+    };
+
+    buffer = device.createBuffer(bufferDescriptor);
+    if (buffer == null)
+    {
+        console.log("Failed To Create Buffer !!!");
+        throw Error("Failed To Create Buffer !!!");
+    }
+    else
+        console.log("Buffer Successfully Created");
+
+    queue.writeBuffer(buffer, 0, _data, 0, _data.length);
+    console.log("Data Written To Buffer");
+
+    return buffer;
 }
 
 function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformType)
@@ -608,8 +669,13 @@ function display()
     //! Transformations
     var modelViewMatrix = mat4.create();
     var modelViewProjectionMatrix = mat4.create();
+    var translationMatrix = mat4.create();
+    var rotationMatrix = mat4.create();
 
-    mat4.translate(modelViewMatrix, modelViewMatrix, [-1.5, 0.0, -6.0]);
+    mat4.translate(translationMatrix, translationMatrix, [-1.5, 0.0, -6.0]);
+    mat4.rotate(rotationMatrix, rotationMatrix, degreeToRadians(angle), [0.0, 1.0, 0.0]);
+
+    mat4.multiply(modelViewMatrix, translationMatrix, rotationMatrix);
     mat4.multiply(modelViewProjectionMatrix, perspectiveProjectionMatrix, modelViewMatrix);
 
     //! Update Uniform Buffer
@@ -621,8 +687,13 @@ function display()
     //! Transformations
     modelViewMatrix = mat4.create();
     modelViewProjectionMatrix = mat4.create();
+    translationMatrix = mat4.create();
+    rotationMatrix = mat4.create();
 
-    mat4.translate(modelViewMatrix, modelViewMatrix, [1.5, 0.0, -6.0]);
+    mat4.translate(translationMatrix, translationMatrix, [1.5, 0.0, -6.0]);
+    mat4.rotate(rotationMatrix, rotationMatrix, degreeToRadians(angle), [0.0, 1.0, 0.0]);
+
+    mat4.multiply(modelViewMatrix, translationMatrix, rotationMatrix);
     mat4.multiply(modelViewProjectionMatrix, perspectiveProjectionMatrix, modelViewMatrix);
 
     //! Update Uniform Buffer
@@ -638,11 +709,13 @@ function display()
 
         //* Triangle
         renderPassEncoder.setVertexBuffer(0, buffer_position_triangle);
+        renderPassEncoder.setVertexBuffer(1, buffer_color_triangle);
         renderPassEncoder.setBindGroup(0, bindGroup_mvpUniform_triangle);
         renderPassEncoder.draw(3);
 
         //* Rectangle
         renderPassEncoder.setVertexBuffer(0, buffer_position_rectangle);
+        renderPassEncoder.setVertexBuffer(1, buffer_color_rectangle);
         renderPassEncoder.setBindGroup(0, bindGroup_mvpUniform_rectangle);
         renderPassEncoder.draw(6);
     }
@@ -651,6 +724,8 @@ function display()
     //* Step - 14 : Finish The Command Encoder And Submit To Queue
     queue.submit([commandEncoder.finish()]);
 
+    update();
+
     //! Animation Loop
     animationFrameId = requestAnimationFrame(display);
 }
@@ -658,6 +733,14 @@ function display()
 function update()
 {
     // Code
+    angle += animationSpeed;
+    if (angle > 360.0)
+        angle = angle - 360.0;
+}
+
+function degreeToRadians(degrees)
+{
+    return (degrees * (Math.PI / 180.0));
 }
 
 function uninitialize()
@@ -684,7 +767,10 @@ function uninitialize()
         queue = null;
 
         buffer_position_triangle = null;
+        buffer_color_triangle = null;
+
         buffer_position_rectangle = null;
+        buffer_color_rectangle = null;
 
         buffer_mvpUniform_triangle = null;
         buffer_mvpUniform_rectangle = null;
