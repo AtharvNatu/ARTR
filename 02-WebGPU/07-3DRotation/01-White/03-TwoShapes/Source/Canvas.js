@@ -102,7 +102,7 @@ async function main()
     else
         console.log("GPU Device successfully initialized");
 
-    const adapterInfo = await adapter.info;
+    const adapterInfo = adapter.info;
     console.log("WebGPU Device Information");
     console.log("---------------------------------------");
     console.log(`Vendor : ${adapterInfo.vendor}`);
@@ -636,7 +636,7 @@ function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, 
     else
         console.log("Bind Group Successfully Created");
 
-    return bindGroup
+    return bindGroup;
 }
 
 function resize()

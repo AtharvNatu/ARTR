@@ -107,7 +107,7 @@ async function main()
     else
         console.log("GPU Device successfully initialized");
 
-    const adapterInfo = await adapter.info;
+    const adapterInfo = adapter.info;
     console.log("WebGPU Device Information");
     console.log("---------------------------------------");
     console.log(`Vendor : ${adapterInfo.vendor}`);
@@ -646,7 +646,7 @@ function createBindGroup(_buffer, _offset, _bufferSize, _binding, _bindGroupLayo
     else
         console.log("Bind Group Successfully Created");
 
-    return bindGroup
+    return bindGroup;
 }
 
 async function loadTexture(_texturePath)
