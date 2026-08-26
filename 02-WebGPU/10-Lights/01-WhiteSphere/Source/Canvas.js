@@ -12,31 +12,20 @@ let queue = null;
 let canvasFormat = null;
 let animationFrameId = null;
 
-let buffer_position = null;
-let buffer_texcoord = null;
-
+let render_pipeline = null;
 let buffer_mvpUniform = null;
 let bindGroup_mvpUniform = null;
 
-let render_pipeline = null;
 let perspectiveProjectionMatrix = null;
 let depthTexture = null;
 
-let texture_smiley = null;
-let sampler_smiley = null;
-let bindGroup_texture_sampler = null;
+let sphere = null;
+let numMeshIndices = 0;
 
-const hostUniformData =
-{
-    modelMatrix: mat4.create(),
-    viewMatrix: mat4.create(),
-    projectionMatrix: mat4.create(),
-    keyPressedUniform: 0
-};
-
-const hostUniformBufferSize = 256;  // 192 (4 * 16 * 3) - mvpMatrix, 4 - keyPressed
-
-let keyPressed = -1;
+let buffer_position = null;
+let buffer_normal = null;
+let buffer_texcoords = null;
+let buffer_elements = null;
 
 //* Animation Related
 var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome
@@ -146,22 +135,16 @@ function onDeviceLost(info)
     console.warn("WebGPU Device Lost : ", info.reason, ", Message : ", info.message);
 
     queue = null;
-
-    buffer_position = null;
-    buffer_texcoord = null;
-
+    render_pipeline = null;
     buffer_mvpUniform = null;
     bindGroup_mvpUniform = null;
-
-    render_pipeline = null;
-    
     perspectiveProjectionMatrix = null;
-    
     depthTexture = null;
-
-    texture_smiley = null;
-    sampler_smiley = null;
-    bindGroup_texture_sampler = null;
+    sphere = null;
+    buffer_position = null;
+    buffer_normal = null;
+    buffer_texcoords = null;
+    buffer_elements = null;
 }
 
 function toggleFullScreen()
@@ -289,87 +272,64 @@ async function initialize()
     else
         console.log("Fragment Shader Module Successfully Created");
 
-    const vertex_position_rectangle = new Float32Array([
-        1.0,    1.0,    0.0,    1.0,
-        -1.0,   1.0,    0.0,    1.0,
-        -1.0,   -1.0,   0.0,    1.0,
+    //* Sphere
+    sphere = new Mesh();
+    makeSphere(sphere, 2.0, 50, 30);
+    numMeshIndices = sphere.getIndexCount();
+    console.log("Sphere Geometry = Vertex Count = ", sphere.getVertexCount(), " Index Count = ", numMeshIndices);
 
-        -1.0,   -1.0,   0.0,    1.0,
-        1.0,    -1.0,   0.0,    1.0,
-        1.0,    1.0,    0.0,    1.0
-    ]);
+    const meshData = sphere.getMeshData();
 
-    const vertex_texcoords_rectangle = new Float32Array([
-        // Triangle 1
-        1.0,  0.0,             // Top Right
-        0.0,  0.0,             // Top Left
-        0.0,  1.0,             // Bottom Left
+    //* Position Buffer
+    buffer_position = createVertexBuffer(meshData.verticesArray);
+    if (buffer_position == null)
+    {
+        console.log("Failed To Create Vertex Position Buffer !!!");
+        throw Error("Failed To Create Vertex Position Buffer !!!");
+    }
+    else
+        console.log("Vertex Position Buffer Successfully Created");
 
-        // Triangle 2
-        0.0,  1.0,             // Bottom Left
-        1.0,  1.0,             // Bottom Right
-        1.0,  0.0              // Top Right
-    ]);
+    //* Texcoords Buffer
+    buffer_texcoords = createVertexBuffer(meshData.texCoordsArray);
+    if (buffer_texcoords == null)
+    {
+        console.log("Failed To Create Vertex Texcoords Buffer !!!");
+        throw Error("Failed To Create Vertex Texcoords Buffer !!!");
+    }
+    else
+        console.log("Vertex Texcoords Buffer Successfully Created");
 
-    //! Rectangle - Position Buffer, Texcoord Buffer, Uniform Buffer, Bind Group
-    //* ---------------------------------------------------------------------------------------------------------------------------------
-    buffer_position = createVertexBuffer(vertex_position_rectangle);
-    buffer_texcoord = createVertexBuffer(vertex_texcoords_rectangle);
+    //* Normals Buffer
+    buffer_normal = createVertexBuffer(meshData.normalsArray);
+    if (buffer_normal == null)
+    {
+        console.log("Failed To Create Vertex Normal Buffer !!!");
+        throw Error("Failed To Create Vertex Normal Buffer !!!");
+    }
+    else
+        console.log("Vertex Normal Buffer Successfully Created");
+
+    //* Elements Buffer
+    buffer_elements = createIndexBuffer(meshData.indicesArray);
+    if (buffer_elements == null)
+    {
+        console.log("Failed To Create Elements Index Buffer !!!");
+        throw Error("Failed To Create Elements Index Buffer !!!");
+    }
+    else
+        console.log("Elements Index Buffer Successfully Created");
+
 
     //* MVP Uniform Buffer
-    buffer_mvpUniform = createUniformBuffer(hostUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    mvpUniformBufferSize = 4 * 16;
+    buffer_mvpUniform = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform");
     
     //* Bind Group For MVP Uniform
-    bindGroup_mvpUniform = createBindGroup(buffer_mvpUniform, 0, hostUniformBufferSize, 0, bindGroupLayout_mvpUniform);
+    bindGroup_mvpUniform = createBindGroup(buffer_mvpUniform, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
     //* ---------------------------------------------------------------------------------------------------------------------------------
-
-    //! Load Texture
-    //! ------------------------------------------------------------------------------------------------------------------
-    texture_smiley = await loadTexture("../Assets/Smiley.png");
-    if (texture_smiley == null)
-    {
-        console.log("Failed To Load Smiley Texture !!!");
-        throw Error("Failed To Load Smiley Texture !!!");
-    }
-    else
-        console.log("Smiley Texture Loaded");
-
-    //* Texture Sampler Descriptor
-    const samplerDescriptor = 
-    {
-        magFilter: "linear",
-        minFilter: "linear",
-        addressModeU: "repeat",
-        addressModeV: "repeat"
-    };
-
-    //* Create Texture Sampler
-    sampler_smiley = device.createSampler(samplerDescriptor);
-    if (sampler_smiley == null)
-    {
-        console.log("Failed To Create Sampler !!!");
-        throw Error("Failed To Create Sampler !!!");
-    }
-    else
-        console.log("Sampler Created Successfully");
-
-    //* Texture-Sampler Bind Group Layout
-    const bindGroupLayout_texture_sampler = createBindGroupLayout_texture_sampler(
-        "float", 
-        "2d",
-        false,
-        0,
-        GPUShaderStage.FRAGMENT,
-        "filtering",
-        1,
-        GPUShaderStage.FRAGMENT
-    );
-
-    //* Texture-Sampler Bind Group
-    bindGroup_texture_sampler = createBindGroup_texture_sampler(0, texture_smiley, 1, sampler_smiley, bindGroupLayout_texture_sampler);
-    //! ------------------------------------------------------------------------------------------------------------------
 
     //* Step - 2: Pipeline Layout for MVP Uniform
 
@@ -378,8 +338,7 @@ async function initialize()
     {
         bindGroupLayouts:
         [
-            bindGroupLayout_mvpUniform,
-            bindGroupLayout_texture_sampler
+            bindGroupLayout_mvpUniform
         ]
     };
 
@@ -398,13 +357,11 @@ async function initialize()
     //* Step - 1 : Pipeline Descriptor / PSO
 
     //* Step - 1A: Vertex Buffer Layout
-
-    //! Position Attribute
     const positionVertexAttribute = 
     {
         shaderLocation: 0,  //* Maps to location(0) in Vertex Shader
         offset: 0,
-        format: "float32x4"
+        format: "float32x3"
     };
 
     const positionVertexBufferLayout = 
@@ -413,25 +370,7 @@ async function initialize()
         [
             positionVertexAttribute
         ],
-        arrayStride: 4 * 4,
-        stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
-    };
-
-    //! Texcoord Attribute
-    const texcoordVertexAttribute = 
-    {
-        shaderLocation: 1,  //* Maps to location(1) in Vertex Shader
-        offset: 0,
-        format: "float32x2"
-    };
-
-    const texcoordVertexBufferLayout = 
-    {
-        attributes: 
-        [
-            texcoordVertexAttribute
-        ],
-        arrayStride: 4 * 2,
+        arrayStride: Float32Array.BYTES_PER_ELEMENT * 3,
         stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
     };
 
@@ -442,8 +381,7 @@ async function initialize()
         entryPoint: "main",
         buffers: 
         [
-            positionVertexBufferLayout,
-            texcoordVertexBufferLayout
+            positionVertexBufferLayout
         ]
     };
 
@@ -527,6 +465,24 @@ function createVertexBuffer(_data)
     return buffer;
 }
 
+function createIndexBuffer(_data)
+{
+    // Code
+    const bufferDescriptor = 
+    {
+        size: _data.byteLength,
+        usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+    };
+
+    const buffer = device.createBuffer(bufferDescriptor);
+    if (buffer == null)
+        return null;
+
+    queue.writeBuffer(buffer, 0, _data);
+
+    return buffer;
+}
+
 function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformType)
 {
     // Code
@@ -585,16 +541,16 @@ function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
     return buffer_uniform;
 }
 
-function createBindGroup(_buffer, _offset, _bufferSize, _binding, _bindGroupLayout)
+function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, _bindGroupLayout)
 {
     // Code
 
     //* Step - 1A: Buffer Binding Property
     const bufferBinding = 
     {
-        buffer: _buffer,
+        buffer: _uniformBuffer,
         offset: _offset,
-        size: _bufferSize
+        size: _uniformBufferSize
     };
 
     //* Step - 1B: Buffer Binding Entry
@@ -625,211 +581,6 @@ function createBindGroup(_buffer, _offset, _bufferSize, _binding, _bindGroupLayo
         console.log("Bind Group Successfully Created");
 
     return bindGroup;
-}
-
-async function loadTexture(_texturePath)
-{
-    // Code
-    const image = new Image();
-    image.src = _texturePath;
-    await image.decode();
-
-    const imageBitmap = await createImageBitmap(image);
-    if (imageBitmap == null)
-    {
-        console.log("Failed To Create Image Bitmap !!!");
-        throw Error("Failed To Create Image Bitmap !!!");
-    }
-    else
-        console.log("Image Bitmap Created Successfully");
-    
-    let textureDescriptor = 
-    {
-        size: [imageBitmap.width, imageBitmap.height, 1],
-        dimension: "2d",
-        format: "rgba8unorm",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-    };
-
-    let _texture = device.createTexture(textureDescriptor);
-    if (_texture == null)
-    {
-        console.log("Failed To Create Texture !!!");
-        throw Error("Failed To Create Texture !!!");
-    }
-    else
-        console.log("Texture Created Successfully");
-
-    queue.copyExternalImageToTexture(
-        { source: imageBitmap } ,
-        { texture: _texture },
-        textureDescriptor.size
-    )
-
-    return _texture;
-}
-
-function createBindGroupLayout_texture_sampler(
-    _textureSampleType, 
-    _textureDimension, 
-    _isTextureMultiSampled, 
-    _textureBindingIndex, 
-    _textureShaderStageVisibility, 
-    _samplerType,
-    _samplerBindingIndex,
-    _samplerShaderStageVisibility 
-)
-{
-    // Code
-
-    //* Create Binding Layout For Texture
-    const bindingLayout_texture = 
-    {
-        sampleType: _textureSampleType,
-        viewDimension: _textureDimension,
-        multisampled: _isTextureMultiSampled
-    };
-
-    //* Create Bind Group Layout Entry For Texture
-    const bindGroupLayoutEntry_texture = 
-    {
-        binding: _textureBindingIndex,
-        visibility: _textureShaderStageVisibility,
-        texture: bindingLayout_texture
-    };
-    
-    //* Create Binding Layout For Sampler
-    const bindingLayout_sampler = 
-    {
-        type: _samplerType
-    };
-
-    //* Create Bind Group Layout Entry For Sampler
-    const bindGroupLayoutEntry_sampler = 
-    {
-        binding: _samplerBindingIndex,
-        visibility: _samplerShaderStageVisibility,
-        sampler: bindingLayout_sampler
-    };
-
-    //* Bind Group Layout Descriptor
-    const bindGroupLayoutDescriptor = 
-    {
-        entries: 
-        [
-            bindGroupLayoutEntry_texture,
-            bindGroupLayoutEntry_sampler
-        ]
-    };
-
-    //* Create Bind Group Layout
-    const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
-    if (bindGroupLayout == null)
-    {
-        console.log("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Layout Successfully Created For Texture and Sampler");
-
-    return bindGroupLayout;
-}
-
-function createBindGroup_texture_sampler(_textureBindingIndex, _textureId, _samplerBindingIndex, _samplerId, _bindGroupLayout)
-{
-    // Code
-
-    //* Buffer Binding Entry For Texture
-    const bindGroupEntry_texture = 
-    {
-        binding: _textureBindingIndex,
-        resource: _textureId.createView()
-    };
-
-    //* Buffer Binding Entry For Sampler
-    const bindGroupEntry_sampler = 
-    {
-        binding: _samplerBindingIndex,
-        resource: _samplerId
-    };
-
-    //* Buffer Binding Descriptor
-    const bindGroupDescriptor = 
-    {
-        layout: _bindGroupLayout,
-        entries:
-        [
-            bindGroupEntry_texture,
-            bindGroupEntry_sampler
-        ]
-    };
-
-    //* Create Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created For Texture and Sampler");
-
-    return bindGroup;
-}
-
-function updateTexcoords()
-{
-    const texcoords = new Float32Array(12);
-
-    switch (keyPressed)
-    {
-        case 1:
-            texcoords.set([
-                0.5, 0.5,
-                0.0, 0.5,
-                0.0, 1.0,
-                0.0, 1.0,
-                0.5, 1.0,
-                0.5, 0.5
-            ]);
-            hostUniformData.keyPressedUniform = 1;
-        break;
-
-        case 2:
-            texcoords.set([
-                1.0, 0.0,
-                0.0, 0.0,
-                0.0, 1.0,
-                0.0, 1.0,
-                1.0, 1.0,
-                1.0, 0.0
-            ]);
-            hostUniformData.keyPressedUniform = 1;
-        break;
-
-        case 3:
-            texcoords.set([
-                2.0, 0.0,
-                0.0, 0.0,
-                0.0, 2.0,
-                0.0, 2.0,
-                2.0, 2.0,
-                2.0, 0.0
-            ]);
-            hostUniformData.keyPressedUniform = 1;
-        break;
-
-        case 4:
-            texcoords.fill(0.5);
-            hostUniformData.keyPressedUniform = 1;
-        break;
-
-        default:
-            hostUniformData.keyPressedUniform = 0;
-        break;
-    }
-
-    queue.writeBuffer(buffer_texcoord, 0, texcoords);
 }
 
 function resize()
@@ -919,20 +670,14 @@ function display()
     };
     
     //! Transformations
-    hostUniformData.modelMatrix = mat4.create();
-    hostUniformData.modelMatrix = mat4.translate(hostUniformData.modelMatrix, hostUniformData.modelMatrix, [0.0, 0.0, -3.0]);
-    hostUniformData.viewMatrix = mat4.create();
-    hostUniformData.projectionMatrix = perspectiveProjectionMatrix;
+    var modelViewMatrix = mat4.create();
+    var modelViewProjectionMatrix = mat4.create();
 
-    updateTexcoords();
+    mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -6.0]);
+    mat4.multiply(modelViewProjectionMatrix, perspectiveProjectionMatrix, modelViewMatrix);
 
     //! Update Uniform Buffer
-    queue.writeBuffer(buffer_mvpUniform, 0, hostUniformData.modelMatrix);
-    queue.writeBuffer(buffer_mvpUniform, 64, hostUniformData.viewMatrix);
-    queue.writeBuffer(buffer_mvpUniform, 128, hostUniformData.projectionMatrix);
-
-    const keyPressedData = new Int32Array([hostUniformData.keyPressedUniform]);
-    queue.writeBuffer(buffer_mvpUniform, 192, keyPressedData);
+    queue.writeBuffer(buffer_mvpUniform, 0, modelViewProjectionMatrix, 0, modelViewProjectionMatrix.length);
 
     //* Step - 13 : Begin The Render Pass
     const renderPassEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
@@ -941,10 +686,9 @@ function display()
         renderPassEncoder.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
         renderPassEncoder.setScissorRect(0, 0, canvas.width, canvas.height);
         renderPassEncoder.setVertexBuffer(0, buffer_position);
-        renderPassEncoder.setVertexBuffer(1, buffer_texcoord);
+        renderPassEncoder.setIndexBuffer(buffer_elements, "uint16");
         renderPassEncoder.setBindGroup(0, bindGroup_mvpUniform);
-        renderPassEncoder.setBindGroup(1, bindGroup_texture_sampler);
-        renderPassEncoder.draw(6);
+        renderPassEncoder.drawIndexed(numMeshIndices);
     }
     renderPassEncoder.end();
 
@@ -975,12 +719,6 @@ function uninitialize()
         depthTexture = null;
     }
 
-    if (texture_smiley)
-    {
-        texture_smiley.destroy();
-        texture_smiley = null;
-    }
-
     //* Unconfigure/Destroy Context
     if (context != null)
     {
@@ -994,13 +732,14 @@ function uninitialize()
         device.destroy();
         device = null;
         queue = null;
-        buffer_position = null;
-        buffer_texcoord = null;
         render_pipeline = null;
         buffer_mvpUniform = null;
         bindGroup_mvpUniform = null;
-        sampler_smiley = null;
-        bindGroup_texture_sampler = null;
+        buffer_position = null;
+        buffer_normal = null;
+        buffer_texcoords = null;
+        buffer_elements = null;
+        sphere = null;
     }
 
     perspectiveProjectionMatrix = null;
@@ -1020,26 +759,6 @@ function keyDown(event)
         case 'Q':
             uninitialize();
             window.close(); // Not Applicable For All Browsers
-        break;
-
-        case "1":
-            keyPressed = 1;
-        break;
-
-        case "2":
-            keyPressed = 2;
-        break;
-
-        case "3":
-            keyPressed = 3;
-        break;
-
-        case "4":
-            keyPressed = 4;
-        break;
-
-        default:
-            keyPressed = 0;
         break;
             
     }
