@@ -13,8 +13,8 @@ let canvasFormat = null;
 let animationFrameId = null;
 
 let render_pipeline = null;
-let buffer_mvpUniform = null;
-let bindGroup_mvpUniform = null;
+let buffer_hostUniform = null;
+let bindGroup_hostUniform = null;
 
 let perspectiveProjectionMatrix = null;
 let depthTexture = null;
@@ -26,6 +26,43 @@ let buffer_position = null;
 let buffer_normal = null;
 let buffer_texcoords = null;
 let buffer_elements = null;
+
+const hostUniformData =
+{
+    modelMatrix: mat4.create(),
+    viewMatrix: mat4.create(),
+    projectionMatrix: mat4.create(),
+    lightAmbient: new Float32Array([0.0, 0.0, 0.0, 1.0]),
+    lightDiffuse: new Float32Array([1.0, 1.0, 1.0, 1.0]),
+    lightSpecular: new Float32Array([1.0, 1.0, 1.0, 1.0]),
+    lightPosition: new Float32Array([100.0, 100.0, 100.0, 1.0]),
+    materialAmbient: new Float32Array([0.0, 0.0, 0.0, 1.0]),
+    materialDiffuse: new Float32Array([1.0, 1.0, 1.0, 1.0]),
+    materialSpecular: new Float32Array([1.0, 1.0, 1.0, 1.0]),
+    materialShininess: new Float32Array([50.0, 0.0, 0.0, 0.0]),
+    lightEnabled: new Uint32Array([0, 0, 0, 0]),
+};
+
+// MVP Matrices         : 64 + 64 + 64       =  192 +
+// Light Vectors        : 16 + 16 + 16 + 16  =  64  +
+// Material Vectors     : 16 + 16 + 16 + 16  =  64  +
+// Light Enabled Vector : 16                 =  16  =   336
+const hostUniformBufferSize = new ArrayBuffer(
+    Float32Array.BYTES_PER_ELEMENT * 16 +   // Model Matrix
+    Float32Array.BYTES_PER_ELEMENT * 16 +   // View Matrix
+    Float32Array.BYTES_PER_ELEMENT * 16 +   // Projection Matrix
+    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Ambient
+    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Diffuse
+    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Specular
+    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Position
+    Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Ambient
+    Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Diffuse
+    Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Specular
+    Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Shininess
+    Float32Array.BYTES_PER_ELEMENT * 4      // Light Enabled
+).byteLength;
+
+var bLight = false;
 
 //* Animation Related
 var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome
@@ -136,8 +173,8 @@ function onDeviceLost(info)
 
     queue = null;
     render_pipeline = null;
-    buffer_mvpUniform = null;
-    bindGroup_mvpUniform = null;
+    buffer_hostUniform = null;
+    bindGroup_hostUniform = null;
     perspectiveProjectionMatrix = null;
     depthTexture = null;
     sphere = null;
@@ -239,8 +276,8 @@ async function initialize()
     };
 
     //* Load Shaders From File
-    const triangleVertWGSL = await loadShader("../Shaders/triangle.vert.wgsl");
-    const triangleFragWGSL = await loadShader("../Shaders/triangle.frag.wgsl");
+    const triangleVertWGSL = await loadShader("../Shaders/Shader.vert.wgsl");
+    const triangleFragWGSL = await loadShader("../Shaders/Shader.frag.wgsl");
 
     //* Vertex Shader Module
     const shaderModuleDescriptor_vertexShader = 
@@ -321,14 +358,13 @@ async function initialize()
         console.log("Elements Index Buffer Successfully Created");
 
 
-    //* MVP Uniform Buffer
-    mvpUniformBufferSize = 4 * 16;
-    buffer_mvpUniform = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    //* Uniform Buffer
+    buffer_hostUniform = createUniformBuffer(hostUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform");
     
     //* Bind Group For MVP Uniform
-    bindGroup_mvpUniform = createBindGroup(buffer_mvpUniform, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
+    bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout_mvpUniform);
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Step - 2: Pipeline Layout for MVP Uniform
@@ -374,6 +410,24 @@ async function initialize()
         stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
     };
 
+    //! Normal Attribute
+    const normalVertexAttribute = 
+    {
+        shaderLocation: 1,  //* Maps to location(1) in Vertex Shader
+        offset: 0,
+        format: "float32x3"
+    };
+
+    const normalVertexBufferLayout = 
+    {
+        attributes: 
+        [
+            normalVertexAttribute
+        ],
+        arrayStride: Float32Array.BYTES_PER_ELEMENT * 3,
+        stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
+    };
+
     //* Step - 1B: Vertex Shader State
     const vertexShaderState = 
     {
@@ -381,7 +435,8 @@ async function initialize()
         entryPoint: "main",
         buffers: 
         [
-            positionVertexBufferLayout
+            positionVertexBufferLayout,
+            normalVertexBufferLayout
         ]
     };
 
@@ -670,14 +725,94 @@ function display()
     };
     
     //! Transformations
-    var modelViewMatrix = mat4.create();
-    var modelViewProjectionMatrix = mat4.create();
+    hostUniformData.modelMatrix = mat4.create();
+    hostUniformData.modelMatrix = mat4.translate(hostUniformData.modelMatrix, hostUniformData.modelMatrix, [0.0, 0.0, -6.0]);
+    hostUniformData.viewMatrix = mat4.create();
+    hostUniformData.projectionMatrix = perspectiveProjectionMatrix;
 
-    mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -6.0]);
-    mat4.multiply(modelViewProjectionMatrix, perspectiveProjectionMatrix, modelViewMatrix);
+    if (bLight)
+        hostUniformData.lightEnabled[0] = 1;
+    else
+        hostUniformData.lightEnabled[0] = 0;
 
     //! Update Uniform Buffer
-    queue.writeBuffer(buffer_mvpUniform, 0, modelViewProjectionMatrix, 0, modelViewProjectionMatrix.length);
+
+    // MVP Matrices         : 64 + 64 + 64       =  192
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        0, 
+        hostUniformData.modelMatrix
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16, 
+        hostUniformData.viewMatrix
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 + 
+        Float32Array.BYTES_PER_ELEMENT * 16, 
+        hostUniformData.projectionMatrix
+    );
+
+    // Light Vectors        : 16 + 16 + 16 + 16  =  64
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3,
+        hostUniformData.lightAmbient
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 1, 
+        hostUniformData.lightDiffuse
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2, 
+        hostUniformData.lightSpecular
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3, 
+        hostUniformData.lightPosition
+    );
+
+    // Material Vectors     : 16 + 16 + 16 + 16  =  64
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 4,   
+        hostUniformData.materialAmbient
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 5,  
+        hostUniformData.materialDiffuse
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 6, 
+        hostUniformData.materialSpecular
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 7, 
+        hostUniformData.materialShininess
+    );
+
+    // Light Enabled Vector : 16
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 8,  
+        hostUniformData.lightEnabled
+    );
 
     //* Step - 13 : Begin The Render Pass
     const renderPassEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
@@ -686,8 +821,9 @@ function display()
         renderPassEncoder.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
         renderPassEncoder.setScissorRect(0, 0, canvas.width, canvas.height);
         renderPassEncoder.setVertexBuffer(0, buffer_position);
+        renderPassEncoder.setVertexBuffer(1, buffer_normal);
         renderPassEncoder.setIndexBuffer(buffer_elements, "uint16");
-        renderPassEncoder.setBindGroup(0, bindGroup_mvpUniform);
+        renderPassEncoder.setBindGroup(0, bindGroup_hostUniform);
         renderPassEncoder.drawIndexed(numMeshIndices);
     }
     renderPassEncoder.end();
@@ -733,8 +869,8 @@ function uninitialize()
         device = null;
         queue = null;
         render_pipeline = null;
-        buffer_mvpUniform = null;
-        bindGroup_mvpUniform = null;
+        buffer_hostUniform = null;
+        bindGroup_hostUniform = null;
         buffer_position = null;
         buffer_normal = null;
         buffer_texcoords = null;
@@ -753,6 +889,11 @@ function keyDown(event)
         case 'f':
         case 'F':
             toggleFullScreen();
+        break;
+
+        case 'l':
+        case 'L':
+            bLight = !bLight;
         break;
 
         case 'q':

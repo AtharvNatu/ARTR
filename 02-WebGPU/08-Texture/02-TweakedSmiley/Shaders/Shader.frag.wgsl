@@ -3,7 +3,7 @@ struct HostUniform
     modelMatrix : mat4x4<f32>,
     viewMatrix : mat4x4<f32>,
     projectionMatrix: mat4x4<f32>,
-    keyPressed: i32
+    keyPressed: vec4<u32>
 };
 
 struct VertexOutput
@@ -22,7 +22,7 @@ fn main(output : VertexOutput) -> @location(0) vec4<f32>
 {
     var color = vec4(1.0);
 
-    if (hostUniform.keyPressed == 1)
+    if (hostUniform.keyPressed.x == 1)
     {
         color = textureSample(texture_binding, sampler_binding, output.texcoord);
     }

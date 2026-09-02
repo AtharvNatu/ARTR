@@ -15,8 +15,8 @@ let animationFrameId = null;
 let buffer_position = null;
 let buffer_texcoord = null;
 
-let buffer_mvpUniform = null;
-let bindGroup_mvpUniform = null;
+let buffer_hostUniform = null;
+let bindGroup_hostUniform = null;
 
 let render_pipeline = null;
 let perspectiveProjectionMatrix = null;
@@ -31,10 +31,17 @@ const hostUniformData =
     modelMatrix: mat4.create(),
     viewMatrix: mat4.create(),
     projectionMatrix: mat4.create(),
-    keyPressedUniform: 0
+    keyPressedUniform: new Uint32Array([0, 0, 0, 0])
 };
 
-const hostUniformBufferSize = 256;  // 192 (4 * 16 * 3) - mvpMatrix, 4 - keyPressed
+// MVP Matrices         : 64 + 64 + 64       =  192 +
+// Key Pressed          : 16                 =  16  =   208
+const hostUniformBufferSize = new ArrayBuffer(
+    Float32Array.BYTES_PER_ELEMENT * 16 +
+    Float32Array.BYTES_PER_ELEMENT * 16 +
+    Float32Array.BYTES_PER_ELEMENT * 16 +
+    Float32Array.BYTES_PER_ELEMENT * 4
+).byteLength;
 
 let keyPressed = -1;
 
@@ -150,8 +157,8 @@ function onDeviceLost(info)
     buffer_position = null;
     buffer_texcoord = null;
 
-    buffer_mvpUniform = null;
-    bindGroup_mvpUniform = null;
+    buffer_hostUniform = null;
+    bindGroup_hostUniform = null;
 
     render_pipeline = null;
     
@@ -256,8 +263,8 @@ async function initialize()
     };
 
     //* Load Shaders From File
-    const triangleVertWGSL = await loadShader("../Shaders/triangle.vert.wgsl");
-    const triangleFragWGSL = await loadShader("../Shaders/triangle.frag.wgsl");
+    const triangleVertWGSL = await loadShader("../Shaders/Shader.vert.wgsl");
+    const triangleFragWGSL = await loadShader("../Shaders/Shader.frag.wgsl");
 
     //* Vertex Shader Module
     const shaderModuleDescriptor_vertexShader = 
@@ -317,12 +324,12 @@ async function initialize()
     buffer_texcoord = createVertexBuffer(vertex_texcoords_rectangle);
 
     //* MVP Uniform Buffer
-    buffer_mvpUniform = createUniformBuffer(hostUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_hostUniform = createUniformBuffer(hostUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform");
     
     //* Bind Group For MVP Uniform
-    bindGroup_mvpUniform = createBindGroup(buffer_mvpUniform, 0, hostUniformBufferSize, 0, bindGroupLayout_mvpUniform);
+    bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout_mvpUniform);
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //! Load Texture
@@ -792,7 +799,7 @@ function updateTexcoords()
                 0.5, 1.0,
                 0.5, 0.5
             ]);
-            hostUniformData.keyPressedUniform = 1;
+            hostUniformData.keyPressedUniform[0] = 1;
         break;
 
         case 2:
@@ -804,7 +811,7 @@ function updateTexcoords()
                 1.0, 1.0,
                 1.0, 0.0
             ]);
-            hostUniformData.keyPressedUniform = 1;
+            hostUniformData.keyPressedUniform[0] = 1;
         break;
 
         case 3:
@@ -816,16 +823,16 @@ function updateTexcoords()
                 2.0, 2.0,
                 2.0, 0.0
             ]);
-            hostUniformData.keyPressedUniform = 1;
+            hostUniformData.keyPressedUniform[0] = 1;
         break;
 
         case 4:
             texcoords.fill(0.5);
-            hostUniformData.keyPressedUniform = 1;
+            hostUniformData.keyPressedUniform[0] = 1;
         break;
 
         default:
-            hostUniformData.keyPressedUniform = 0;
+            hostUniformData.keyPressedUniform[0] = 0;
         break;
     }
 
@@ -927,12 +934,27 @@ function display()
     updateTexcoords();
 
     //! Update Uniform Buffer
-    queue.writeBuffer(buffer_mvpUniform, 0, hostUniformData.modelMatrix);
-    queue.writeBuffer(buffer_mvpUniform, 64, hostUniformData.viewMatrix);
-    queue.writeBuffer(buffer_mvpUniform, 128, hostUniformData.projectionMatrix);
 
-    const keyPressedData = new Int32Array([hostUniformData.keyPressedUniform]);
-    queue.writeBuffer(buffer_mvpUniform, 192, keyPressedData);
+    // MVP Matrices         : 64 + 64 + 64       =  192
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        0, 
+        hostUniformData.modelMatrix
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16, 
+        hostUniformData.viewMatrix
+    );
+    queue.writeBuffer(
+        buffer_hostUniform, 
+        Float32Array.BYTES_PER_ELEMENT * 16 + 
+        Float32Array.BYTES_PER_ELEMENT * 16, 
+        hostUniformData.projectionMatrix
+    );
+
+    // Key Pressed : 192 + 16 = 208
+    queue.writeBuffer(buffer_hostUniform, Float32Array.BYTES_PER_ELEMENT * 16 * 3, hostUniformData.keyPressedUniform);
 
     //* Step - 13 : Begin The Render Pass
     const renderPassEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
@@ -942,7 +964,7 @@ function display()
         renderPassEncoder.setScissorRect(0, 0, canvas.width, canvas.height);
         renderPassEncoder.setVertexBuffer(0, buffer_position);
         renderPassEncoder.setVertexBuffer(1, buffer_texcoord);
-        renderPassEncoder.setBindGroup(0, bindGroup_mvpUniform);
+        renderPassEncoder.setBindGroup(0, bindGroup_hostUniform);
         renderPassEncoder.setBindGroup(1, bindGroup_texture_sampler);
         renderPassEncoder.draw(6);
     }
@@ -997,8 +1019,8 @@ function uninitialize()
         buffer_position = null;
         buffer_texcoord = null;
         render_pipeline = null;
-        buffer_mvpUniform = null;
-        bindGroup_mvpUniform = null;
+        buffer_hostUniform = null;
+        bindGroup_hostUniform = null;
         sampler_smiley = null;
         bindGroup_texture_sampler = null;
     }

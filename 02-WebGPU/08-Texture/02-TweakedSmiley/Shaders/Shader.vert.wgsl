@@ -3,7 +3,7 @@ struct HostUniform
     modelMatrix : mat4x4<f32>,
     viewMatrix : mat4x4<f32>,
     projectionMatrix: mat4x4<f32>,
-    keyPressed: i32
+    keyPressed: vec4<u32>
 };
 
 struct VertexOutput

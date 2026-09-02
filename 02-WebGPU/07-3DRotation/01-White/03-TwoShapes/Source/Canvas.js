@@ -244,8 +244,8 @@ async function initialize()
     };
 
     //* Load Shaders From File
-    const triangleVertWGSL = await loadShader("../Shaders/triangle.vert.wgsl");
-    const triangleFragWGSL = await loadShader("../Shaders/triangle.frag.wgsl");
+    const triangleVertWGSL = await loadShader("../Shaders/Shader.vert.wgsl");
+    const triangleFragWGSL = await loadShader("../Shaders/Shader.frag.wgsl");
 
     //* Vertex Shader Module
     const shaderModuleDescriptor_vertexShader = 
