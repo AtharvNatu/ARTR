@@ -6,7 +6,7 @@ layout(location = 1) in vec3 vNormal;
 
 layout(location = 0) out vec3 transformedNormals;
 layout(location = 1) out vec3 lightDirection[2];
-layout(location = 4) out vec3 viewerVector;
+layout(location = 3) out vec3 viewerVector;
 
 layout(binding = 0) uniform ubo 
 {

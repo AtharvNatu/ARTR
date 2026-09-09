@@ -3,7 +3,7 @@
 
 layout(location = 0) in vec3 transformedNormals;
 layout(location = 1) in vec3 lightDirection[2];
-layout(location = 4) in vec3 viewerVector;
+layout(location = 3) in vec3 viewerVector;
 
 layout(location = 0) out vec4 FragColor;
 

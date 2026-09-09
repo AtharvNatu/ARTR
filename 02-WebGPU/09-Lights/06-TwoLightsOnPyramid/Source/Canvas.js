@@ -12,59 +12,75 @@ let queue = null;
 let canvasFormat = null;
 let animationFrameId = null;
 
-let render_pipeline = null;
+let buffer_position_pyramid = null;
+let buffer_normal_pyramid = null;
 let buffer_hostUniform = null;
 let bindGroup_hostUniform = null;
 
+let render_pipeline = null;
 let perspectiveProjectionMatrix = null;
+
 let depthTexture = null;
 
-let sphere = null;
-let numMeshIndices = 0;
+var angle = 0.0;
+const animationSpeed = 0.5;
 
-let buffer_position = null;
-let buffer_normal = null;
-let buffer_texcoords = null;
-let buffer_elements = null;
+var bLight = false;
 
 const hostUniformData =
 {
     modelMatrix: mat4.create(),
     viewMatrix: mat4.create(),
     projectionMatrix: mat4.create(),
-    lightAmbient: new Float32Array([0.0, 0.0, 0.0, 1.0]),
-    lightDiffuse: new Float32Array([0.2, 0.5, 1.0, 1.0]),
-    lightSpecular: new Float32Array([1.0, 1.0, 1.0, 1.0]),
-    lightPosition: new Float32Array([100.0, 100.0, 100.0, 1.0]),
+
+    lightAmbient: new Float32Array([
+        0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 1.0
+    ]),
+
+    lightDiffuse: new Float32Array([
+        1.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 1.0
+    ]),
+
+    lightSpecular: new Float32Array([
+        1.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 1.0
+    ]),
+
+    lightPosition: new Float32Array([
+        -2.0, 0.0, 0.0, 1.0,
+        2.0, 0.0, 0.0, 1.0
+    ]),
+    
     materialAmbient: new Float32Array([0.0, 0.0, 0.0, 1.0]),
     materialDiffuse: new Float32Array([1.0, 1.0, 1.0, 1.0]),
     materialSpecular: new Float32Array([1.0, 1.0, 1.0, 1.0]),
     materialShininess: new Float32Array([50.0, 0.0, 0.0, 0.0]),
-    lightTypeStatus: new Uint32Array([0, 0, 0, 0]),         // x = 0 : Vertex | x = 1 : Fragment | y = 0 : Light Off | y = 1 : Light On
+    
+    lightEnabled: new Uint32Array([0, 0, 0, 0]),
 };
 
 // MVP Matrices         : 64 + 64 + 64       =  192 +
-// Light Vectors        : 16 + 16 + 16 + 16  =  64  +
+// Light Vectors        : 32 + 32 + 32 + 32  =  128  +
 // Material Vectors     : 16 + 16 + 16 + 16  =  64  +
-// Light Enabled Vector : 16                 =  16  =   336
+// Light Enabled Vector : 16                 =  16  =   400
 const hostUniformBufferSize = new ArrayBuffer(
     Float32Array.BYTES_PER_ELEMENT * 16 +   // Model Matrix
     Float32Array.BYTES_PER_ELEMENT * 16 +   // View Matrix
     Float32Array.BYTES_PER_ELEMENT * 16 +   // Projection Matrix
-    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Ambient
-    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Diffuse
-    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Specular
-    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Position
+
+    Float32Array.BYTES_PER_ELEMENT * 4 * 2 +   // Light Ambient[2]
+    Float32Array.BYTES_PER_ELEMENT * 4 * 2 +   // Light Diffuse[2]
+    Float32Array.BYTES_PER_ELEMENT * 4 * 2 +   // Light Specular[2]
+    Float32Array.BYTES_PER_ELEMENT * 4 * 2 +   // Light Position[2]
+
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Ambient
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Diffuse
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Specular
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Shininess
     Float32Array.BYTES_PER_ELEMENT * 4      // Light Enabled
 ).byteLength;
-
-var bLight = false;
-var chosenShader = 'v';
-var bUseFragmentLighting = false;
 
 //* Animation Related
 var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome
@@ -174,16 +190,15 @@ function onDeviceLost(info)
     console.warn("WebGPU Device Lost : ", info.reason, ", Message : ", info.message);
 
     queue = null;
-    render_pipeline = null;
+
+    buffer_position_pyramid = null;
+    buffer_normal_pyramid = null;
     buffer_hostUniform = null;
     bindGroup_hostUniform = null;
+
+    render_pipeline = null;
     perspectiveProjectionMatrix = null;
     depthTexture = null;
-    sphere = null;
-    buffer_position = null;
-    buffer_normal = null;
-    buffer_texcoords = null;
-    buffer_elements = null;
 }
 
 function toggleFullScreen()
@@ -311,17 +326,59 @@ async function initialize()
     else
         console.log("Fragment Shader Module Successfully Created");
 
-    //* Sphere
-    sphere = new Mesh();
-    makeSphere(sphere, 2.0, 50, 30);
-    numMeshIndices = sphere.getIndexCount();
-    console.log("Sphere Geometry = Vertex Count = ", sphere.getVertexCount(), " Index Count = ", numMeshIndices);
+    const vertex_position_pyramid = new Float32Array([  
+        // Front
+        0.0,   1.0,  0.0,  1.0,
+       -1.0,  -1.0,  1.0,  1.0,
+        1.0,  -1.0,  1.0,  1.0,
 
-    const meshData = sphere.getMeshData();
+        // Right
+        0.0,   1.0,   0.0,  1.0,
+        1.0,  -1.0,   1.0,  1.0,
+        1.0,  -1.0,  -1.0,  1.0,
+
+        // Back
+        0.0,   1.0,   0.0,   1.0,
+        1.0,  -1.0,  -1.0,   1.0,
+       -1.0,  -1.0,  -1.0,   1.0,
+
+        // Left
+        0.0,   1.0,   0.0,   1.0,
+       -1.0,  -1.0,  -1.0,   1.0,
+       -1.0,  -1.0,   1.0,   1.0
+    ]);
+
+    const vertex_normal_pyramid = new Float32Array([  
+        // Front
+        0.000000, 0.447214,  0.894427,
+	    0.000000, 0.447214,  0.894427,
+	    0.000000, 0.447214,  0.894427,
+
+        // Right
+        0.894427, 0.447214,  0.000000,
+	    0.894427, 0.447214,  0.000000,
+	    0.894427, 0.447214,  0.000000,
+
+        // Back
+        0.000000, 0.447214, -0.894427,
+	    0.000000, 0.447214, -0.894427,
+	    0.000000, 0.447214, -0.894427,
+
+        // Left
+        -0.894427, 0.447214,  0.000000,
+	    -0.894427, 0.447214,  0.000000,
+	    -0.894427, 0.447214,  0.000000,
+    ]);
+
+    //! Common Bind Group Layout For Pyramid and Cube
+    const bindGroupLayout = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform");
+
+    //! Pyramid - Position Buffer, Uniform Buffer, Bind Group
+    //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Position Buffer
-    buffer_position = createVertexBuffer(meshData.verticesArray);
-    if (buffer_position == null)
+    buffer_position_pyramid = createVertexBuffer(vertex_position_pyramid);
+    if (buffer_position_pyramid == null)
     {
         console.log("Failed To Create Vertex Position Buffer !!!");
         throw Error("Failed To Create Vertex Position Buffer !!!");
@@ -329,43 +386,20 @@ async function initialize()
     else
         console.log("Vertex Position Buffer Successfully Created");
 
-    //* Texcoords Buffer
-    buffer_texcoords = createVertexBuffer(meshData.texCoordsArray);
-    if (buffer_texcoords == null)
-    {
-        console.log("Failed To Create Vertex Texcoords Buffer !!!");
-        throw Error("Failed To Create Vertex Texcoords Buffer !!!");
-    }
-    else
-        console.log("Vertex Texcoords Buffer Successfully Created");
-
     //* Normals Buffer
-    buffer_normal = createVertexBuffer(meshData.normalsArray);
-    if (buffer_normal == null)
+    buffer_normal_pyramid = createVertexBuffer(vertex_normal_pyramid);
+    if (buffer_normal_pyramid == null)
     {
-        console.log("Failed To Create Vertex Normal Buffer !!!");
-        throw Error("Failed To Create Vertex Normal Buffer !!!");
+        console.log("Failed To Create Vertex Normals Buffer !!!");
+        throw Error("Failed To Create Vertex Normals Buffer !!!");
     }
     else
-        console.log("Vertex Normal Buffer Successfully Created");
+        console.log("Vertex Normals Buffer Successfully Created");
 
-    //* Elements Buffer
-    buffer_elements = createIndexBuffer(meshData.indicesArray);
-    if (buffer_elements == null)
-    {
-        console.log("Failed To Create Elements Index Buffer !!!");
-        throw Error("Failed To Create Elements Index Buffer !!!");
-    }
-    else
-        console.log("Elements Index Buffer Successfully Created");
-
-
-    //* Uniform Buffer
+    //* Host Uniform Buffer
     buffer_hostUniform = createUniformBuffer(hostUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-
-    const bindGroupLayout = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform");
     
-    //* Bind Group For MVP Uniform
+    //* Bind Group
     bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout);
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
@@ -395,11 +429,13 @@ async function initialize()
     //* Step - 1 : Pipeline Descriptor / PSO
 
     //* Step - 1A: Vertex Buffer Layout
+
+    //! Position Attribute
     const positionVertexAttribute = 
     {
         shaderLocation: 0,  //* Maps to location(0) in Vertex Shader
         offset: 0,
-        format: "float32x3"
+        format: "float32x4"
     };
 
     const positionVertexBufferLayout = 
@@ -408,7 +444,7 @@ async function initialize()
         [
             positionVertexAttribute
         ],
-        arrayStride: Float32Array.BYTES_PER_ELEMENT * 3,
+        arrayStride: 4 * 4,
         stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
     };
 
@@ -511,24 +547,6 @@ function createVertexBuffer(_data)
     {
         size: _data.byteLength,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    };
-
-    const buffer = device.createBuffer(bufferDescriptor);
-    if (buffer == null)
-        return null;
-
-    queue.writeBuffer(buffer, 0, _data);
-
-    return buffer;
-}
-
-function createIndexBuffer(_data)
-{
-    // Code
-    const bufferDescriptor = 
-    {
-        size: _data.byteLength,
-        usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
     };
 
     const buffer = device.createBuffer(bufferDescriptor);
@@ -727,20 +745,21 @@ function display()
     };
     
     //! Transformations
+    var translationMatrix = mat4.create();
+    var rotationMatrix = mat4.create();
+
+    mat4.translate(translationMatrix, translationMatrix, [0.0, 0.0, -6.0]);
+    mat4.rotate(rotationMatrix, rotationMatrix, degreeToRadians(angle), [0.0, 1.0, 0.0]);
+
     hostUniformData.modelMatrix = mat4.create();
-    hostUniformData.modelMatrix = mat4.translate(hostUniformData.modelMatrix, hostUniformData.modelMatrix, [0.0, 0.0, -6.0]);
+    hostUniformData.modelMatrix =  mat4.multiply(hostUniformData.modelMatrix, translationMatrix, rotationMatrix);
     hostUniformData.viewMatrix = mat4.create();
     hostUniformData.projectionMatrix = perspectiveProjectionMatrix;
 
-    if (chosenShader == 'v')
-        hostUniformData.lightTypeStatus[0] = 0;
-    else
-        hostUniformData.lightTypeStatus[0] = 1;
-
     if (bLight)
-        hostUniformData.lightTypeStatus[1] = 1;
+        hostUniformData.lightEnabled[0] = 1;
     else
-        hostUniformData.lightTypeStatus[1] = 0;
+        hostUniformData.lightEnabled[0] = 0;
 
     //! Update Uniform Buffer
 
@@ -762,7 +781,7 @@ function display()
         hostUniformData.projectionMatrix
     );
 
-    // Light Vectors        : 16 + 16 + 16 + 16  =  64
+    // Light Vectors        : 32 + 32 + 32 + 32  =  128
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3,
@@ -771,19 +790,19 @@ function display()
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 1, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2 * 1, 
         hostUniformData.lightDiffuse
     );
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 2, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2 * 2,
         hostUniformData.lightSpecular
     );
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 3, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2 * 3, 
         hostUniformData.lightPosition
     );
 
@@ -791,25 +810,28 @@ function display()
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 4,   
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2 * 4,   
         hostUniformData.materialAmbient
     );
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 5,  
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2 * 4  + 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 1,  
         hostUniformData.materialDiffuse
     );
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 6, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2 * 4  + 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2,  
         hostUniformData.materialSpecular
     );
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 7, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2 * 4  + 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3,
         hostUniformData.materialShininess
     );
 
@@ -817,26 +839,28 @@ function display()
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 8,  
-        hostUniformData.lightTypeStatus
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2 * 4  + 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 4, 
+        hostUniformData.lightEnabled
     );
-
+    
     //* Step - 13 : Begin The Render Pass
     const renderPassEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
     {
         renderPassEncoder.setPipeline(render_pipeline);
         renderPassEncoder.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
         renderPassEncoder.setScissorRect(0, 0, canvas.width, canvas.height);
-        renderPassEncoder.setVertexBuffer(0, buffer_position);
-        renderPassEncoder.setVertexBuffer(1, buffer_normal);
-        renderPassEncoder.setIndexBuffer(buffer_elements, "uint16");
+        renderPassEncoder.setVertexBuffer(0, buffer_position_pyramid);
+        renderPassEncoder.setVertexBuffer(1, buffer_normal_pyramid);
         renderPassEncoder.setBindGroup(0, bindGroup_hostUniform);
-        renderPassEncoder.drawIndexed(numMeshIndices);
+        renderPassEncoder.draw(12);
     }
     renderPassEncoder.end();
 
     //* Step - 14 : Finish The Command Encoder And Submit To Queue
     queue.submit([commandEncoder.finish()]);
+
+    update();
 
     //! Animation Loop
     animationFrameId = requestAnimationFrame(display);
@@ -845,6 +869,14 @@ function display()
 function update()
 {
     // Code
+    angle += animationSpeed;
+    if (angle > 360.0)
+        angle = angle - 360.0;
+}
+
+function degreeToRadians(degrees)
+{
+    return (degrees * (Math.PI / 180.0));
 }
 
 function uninitialize()
@@ -875,14 +907,13 @@ function uninitialize()
         device.destroy();
         device = null;
         queue = null;
-        render_pipeline = null;
+
+        buffer_position_pyramid = null;
+        buffer_normal_pyramid = null;
         buffer_hostUniform = null;
         bindGroup_hostUniform = null;
-        buffer_position = null;
-        buffer_normal = null;
-        buffer_texcoords = null;
-        buffer_elements = null;
-        sphere = null;
+        
+        render_pipeline = null;
     }
 
     perspectiveProjectionMatrix = null;
@@ -893,23 +924,14 @@ function keyDown(event)
     // Code
     switch(event.key)
     {
-        case ' ':
+        case 'f':
+        case 'F':
             toggleFullScreen();
         break;
 
         case 'l':
         case 'L':
             bLight = !bLight;
-        break;
-
-        case 'F':
-        case 'f':
-            chosenShader = 'f';
-        break;
-
-        case 'V':
-        case 'v':
-            chosenShader = 'v';
         break;
 
         case 'q':

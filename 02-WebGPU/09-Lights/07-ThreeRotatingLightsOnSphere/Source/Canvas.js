@@ -32,29 +32,53 @@ const hostUniformData =
     modelMatrix: mat4.create(),
     viewMatrix: mat4.create(),
     projectionMatrix: mat4.create(),
-    lightAmbient: new Float32Array([0.0, 0.0, 0.0, 1.0]),
-    lightDiffuse: new Float32Array([0.2, 0.5, 1.0, 1.0]),
-    lightSpecular: new Float32Array([1.0, 1.0, 1.0, 1.0]),
-    lightPosition: new Float32Array([100.0, 100.0, 100.0, 1.0]),
+
+    lightAmbient: new Float32Array([
+        0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 1.0
+    ]),
+
+    lightDiffuse: new Float32Array([
+        1.0, 0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 1.0
+    ]),
+
+    lightSpecular: new Float32Array([
+        1.0, 0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 1.0
+    ]),
+
+    lightPosition: new Float32Array([
+        0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 1.0
+    ]),
+
     materialAmbient: new Float32Array([0.0, 0.0, 0.0, 1.0]),
     materialDiffuse: new Float32Array([1.0, 1.0, 1.0, 1.0]),
     materialSpecular: new Float32Array([1.0, 1.0, 1.0, 1.0]),
     materialShininess: new Float32Array([50.0, 0.0, 0.0, 0.0]),
-    lightTypeStatus: new Uint32Array([0, 0, 0, 0]),         // x = 0 : Vertex | x = 1 : Fragment | y = 0 : Light Off | y = 1 : Light On
+
+    lightEnabled: new Uint32Array([0, 0, 0, 0]),
 };
 
 // MVP Matrices         : 64 + 64 + 64       =  192 +
-// Light Vectors        : 16 + 16 + 16 + 16  =  64  +
+// Light Vectors        : 48 + 48 + 48 + 48  =  192  +
 // Material Vectors     : 16 + 16 + 16 + 16  =  64  +
-// Light Enabled Vector : 16                 =  16  =   336
+// Light Enabled Vector : 16                 =  16  =   464
 const hostUniformBufferSize = new ArrayBuffer(
     Float32Array.BYTES_PER_ELEMENT * 16 +   // Model Matrix
     Float32Array.BYTES_PER_ELEMENT * 16 +   // View Matrix
     Float32Array.BYTES_PER_ELEMENT * 16 +   // Projection Matrix
-    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Ambient
-    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Diffuse
-    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Specular
-    Float32Array.BYTES_PER_ELEMENT * 4  +   // Light Position
+
+    Float32Array.BYTES_PER_ELEMENT * 4 * 3  +   // Light Ambient
+    Float32Array.BYTES_PER_ELEMENT * 4 * 3  +   // Light Diffuse
+    Float32Array.BYTES_PER_ELEMENT * 4 * 3  +   // Light Specular
+    Float32Array.BYTES_PER_ELEMENT * 4 * 3  +   // Light Position
+
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Ambient
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Diffuse
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Specular
@@ -63,8 +87,12 @@ const hostUniformBufferSize = new ArrayBuffer(
 ).byteLength;
 
 var bLight = false;
-var chosenShader = 'v';
-var bUseFragmentLighting = false;
+
+var radius = 30.0;
+
+var lightAngleZero = 0.0;
+var lightAngleOne = 0.0;
+var lightAngleTwo = 0.0;
 
 //* Animation Related
 var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome
@@ -365,11 +393,11 @@ async function initialize()
 
     const bindGroupLayout = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform");
     
-    //* Bind Group For MVP Uniform
+    //* Bind Group
     bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout);
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
-    //* Step - 2: Pipeline Layout
+    //* Step - 2: Pipeline Layout for MVP Uniform
 
     //* Step - 2A: Pipeline Layout Descriptor
     const pipelineLayoutDescriptor = 
@@ -384,11 +412,11 @@ async function initialize()
     const pipelineLayout = device.createPipelineLayout(pipelineLayoutDescriptor);
     if (pipelineLayout == null)
     {
-        console.log("Failed To Create Pipeline Layout !!!");
-        throw Error("Failed To Create Pipeline Layout !!!");
+        console.log("Failed To Create Pipeline Layout For MVP Uniform !!!");
+        throw Error("Failed To Create Pipeline Layout For MVP Uniform !!!");
     }
     else
-        console.log("Pipeline Layout Successfully Created");
+        console.log("Pipeline Layout For MVP Uniform Successfully Created");
 
     //! Render Pipeline
 
@@ -732,15 +760,10 @@ function display()
     hostUniformData.viewMatrix = mat4.create();
     hostUniformData.projectionMatrix = perspectiveProjectionMatrix;
 
-    if (chosenShader == 'v')
-        hostUniformData.lightTypeStatus[0] = 0;
-    else
-        hostUniformData.lightTypeStatus[0] = 1;
-
     if (bLight)
-        hostUniformData.lightTypeStatus[1] = 1;
+        hostUniformData.lightEnabled[0] = 1;
     else
-        hostUniformData.lightTypeStatus[1] = 0;
+        hostUniformData.lightEnabled[0] = 0;
 
     //! Update Uniform Buffer
 
@@ -762,7 +785,7 @@ function display()
         hostUniformData.projectionMatrix
     );
 
-    // Light Vectors        : 16 + 16 + 16 + 16  =  64
+    // Light Vectors        : 48 + 48 + 48 + 48  =  192
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3,
@@ -771,19 +794,32 @@ function display()
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 1, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3 * 1, 
         hostUniformData.lightDiffuse
     );
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 2, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3 * 2, 
         hostUniformData.lightSpecular
     );
+
+    // Light 0
+    hostUniformData.lightPosition[1] = radius * Math.sin(degreeToRadians(lightAngleZero));
+    hostUniformData.lightPosition[2] = radius * Math.cos(degreeToRadians(lightAngleZero));
+    
+    // Light 1
+    hostUniformData.lightPosition[4] = radius * Math.cos(degreeToRadians(lightAngleOne));
+    hostUniformData.lightPosition[6] = radius * Math.sin(degreeToRadians(lightAngleOne));
+    
+    // Light 2
+    hostUniformData.lightPosition[8] = radius * Math.cos(degreeToRadians(lightAngleTwo));
+    hostUniformData.lightPosition[9] = radius * Math.sin(degreeToRadians(lightAngleTwo));
+
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 3, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3 * 3, 
         hostUniformData.lightPosition
     );
 
@@ -791,25 +827,28 @@ function display()
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 4,   
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3 * 4,
         hostUniformData.materialAmbient
     );
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 5,  
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3 * 4 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 1,  
         hostUniformData.materialDiffuse
     );
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 6, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3 * 4 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2,   
         hostUniformData.materialSpecular
     );
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 7, 
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3 * 4 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3,   
         hostUniformData.materialShininess
     );
 
@@ -817,8 +856,9 @@ function display()
     queue.writeBuffer(
         buffer_hostUniform, 
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 8,  
-        hostUniformData.lightTypeStatus
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3 * 4 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 4,    
+        hostUniformData.lightEnabled
     );
 
     //* Step - 13 : Begin The Render Pass
@@ -838,13 +878,31 @@ function display()
     //* Step - 14 : Finish The Command Encoder And Submit To Queue
     queue.submit([commandEncoder.finish()]);
 
+    update();
+
     //! Animation Loop
     animationFrameId = requestAnimationFrame(display);
+}
+
+function degreeToRadians(degrees)
+{
+    return (degrees * (Math.PI / 180.0));
 }
 
 function update()
 {
     // Code
+    lightAngleZero = lightAngleZero + 0.5;
+    if (lightAngleZero > 360.0)
+        lightAngleZero = lightAngleZero - 360.0;
+
+    lightAngleOne = lightAngleOne + 0.5;
+    if (lightAngleOne > 360.0)
+        lightAngleOne = lightAngleOne - 360.0;
+
+    lightAngleTwo = lightAngleTwo + 0.5;
+    if (lightAngleTwo > 360.0)
+        lightAngleTwo = lightAngleTwo - 360.0;
 }
 
 function uninitialize()
@@ -893,23 +951,14 @@ function keyDown(event)
     // Code
     switch(event.key)
     {
-        case ' ':
+        case 'f':
+        case 'F':
             toggleFullScreen();
         break;
 
         case 'l':
         case 'L':
             bLight = !bLight;
-        break;
-
-        case 'F':
-        case 'f':
-            chosenShader = 'f';
-        break;
-
-        case 'V':
-        case 'v':
-            chosenShader = 'v';
         break;
 
         case 'q':

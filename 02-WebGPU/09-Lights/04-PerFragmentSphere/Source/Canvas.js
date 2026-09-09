@@ -361,10 +361,10 @@ async function initialize()
     //* Uniform Buffer
     buffer_hostUniform = createUniformBuffer(hostUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-    const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform");
+    const bindGroupLayout = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform");
     
-    //* Bind Group For MVP Uniform
-    bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout_mvpUniform);
+    //* Bind Group
+    bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout);
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Step - 2: Pipeline Layout for MVP Uniform
@@ -374,7 +374,7 @@ async function initialize()
     {
         bindGroupLayouts:
         [
-            bindGroupLayout_mvpUniform
+            bindGroupLayout
         ]
     };
 

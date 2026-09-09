@@ -361,20 +361,20 @@ async function initialize()
     //* Uniform Buffer
     buffer_hostUniform = createUniformBuffer(hostUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-    const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
+    const bindGroupLayout = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
     
     //* Bind Group For MVP Uniform
-    bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout_mvpUniform);
+    bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout);
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
-    //* Step - 2: Pipeline Layout for MVP Uniform
+    //* Step - 2: Pipeline Layout
 
     //* Step - 2A: Pipeline Layout Descriptor
     const pipelineLayoutDescriptor = 
     {
         bindGroupLayouts:
         [
-            bindGroupLayout_mvpUniform
+            bindGroupLayout
         ]
     };
 
@@ -382,11 +382,11 @@ async function initialize()
     const pipelineLayout = device.createPipelineLayout(pipelineLayoutDescriptor);
     if (pipelineLayout == null)
     {
-        console.log("Failed To Create Pipeline Layout For MVP Uniform !!!");
-        throw Error("Failed To Create Pipeline Layout For MVP Uniform !!!");
+        console.log("Failed To Create Pipeline Layout !!!");
+        throw Error("Failed To Create Pipeline Layout !!!");
     }
     else
-        console.log("Pipeline Layout For MVP Uniform Successfully Created");
+        console.log("Pipeline Layout Successfully Created");
 
     //! Render Pipeline
 
