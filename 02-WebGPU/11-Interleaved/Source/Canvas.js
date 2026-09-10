@@ -34,14 +34,17 @@ const hostUniformData =
     modelMatrix: mat4.create(),
     viewMatrix: mat4.create(),
     projectionMatrix: mat4.create(),
+
     lightAmbient: new Float32Array([0.0, 0.0, 0.0, 1.0]),
     lightDiffuse: new Float32Array([1.0, 1.0, 1.0, 1.0]),
     lightSpecular: new Float32Array([1.0, 1.0, 1.0, 1.0]),
     lightPosition: new Float32Array([100.0, 100.0, 100.0, 1.0]),
+
     materialAmbient: new Float32Array([0.0, 0.0, 0.0, 1.0]),
     materialDiffuse: new Float32Array([1.0, 1.0, 1.0, 1.0]),
     materialSpecular: new Float32Array([1.0, 1.0, 1.0, 1.0]),
-    materialShininess: new Float32Array([50.0, 0.0, 0.0, 0.0]),
+    materialShininess: new Float32Array([128.0, 0.0, 0.0, 0.0]),
+
     lightEnabled: new Uint32Array([0, 0, 0, 0]),
 };
 
@@ -314,43 +317,65 @@ async function initialize()
 
     var vertex_pcnt_cube = new Float32Array([
 
-        // Position           // Color             // Normals               // Texture
-            
-        // Top face          // Top face           // Top face              // Top face
-        1.0, 1.0, -1.0,      0.0,0.0,1.0,          0.0, 1.0, 0.0,           1.0,1.0,
-        -1.0, 1.0, -1.0,     0.0,0.0,1.0,          0.0, 1.0, 0.0,           0.0,1.0,
-        -1.0, 1.0, 1.0,      0.0,0.0,1.0,          0.0, 1.0, 0.0,           0.0,0.0,
-        1.0, 1.0, 1.0,       0.0,0.0,1.0,          0.0, 1.0, 0.0,           1.0,0.0,
+        // Front face
+        //! Position				Color			Normals			Texcoords
+        1.0,  1.0,  1.0,	  1.0, 0.0, 0.0,	 0.0,  0.0,  1.0,	1.0, 1.0,	 // Top Right
+        -1.0,  1.0,  1.0,	  1.0, 0.0, 0.0,	 0.0,  0.0,  1.0,	0.0, 1.0,	 // Top Left
+        1.0, -1.0,  1.0,	  1.0, 0.0, 0.0,	 0.0,  0.0,  1.0,	1.0, 0.0,	 // Bottom Right
 
-        // Bottom face       // Bottom face       // Bottom face            // Bottom face
-        1.0, -1.0, -1.0,     0.0,1.0,0.0,         0.0, -1.0, 0.0,           1.0,1.0,
-        -1.0, -1.0, -1.0,    0.0,1.0,0.0,         0.0, -1.0, 0.0,           0.0,1.0,
-        -1.0, -1.0, 1.0,     0.0,1.0,0.0,         0.0, -1.0, 0.0,           0.0,0.0,
-        1.0, -1.0, 1.0,      0.0,1.0,0.0,         0.0, -1.0, 0.0,           1.0,0.0,
+        1.0, -1.0,  1.0,	  1.0, 0.0, 0.0,	 0.0,  0.0,  1.0,	1.0, 0.0,	 // Bottom Right
+        -1.0,  1.0,  1.0,	  1.0, 0.0, 0.0,	 0.0,  0.0,  1.0,	0.0, 1.0,	 // Top Left
+        -1.0, -1.0,  1.0,	  1.0, 0.0, 0.0,	 0.0,  0.0,  1.0,	0.0, 0.0,  // Bottom Left
+                            
+        // Right face
+        //! Position			  Color			     Normals		Texcoords			 
+        1.0,  1.0, -1.0,	  0.0, 0.0, 1.0,	 1.0,  0.0,  0.0,	1.0, 1.0,  // Top Right
+        1.0,  1.0,  1.0,	  0.0, 0.0, 1.0,	 1.0,  0.0,  0.0,	0.0, 1.0,  // Top Left
+        1.0, -1.0, -1.0,	  0.0, 0.0, 1.0,	 1.0,  0.0,  0.0,	1.0, 0.0,  // Bottom Right
 
-        // Front face        // Front face        // Front face             // Front face
-        1.0, 1.0, 1.0,       1.0,0.0,0.0,         0.0, 0.0, 1.0,            1.0,1.0,
-        -1.0, 1.0, 1.0,      1.0,0.0,0.0,         0.0, 0.0, 1.0,            0.0,1.0,
-        -1.0, -1.0, 1.0,     1.0,0.0,0.0,         0.0, 0.0, 1.0,            0.0,0.0,
-        1.0, -1.0, 1.0,      1.0,0.0,0.0,         0.0, 0.0, 1.0,            1.0,0.0,
+        1.0, -1.0, -1.0,	  0.0, 0.0, 1.0,	 1.0,  0.0,  0.0,	1.0, 0.0,  // Bottom Right
+        1.0,  1.0,  1.0,	  0.0, 0.0, 1.0,	 1.0,  0.0,  0.0,	0.0, 1.0,  // Top Left
+        1.0, -1.0,  1.0,	  0.0, 0.0, 1.0,	 1.0,  0.0,  0.0,	0.0, 0.0,  // Bottom Left
+                            
+        // Back face	
+        //! Position			  Color			     Normals		Texcoords			 
+        1.0,  1.0, -1.0,	  1.0, 1.0, 0.0,	 0.0,  0.0, -1.0,	1.0, 1.0,  // Top Right
+        -1.0,  1.0, -1.0,	  1.0, 1.0, 0.0,	 0.0,  0.0, -1.0,	0.0, 1.0,  // Top Left
+        1.0, -1.0, -1.0,	  1.0, 1.0, 0.0,	 0.0,  0.0, -1.0,	1.0, 0.0,  // Bottom Right
 
-        // Back face         // Back face         // Back face              // Back face
-        1.0, 1.0, -1.0,      0.0,1.0,1.0,         0.0, 0.0, -1.0,           1.0,1.0,
-        -1.0, 1.0, -1.0,     0.0,1.0,1.0,         0.0, 0.0, -1.0,           0.0,1.0,
-        -1.0, -1.0, -1.0,    0.0,1.0,1.0,         0.0, 0.0, -1.0,           0.0,0.0,
-        1.0, -1.0, -1.0,     0.0,1.0,1.0,         0.0, 0.0, -1.0,           1.0,0.0,
+        1.0, -1.0, -1.0,	  1.0, 1.0, 0.0,	 0.0,  0.0, -1.0,	1.0, 0.0,  // Bottom Right
+        -1.0,  1.0, -1.0,	  1.0, 1.0, 0.0,	 0.0,  0.0, -1.0,	0.0, 1.0,  // Top Left
+        -1.0, -1.0, -1.0,	  1.0, 1.0, 0.0,	 0.0,  0.0, -1.0,	0.0, 0.0,  // Bottom Left
+                            
+        // Left face	
+        //! Position			Color			      Normals		Texcoords			 
+        -1.0,  1.0,  1.0,	 1.0, 0.0, 1.0,	     -1.0,  0.0, 0.0,	1.0, 1.0,  // Top Right
+        -1.0,  1.0, -1.0,	 1.0, 0.0, 1.0,	     -1.0,  0.0, 0.0,	0.0, 1.0,  // Top Left
+        -1.0, -1.0,  1.0,	 1.0, 0.0, 1.0,	     -1.0,  0.0, 0.0,	1.0, 0.0,  // Bottom Right
 
-        // Right face        // Right face        // Right face             // Right face
-        1.0, 1.0, -1.0,      1.0,0.0,1.0,         1.0, 0.0, 0.0,            1.0,1.0,
-        1.0, 1.0, 1.0,       1.0,0.0,1.0,         1.0, 0.0, 0.0,            0.0,1.0,
-        1.0, -1.0, 1.0,      1.0,0.0,1.0,         1.0, 0.0, 0.0,            0.0,0.0,
-        1.0, -1.0, -1.0,     1.0,0.0,1.0,         1.0, 0.0, 0.0,            1.0,0.0,
+        -1.0, -1.0,  1.0,	 1.0, 0.0, 1.0,	     -1.0,  0.0, 0.0,	1.0, 0.0,  // Bottom Right
+        -1.0,  1.0, -1.0,	 1.0, 0.0, 1.0,	     -1.0,  0.0, 0.0,	0.0, 1.0,  // Top Left
+        -1.0, -1.0, -1.0,	 1.0, 0.0, 1.0,	     -1.0,  0.0, 0.0,	0.0, 0.0,  // Bottom Left
+                            
+        // Top face			
+        //! Position				Color			Normals			Texcoords	 
+        1.0,  1.0, -1.0,	 0.0, 1.0, 0.0,	      0.0,  1.0,  0.0,	1.0, 1.0,  // Top Right
+        -1.0,  1.0, -1.0,	 0.0, 1.0, 0.0,	      0.0,  1.0,  0.0,	0.0, 1.0,  // Top Left
+        1.0,  1.0,  1.0,	 0.0, 1.0, 0.0,	      0.0,  1.0,  0.0,	1.0, 0.0,  // Bottom Right
 
-        // Left face          // Left face         // Left face             // Left face
-        -1.0, 1.0, 1.0,      1.0,1.0,0.0,         -1.0, 0.0, 0.0,           1.0,1.0,
-        -1.0, 1.0, -1.0,     1.0,1.0,0.0,         -1.0, 0.0, 0.0,           0.0,1.0,
-        -1.0, -1.0, -1.0,    1.0,1.0,0.0,         -1.0, 0.0, 0.0,           0.0,0.0,
-        -1.0, -1.0, 1.0,     1.0,1.0,0.0,         -1.0, 0.0, 0.0,           1.0,0.0,
+        1.0,  1.0,  1.0,	 0.0, 1.0, 0.0,	      0.0,  1.0,  0.0,	1.0, 0.0,  // Bottom Right
+        -1.0,  1.0, -1.0,	 0.0, 1.0, 0.0,	      0.0,  1.0,  0.0,	0.0, 1.0,  // Top Left
+        -1.0,  1.0,  1.0,	 0.0, 1.0, 0.0,	      0.0,  1.0,  0.0,	0.0, 0.0,  // Bottom Left
+                            
+        // Bottom face		
+        //! Position				Color			Normals			Texcoords	 
+        1.0, -1.0,  1.0,	 1.0, 0.5, 0.0,	      0.0, -1.0, 0.0,	1.0, 1.0, // Top Right
+        -1.0, -1.0,  1.0,	 1.0, 0.5, 0.0,	      0.0, -1.0, 0.0,	0.0, 1.0, // Top Left
+        1.0, -1.0, -1.0,	 1.0, 0.5, 0.0,	      0.0, -1.0, 0.0,	1.0, 0.0, // Bottom Right
+
+        1.0, -1.0, -1.0,	 1.0, 0.5, 0.0,	      0.0, -1.0, 0.0,	1.0, 0.0, // Bottom Right
+        -1.0, -1.0,  1.0,	 1.0, 0.5, 0.0,	      0.0, -1.0, 0.0,	0.0, 1.0, // Top Left
+        -1.0, -1.0, -1.0,	 1.0, 0.5, 0.0,	      0.0, -1.0, 0.0,	0.0, 0.0, // Bottom Left
 
     ]);
 
@@ -427,7 +452,7 @@ async function initialize()
     {
         bindGroupLayouts:
         [
-            bindGroupLayout_mvpUniform,
+            bindGroupLayout,
             bindGroupLayout_texture_sampler
         ]
     };
@@ -453,15 +478,15 @@ async function initialize()
     {
         shaderLocation: 0,  //* Maps to location(0) in Vertex Shader
         offset: Float32Array.BYTES_PER_ELEMENT * 0,
-        format: "float32x4"
+        format: "float32x3"
     };
 
     //! Color Attribute
-    const colorVertexAttribute = 
+    const colorVertexAttribute =
     {
         shaderLocation: 1,  //* Maps to location(1) in Vertex Shader
         offset: Float32Array.BYTES_PER_ELEMENT * 3,
-        format: "float32x4"
+        format: "float32x3"
     };
 
     //! Normal Attribute

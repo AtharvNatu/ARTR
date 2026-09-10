@@ -1,25 +1,18 @@
 struct HostUniform
 {
-    modelMatrix: mat4x4<f32>,
-    viewMatrix: mat4x4<f32>,
+    modelMatrix : mat4x4<f32>,
+    viewMatrix : mat4x4<f32>,
     projectionMatrix: mat4x4<f32>,
-    lightAmbient: vec4<f32>,
     lightDiffuse: vec4<f32>,
-    lightSpecular: vec4<f32>,
     lightPosition: vec4<f32>,
-    materialAmbient: vec4<f32>,
     materialDiffuse: vec4<f32>,
-    materialSpecular: vec4<f32>,
-    materialShininess: vec4<f32>,
     lightEnabled: vec4<u32>
 };
 
 struct VertexOutput
 {
     @builtin(position) position : vec4<f32>,
-    @location(0) color : vec3<f32>,
-    @location(1) color : vec3<f32>,
-    @location(0) color : vec3<f32>
+    @location(0) diffused_light_color : vec3<f32>
 };
 
 @group(0) @binding(0) var<uniform> ubo : HostUniform;
@@ -62,10 +55,7 @@ fn inverse3x3(m : mat3x3<f32>) -> mat3x3<f32>
 };
 
 @vertex
-fn main(
-    @location(0) positionIn : vec4<f32>, 
-    @location(1) normalIn : vec3<f32>
-    ) -> VertexOutput
+fn main(@location(0) positionIn : vec4<f32>, @location(1) normalIn : vec3<f32>) -> VertexOutput
 {
     // Code
     var output : VertexOutput; 
