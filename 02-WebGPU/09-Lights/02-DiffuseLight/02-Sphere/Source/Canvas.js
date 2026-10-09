@@ -136,7 +136,7 @@ async function main()
     console.log("---------------------------------------");
 
     //* Step - 4 : Listener To Handle Lost Devices
-    document.addEventListener("uncapturederror", onUncapturedError);
+    device.addEventListener("uncapturederror", onUncapturedError);
     device.lost.then(onDeviceLost);
 
     // Initialize
@@ -191,20 +191,20 @@ function toggleFullScreen()
             canvas.mozRequestFullScreen();
         else if (canvas.webkitRequestFullscreen)
             canvas.webkitRequestFullscreen();
-        else if (canvas.msRequestFullscreen)  
-            canvas.msRequestFullScreen();
+        else if (canvas.msRequestFullscreen)
+            canvas.msRequestFullscreen();
     }
     else
     {
         if (document.exitFullscreen)
             document.exitFullscreen();
-        else if (document.mozExitFullScreen)
+        else if (document.mozExitFullscreen)
             document.mozExitFullscreen();
         else if (document.webkitExitFullscreen)
             document.webkitExitFullscreen();
         else if (document.msExitFullscreen)  
             document.msExitFullscreen();
-    }                     
+    }                    
 }
 
 function onFullScreenChange()
@@ -266,13 +266,13 @@ async function initialize()
     };
 
     //* Load Shaders From File
-    const triangleVertWGSL = await loadShader("../Shaders/Shader.vert.wgsl");
-    const triangleFragWGSL = await loadShader("../Shaders/Shader.frag.wgsl");
+    const vertexShaderWGSL = await loadShader("../Shaders/Shader.vert.wgsl");
+    const fragmentShaderWGSL = await loadShader("../Shaders/Shader.frag.wgsl");
 
     //* Vertex Shader Module
     const shaderModuleDescriptor_vertexShader = 
     {
-        code: triangleVertWGSL
+        code: vertexShaderWGSL
     };
 
     const shaderModule_vertexShader = device.createShaderModule(shaderModuleDescriptor_vertexShader);
@@ -287,7 +287,7 @@ async function initialize()
     //* Fragment Shader Module
     const shaderModuleDescriptor_fragmentShader = 
     {
-        code: triangleFragWGSL
+        code: fragmentShaderWGSL
     };
 
     const shaderModule_fragmentShader = device.createShaderModule(shaderModuleDescriptor_fragmentShader);
@@ -669,7 +669,8 @@ function resize()
         }
     }
 
-    mat4.perspective(perspectiveProjectionMatrix, 45.0, parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+    if (perspectiveProjectionMatrix != null)
+        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()
@@ -798,6 +799,11 @@ function display()
 function update()
 {
     // Code
+}
+
+function degreeToRadians(degrees)
+{
+    return (degrees * (Math.PI / 180.0));
 }
 
 function uninitialize()

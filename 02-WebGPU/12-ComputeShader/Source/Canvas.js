@@ -20,15 +20,15 @@ let buffer_position_gpu = null;
 
 let buffer_hostUniform = null;
 
-let bindGroup_graphics = null;
+let bindGroup_ubo = null;
 let bindGroup_compute = null;
 
 let perspectiveProjectionMatrix = null;
 let depthTexture = null;
 
 //* Sinewave Related Variables
-const MAX_MESH_SIZE = 4096;
-const WORKGROUP_SIZE = 32;
+let MAX_MESH_SIZE = 4096;
+let WORKGROUP_SIZE = 32;
 
 let position_data = null;
 let meshSize = 256;
@@ -41,20 +41,19 @@ const uniformData =
     viewMatrix: mat4.create(),
     projectionMatrix: mat4.create(),
 
-    color: new Float32Array([1.0, 0.5, 0.0, 0.0]),                      // Orange Color
+    color: new Float32Array([1.0, 0.5, 0.0, 1.0]),                      // Orange Color
     computeData: new Float32Array([meshSize, meshSize, fTime, 0.0]),    // Width, Height, Time
 };
 
 // MVP Matrices         : 64 + 64 + 64       =  192 +
 // Color Vector         : 16                 =  16  +
 // Compute Vector       : 16                 =  16  =   224
-const uniformBufferSize = new ArrayBuffer(
+const uniformBufferSize =
     Float32Array.BYTES_PER_ELEMENT * 16 +   // Model Matrix
     Float32Array.BYTES_PER_ELEMENT * 16 +   // View Matrix
     Float32Array.BYTES_PER_ELEMENT * 16 +   // Projection Matrix
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Color Vector
-    Float32Array.BYTES_PER_ELEMENT * 4      // Compute Vector
-).byteLength;
+    Float32Array.BYTES_PER_ELEMENT * 4;     // Compute Vector
 
 
 //* Animation Related
@@ -127,33 +126,18 @@ async function main()
     console.log(`Architecture : ${adapterInfo.architecture}`);
     console.log(`Description : ${adapterInfo.description}`);
     console.log(`Max Compute Invocations Per Workgroup : ${adapter.limits.maxComputeInvocationsPerWorkgroup}`);
-    console.log(`Max Workgroup Size X/Y/Z : ${adapter.limits.maxComputeWorkgroupSizeX, adapter.limits.maxComputeWorkgroupSizeY, adapter.limits.maxComputeWorkgroupSizeZ}`);
+    console.log(`Max Workgroup Size X/Y/Z : ${adapter.limits.maxComputeWorkgroupSizeX}, ${adapter.limits.maxComputeWorkgroupSizeY}, ${adapter.limits.maxComputeWorkgroupSizeZ}`);
     console.log(`Max Storage Buffer Binding Size : ${adapter.limits.maxStorageBufferBindingSize}`);
     console.log(`Max Buffer Size : ${adapter.limits.maxBufferSize}`);
     console.log("---------------------------------------");
 
-    const requiredBufferSize = MAX_MESH_SIZE * MAX_MESH_SIZE * 4 * 4;
-    if (requiredBufferSize > adapter.limits.maxStorageBufferBindingSize || requiredBufferSize > adapter.limits.maxBufferSize)
-    {
-        MAX_MESH_SIZE = 2048;
-        console.log(`MAX_MESH_SIZE Capped To ${MAX_MESH_SIZE} Due To Adapter Buffer Limits !`);
-    }
-
-    if (adapter.limits.maxComputeInvocationsPerWorkgroup < (32 * 32) ||
-        adapter.limits.maxComputeWorkgroupSizeX < 32 * 32 ||
-        adapter.limits.maxComputeWorkgroupSizeY < 32 * 32)
-    {
-        WORKGROUP_SIZE = 16;
-        console.log(`WORKGROUP_SIZE Capped To ${MAX_MESH_SIZE} Due To Adapter Compute Limits !`);
-    }
-
     const _requiredLimits = 
     {
-        maxComputeInvocationsPerWorkgroup: Math.min(WORKGROUP_SIZE * WORKGROUP_SIZE, adapter.limits.maxComputeInvocationsPerWorkgroup),
-        maxComputeWorkgroupSizeX: Math.min(WORKGROUP_SIZE, adapter.limits.maxComputeWorkgroupSizeX),
-        maxComputeWorkgroupSizeY: Math.min(WORKGROUP_SIZE, adapter.limits.maxComputeWorkgroupSizeY),
-        maxStorageBufferBindingSize: Math.min(MAX_MESH_SIZE * MAX_MESH_SIZE * 4 * 4, adapter.limits.maxStorageBufferBindingSize),
-        maxBufferSize: Math.min(MAX_MESH_SIZE * MAX_MESH_SIZE * 4 * 4, adapter.limits.maxBufferSize),
+        maxComputeInvocationsPerWorkgroup: adapter.limits.maxComputeInvocationsPerWorkgroup,
+        maxComputeWorkgroupSizeX: adapter.limits.maxComputeWorkgroupSizeX,
+        maxComputeWorkgroupSizeY: adapter.limits.maxComputeWorkgroupSizeY,
+        maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+        maxBufferSize: adapter.limits.maxBufferSize
     };
 
     //* Step - 3 : Get GPU Device Object From Adapter
@@ -177,11 +161,27 @@ async function main()
     else
     {
         console.log("GPU Device Successfully Initialized");
+
+        const requiredBufferSize = MAX_MESH_SIZE * MAX_MESH_SIZE * 4 * 4;
+        if (requiredBufferSize > device.limits.maxStorageBufferBindingSize || requiredBufferSize > device.limits.maxBufferSize)
+        {
+            MAX_MESH_SIZE = 2048;
+            console.log(`MAX_MESH_SIZE Capped To ${MAX_MESH_SIZE} Due To Device Buffer Limits !`);
+        }
+
+        if (device.limits.maxComputeInvocationsPerWorkgroup < (WORKGROUP_SIZE * WORKGROUP_SIZE) ||
+            device.limits.maxComputeWorkgroupSizeX < WORKGROUP_SIZE ||
+            device.limits.maxComputeWorkgroupSizeY < WORKGROUP_SIZE)
+        {
+            WORKGROUP_SIZE = 16;
+            console.log(`WORKGROUP_SIZE Capped To ${WORKGROUP_SIZE} Due To Device Compute Limits !`);
+        }
+
         console.log(`WORKGROUP_SIZE = ${WORKGROUP_SIZE}, MAX_MESH_SIZE = ${MAX_MESH_SIZE}`);
     }
         
     //* Step - 4 : Listener To Handle Lost Devices
-    document.addEventListener("uncapturederror", onUncapturedError);
+    device.addEventListener("uncapturederror", onUncapturedError);
     device.lost.then(onDeviceLost);
 
     // Initialize
@@ -206,6 +206,13 @@ function onDeviceLost(info)
     // Code
     console.warn("WebGPU Device Lost : ", info.reason, ", Message : ", info.message);
 
+    if (animationFrameId != null)
+    {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    device = null;
     queue = null;
 
     buffer_position_cpu = null;
@@ -216,7 +223,7 @@ function onDeviceLost(info)
 
     buffer_hostUniform = null;
 
-    bindGroup_graphics = null;
+    bindGroup_ubo = null;
     bindGroup_compute = null;
 
     position_data = null;
@@ -242,20 +249,20 @@ function toggleFullScreen()
             canvas.mozRequestFullScreen();
         else if (canvas.webkitRequestFullscreen)
             canvas.webkitRequestFullscreen();
-        else if (canvas.msRequestFullscreen)  
-            canvas.msRequestFullScreen();
+        else if (canvas.msRequestFullscreen)
+            canvas.msRequestFullscreen();
     }
     else
     {
         if (document.exitFullscreen)
             document.exitFullscreen();
-        else if (document.mozExitFullScreen)
+        else if (document.mozExitFullscreen)
             document.mozExitFullscreen();
         else if (document.webkitExitFullscreen)
             document.webkitExitFullscreen();
         else if (document.msExitFullscreen)  
             document.msExitFullscreen();
-    }                     
+    }                    
 }
 
 function onFullScreenChange()
@@ -357,7 +364,7 @@ async function initialize()
         code: computeShaderWGSL
     };
 
-    const shaderModule_computeShader = device.createShaderModule(shaderModuleDescriptor_fragmentShader);
+    const shaderModule_computeShader = device.createShaderModule(shaderModuleDescriptor_computeShader);
     if (shaderModule_computeShader == null)
     {
         console.log("Failed To Create Compute Shader Module !!!");
@@ -404,7 +411,7 @@ async function initialize()
     else
         console.log("Bind Group Layout For Graphics Successfully Created");
 
-    const bindGroupLayout_compute = createBindGroupLayout(1, GPUShaderStage.COMPUTE, "storage");
+    const bindGroupLayout_compute = createBindGroupLayout(0, GPUShaderStage.COMPUTE, "storage");
     if (bindGroupLayout_compute == null)
     {
         console.log("Failed To Create Bind Group Layout For Compute !!!");
@@ -424,8 +431,8 @@ async function initialize()
         console.log("Uniform Buffer Successfully Created");
 
     //* Bind Group For Graphics
-    bindGroup_graphics = createBindGroup(buffer_hostUniform, 0, uniformBufferSize, 0, bindGroupLayout_ubo);
-    if (bindGroup_graphics == null)
+    bindGroup_ubo = createBindGroup(buffer_hostUniform, 0, uniformBufferSize, 0, bindGroupLayout_ubo);
+    if (bindGroup_ubo == null)
     {
         console.log("Failed To Create Graphics Bind Group !!!");
         throw Error("Failed To Create Graphics Bind Group !!!");
@@ -469,6 +476,7 @@ async function initialize()
     {
         bindGroupLayouts:
         [
+            bindGroupLayout_ubo,
             bindGroupLayout_compute
         ]
     };
@@ -599,7 +607,10 @@ async function loadShader(path)
 {
     // Code
     const response = await fetch(path);
-    return await response.text();
+    if (response.ok)
+        return await response.text();
+    else
+        return null;
 }
 
 function createBuffer(_dataSize, _usageFlags)
@@ -643,7 +654,7 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferTyp
     };
 
     //* Step - 1C: Bind Group Layout
-    return device.createBindGroupLayout(bindGroupLayoutDescriptor);;
+    return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
 function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
@@ -732,7 +743,8 @@ function resize()
         }
     }
 
-    mat4.perspective(perspectiveProjectionMatrix, 45.0, parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+    if (perspectiveProjectionMatrix != null)
+        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()
@@ -756,9 +768,9 @@ function display()
         const computePassEncoder = commandEncoder.beginComputePass();
         {
             computePassEncoder.setPipeline(compute_pipeline);
-            computePassEncoder.setBindGroup(0, bindGroup_graphics);
+            computePassEncoder.setBindGroup(0, bindGroup_ubo);
             computePassEncoder.setBindGroup(1, bindGroup_compute);
-            const workGroups = meshSize / WORKGROUP_SIZE;
+            const workGroups = Math.ceil(meshSize / WORKGROUP_SIZE);
             computePassEncoder.dispatchWorkgroups(workGroups, workGroups, 1);
         }
         computePassEncoder.end();
@@ -796,7 +808,7 @@ function display()
     let translationMatrix = mat4.create();
     uniformData.modelMatrix = mat4.create();
 
-    mat4.translate(translationMatrix, translationMatrix, [0.0, 0.0, 0.0]);
+    mat4.translate(translationMatrix, translationMatrix, [0.0, 0.0, -3.0]);
     uniformData.modelMatrix = translationMatrix;
     uniformData.viewMatrix = mat4.create();
     uniformData.projectionMatrix = perspectiveProjectionMatrix;
@@ -850,7 +862,7 @@ function display()
             renderPassEncoder.setVertexBuffer(0, buffer_position_gpu);
         else    
             renderPassEncoder.setVertexBuffer(0, buffer_position_cpu);
-        renderPassEncoder.setBindGroup(0, bindGroup_graphics);
+        renderPassEncoder.setBindGroup(0, bindGroup_ubo);
         renderPassEncoder.draw(meshSize * meshSize);
     }
     renderPassEncoder.end();
@@ -873,18 +885,19 @@ function prepareCpuBuffer(_width, _height, _fTime)
 
     const frequency = 5.0;
 
-    for (let i = 0; i < _height; i++) 
+    //* Mirrors The Compute Shader : u From x, v From y, idx = y * width + x
+    for (let y = 0; y < _height; y++)
     {
-        for (let j = 0; j < _width; j++) 
+        for (let x = 0; x < _width; x++)
         {
-            let u = i / _width;
-            let v = j / _height;
+            let u = x / _width;
+            let v = y / _height;
 
             u = u * 2.0 - 1.0;
             v = v * 2.0 - 1.0;
 
             const w = Math.cos(u * frequency + _fTime) * Math.sin(v * frequency + _fTime) * 0.5;
-            const index = (j * _width + i) * 4;
+            const index = (y * _width + x) * 4;
             
             position_data[index + 0] = u;
             position_data[index + 1] = w;
@@ -903,6 +916,11 @@ function update()
     fTime += 0.01;
 }
 
+function degreeToRadians(degrees)
+{
+    return (degrees * (Math.PI / 180.0));
+}
+
 function uninitialize()
 {
     // Code
@@ -911,6 +929,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister Everything Registered In main()
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {
@@ -928,6 +953,13 @@ function uninitialize()
     //* Step - 15 : Destroy The Device
     if (device != null)
     {
+        if (buffer_position_cpu != null)
+            buffer_position_cpu.destroy();
+        if (buffer_position_gpu != null)
+            buffer_position_gpu.destroy();
+        if (buffer_hostUniform != null)
+            buffer_hostUniform.destroy();
+
         device.destroy();
         device = null;
         queue = null;
@@ -939,7 +971,7 @@ function uninitialize()
 
         buffer_hostUniform = null;
 
-        bindGroup_graphics = null;
+        bindGroup_ubo = null;
         bindGroup_compute = null;
 
         position_data = null;

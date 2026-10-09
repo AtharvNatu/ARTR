@@ -94,7 +94,7 @@ async function main()
     console.log("---------------------------------------");
 
     //* Step - 4 : Listener To Handle Lost Devices
-    document.addEventListener("uncapturederror", onUncapturedError);
+    device.addEventListener("uncapturederror", onUncapturedError);
     device.lost.then(onDeviceLost);
 
     // Initialize
@@ -118,6 +118,14 @@ function onDeviceLost(info)
 {
     // Code
     console.warn("WebGPU Device Lost : ", info.reason, ", Message : ", info.message);
+
+    if (animationFrameId != null)
+    {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    device = null;
     queue = null;
 }
 
@@ -138,20 +146,20 @@ function toggleFullScreen()
             canvas.mozRequestFullScreen();
         else if (canvas.webkitRequestFullscreen)
             canvas.webkitRequestFullscreen();
-        else if (canvas.msRequestFullscreen)  
-            canvas.msRequestFullScreen();
+        else if (canvas.msRequestFullscreen)
+            canvas.msRequestFullscreen();
     }
     else
     {
         if (document.exitFullscreen)
             document.exitFullscreen();
-        else if (document.mozExitFullScreen)
+        else if (document.mozExitFullscreen)
             document.mozExitFullscreen();
         else if (document.webkitExitFullscreen)
             document.webkitExitFullscreen();
         else if (document.msExitFullscreen)  
             document.msExitFullscreen();
-    }                     
+    }                    
 }
 
 function onFullScreenChange()
