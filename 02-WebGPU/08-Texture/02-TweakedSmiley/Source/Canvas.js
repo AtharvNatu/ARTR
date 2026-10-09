@@ -932,8 +932,6 @@ function display()
     hostUniformData.viewMatrix = mat4.create();
     hostUniformData.projectionMatrix = perspectiveProjectionMatrix;
 
-    updateTexcoords();
-
     //! Update Uniform Buffer
 
     // MVP Matrices         : 64 + 64 + 64       =  192
@@ -1052,22 +1050,27 @@ function keyDown(event)
 
         case "1":
             keyPressed = 1;
+            updateTexcoords();
         break;
 
         case "2":
             keyPressed = 2;
+            updateTexcoords();
         break;
 
         case "3":
             keyPressed = 3;
+            updateTexcoords();
         break;
 
         case "4":
             keyPressed = 4;
+            updateTexcoords();
         break;
 
         default:
             keyPressed = 0;
+            updateTexcoords();
         break;
             
     }

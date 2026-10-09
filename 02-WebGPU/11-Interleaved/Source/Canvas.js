@@ -43,15 +43,12 @@ const hostUniformData =
     materialAmbient: new Float32Array([0.0, 0.0, 0.0, 1.0]),
     materialDiffuse: new Float32Array([1.0, 1.0, 1.0, 1.0]),
     materialSpecular: new Float32Array([1.0, 1.0, 1.0, 1.0]),
-    materialShininess: new Float32Array([128.0, 0.0, 0.0, 0.0]),
-
-    lightEnabled: new Uint32Array([0, 0, 0, 0]),
+    materialShininess: new Float32Array([128.0, 0.0, 0.0, 0.0])
 };
 
 // MVP Matrices         : 64 + 64 + 64       =  192 +
 // Light Vectors        : 16 + 16 + 16 + 16  =  64  +
-// Material Vectors     : 16 + 16 + 16 + 16  =  64  +
-// Light Enabled Vector : 16                 =  16  =   336
+// Material Vectors     : 16 + 16 + 16 + 16  =  64  =   320
 const hostUniformBufferSize = new ArrayBuffer(
     Float32Array.BYTES_PER_ELEMENT * 16 +   // Model Matrix
     Float32Array.BYTES_PER_ELEMENT * 16 +   // View Matrix
@@ -63,8 +60,7 @@ const hostUniformBufferSize = new ArrayBuffer(
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Ambient
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Diffuse
     Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Specular
-    Float32Array.BYTES_PER_ELEMENT * 4  +   // Material Shininess
-    Float32Array.BYTES_PER_ELEMENT * 4      // Light Enabled
+    Float32Array.BYTES_PER_ELEMENT * 4      // Material Shininess
 ).byteLength;
 
 //* Animation Related
@@ -1030,14 +1026,6 @@ function display()
         Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
         Float32Array.BYTES_PER_ELEMENT * 4 * 7, 
         hostUniformData.materialShininess
-    );
-
-    // Light Enabled Vector : 16
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 8,  
-        hostUniformData.lightEnabled
     );
 
     //* Step - 13 : Begin The Render Pass

@@ -10,7 +10,7 @@
 
 4) `initialize()` Changes
 
-    1) Write vertex shader source code as string after canvas configuration
+    1) Write vertex shader source code after canvas configuration
 
     2) Create vertex shader module:
 
@@ -73,7 +73,7 @@
                 1) Color Target State
                 2) Create actual fragment shader state
 
-            4) Primitve State
+            4) Primitive State
 
             5) Create a PSO / Render Pipeline Descriptor
             
@@ -109,6 +109,6 @@
 
     5) End the render pass
 
-6) `uninitialize()` Changes
+7) `uninitialize()` Changes
 
     1) Destroy the newly added global variables in `device` destruction block

@@ -64,7 +64,6 @@ const hostUniformBufferSize = new ArrayBuffer(
 
 var bLight = false;
 var chosenShader = 'v';
-var bUseFragmentLighting = false;
 
 //* Animation Related
 var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome

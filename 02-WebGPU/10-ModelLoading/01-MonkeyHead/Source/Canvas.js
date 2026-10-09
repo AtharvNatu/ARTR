@@ -954,7 +954,13 @@ function uninitialize()
         index_buffer = null;
         vertex_buffer = null;
         objMesh = null;
-        texture_wood = null;
+        
+        if (texture_wood)
+        {
+            texture_wood.destroy();
+            texture_wood = null;
+        }
+        
         sampler_wood = null;
         bindGroup_texture_sampler = null;
     }

@@ -171,6 +171,7 @@ function buildGPUMesh(_obj)
                 const t = texcoordIndex * 2;
                 u = _obj.texcoords[t + 0];
                 v = _obj.texcoords[t + 1];
+                v = 1 - v;
             }
 
             // Normals

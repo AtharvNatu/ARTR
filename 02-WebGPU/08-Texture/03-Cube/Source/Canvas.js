@@ -391,7 +391,7 @@ async function initialize()
         1.0,  0.0,   // Bottom Left
     ]);
 
-    //! Common Bind Group Layout For Pyramid and Cube
+    //! Bind Group Layout
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
 
     //! Cube - Position Buffer, Color Buffer, Uniform Buffer, Bind Group
