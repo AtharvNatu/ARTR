@@ -1,3 +1,5 @@
+const { mat4, mat3 } = glMatrix;
+
 //* Global Variables
 var canvas = null;
 var bFullscreen = false;
@@ -139,6 +141,13 @@ function onDeviceLost(info)
     // Code
     console.warn("WebGPU Device Lost : ", info.reason, ", Message : ", info.message);
 
+    if (animationFrameId != null)
+    {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    device = null;
     queue = null;
 
     buffer_position_pyramid = null;
@@ -437,6 +446,13 @@ async function initialize()
 
     //! Common Bind Group Layout For Pyramid and Cube
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
+    if (bindGroupLayout_mvpUniform == null)
+    {
+        console.log("Failed To Create Bind Group Layout For MVP Uniform !!!");
+        throw Error("Failed To Create Bind Group Layout For MVP Uniform !!!");
+    }
+    else
+        console.log("Bind Group Layout For MVP Uniform Successfully Created");
 
     //! Pyramid - Position Buffer, Color Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
@@ -462,6 +478,13 @@ async function initialize()
     
     //* Bind Group For MVP Uniform
     bindGroup_mvpUniform_pyramid = createBindGroup(buffer_mvpUniform_pyramid, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
+    if (bindGroup_mvpUniform_pyramid == null)
+    {
+        console.log("Failed To Create Bind Group For MVP Uniform For Pyramid !!!");
+        throw Error("Failed To Create Bind Group For MVP Uniform For Pyramid !!!");
+    }
+    else
+        console.log("Bind Group For MVP Uniform For Pyramid Successfully Created");
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //! Cube - Position Buffer, Uniform Buffer, Bind Group
@@ -487,6 +510,13 @@ async function initialize()
     
     //* Bind Group For MVP Uniform
     bindGroup_mvpUniform_cube = createBindGroup(buffer_mvpUniform_cube, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
+    if (bindGroup_mvpUniform_cube == null)
+    {
+        console.log("Failed To Create Bind Group For MVP Uniform For Cube !!!");
+        throw Error("Failed To Create Bind Group For MVP Uniform For Cube !!!");
+    }
+    else
+        console.log("Bind Group For MVP Uniform For Cube Successfully Created");
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     
@@ -624,6 +654,9 @@ async function loadShader(path)
 {
     // Code
     const response = await fetch(path);
+    if (!response.ok)
+       throw Error(`Failed To Load Shader ${path} : ${response.status}`);
+
     return await response.text();
 }
 
@@ -651,7 +684,7 @@ function createVertexBuffer(_data, _size, _length, _bufferUsage)
     return buffer;
 }
 
-function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformType)
+function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferType)
 {
     // Code
 
@@ -662,7 +695,7 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformTy
         visibility: _shaderStageVisibility,
         buffer: 
         {
-            type: _uniformType
+            type: _bufferType
         }
     };
 
@@ -676,16 +709,7 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformTy
     };
 
     //* Step - 1C: Bind Group Layout
-    const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
-    if (bindGroupLayout == null)
-    {
-        console.log("Failed To Create Bind Group Layout !!!");
-        throw Error("Failed To Create Bind Group Layout !!!");
-    }
-    else
-        console.log("Bind Group Layout Successfully Created");
-
-    return bindGroupLayout;
+    return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
 function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
@@ -739,16 +763,7 @@ function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, 
     };
 
     //* Step - 1D: Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group !!!");
-        throw Error("Failed To Create Bind Group !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created");
-
-    return bindGroup;
+    return device.createBindGroup(bindGroupDescriptor);
 }
 
 function resize()

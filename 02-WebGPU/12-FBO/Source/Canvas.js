@@ -1,3 +1,5 @@
+const { mat4, mat3 } = glMatrix;
+
 //* Global Variables
 var canvas = null;
 var bFullscreen = false;
@@ -178,6 +180,13 @@ function onDeviceLost(info)
     // Code
     console.warn("WebGPU Device Lost : ", info.reason, ", Message : ", info.message);
 
+    if (animationFrameId != null)
+    {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    device = null;
     queue = null;
 
     // Teapot Related
@@ -711,7 +720,22 @@ async function initialize()
 
     //! Bind Group Layouts
     const bindGroupLayout_uniform_teapot = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform");
+    if (bindGroupLayout_uniform_teapot == null)
+    {
+        console.log("Failed To Create Bind Group Layout For Teapot Uniform !!!");
+        throw Error("Failed To Create Bind Group Layout For Teapot Uniform !!!");
+    }
+    else
+        console.log("Bind Group Layout For Teapot Uniform Successfully Created");
+
     const bindGroupLayout_uniform_cube = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
+    if (bindGroupLayout_uniform_cube == null)
+    {
+        console.log("Failed To Create Bind Group Layout For Cube Uniform !!!");
+        throw Error("Failed To Create Bind Group Layout For Cube Uniform !!!");
+    }
+    else
+        console.log("Bind Group Layout For Cube Uniform Successfully Created");
     
     //* Teapot and Cube will share the same bind group layout as they use the same texture format
     const bindGroupLayout_texture_sampler = createBindGroupLayout_texture_sampler(
@@ -727,7 +751,16 @@ async function initialize()
 
     //! Bind Groups
     bindGroup_uniform_teapot = createBindGroup(buffer_uniform_teapot, 0, teapotUniformBufferSize, 0, bindGroupLayout_uniform_teapot);
+    if (bindGroup_uniform_teapot == null)
+    {
+        console.log("Failed To Create Bind Group For Teapot Uniform !!!");
+        throw Error("Failed To Create Bind Group For Teapot Uniform !!!");
+    }
+    else
+        console.log("Bind Group For Teapot Uniform Successfully Created");
+
     bindGroup_uniform_cube = createBindGroup(buffer_uniform_cube, 0, cubeUniformBufferSize, 0, bindGroupLayout_uniform_cube);
+    
     bindGroup_marble_texture_sampler = createBindGroup_texture_sampler(0, texture_marble, 1, sampler_marble, bindGroupLayout_texture_sampler);
     bindGroup_teapot_texture_sampler = createBindGroup_texture_sampler(0, texture_teapot_color, 1, sampler_teapot, bindGroupLayout_texture_sampler);
 
@@ -880,6 +913,9 @@ async function loadShader(path)
 {
     // Code
     const response = await fetch(path);
+    if (!response.ok)
+       throw Error(`Failed To Load Shader ${path} : ${response.status}`);
+
     return await response.text();
 }
 
@@ -919,7 +955,7 @@ function createIndexBuffer(_data)
     return buffer;
 }
 
-function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformType)
+function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferType)
 {
     // Code
 
@@ -930,7 +966,7 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformTy
         visibility: _shaderStageVisibility,
         buffer: 
         {
-            type: _uniformType
+            type: _bufferType
         }
     };
 
@@ -944,16 +980,7 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformTy
     };
 
     //* Step - 1C: Bind Group Layout
-    const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
-    if (bindGroupLayout == null)
-    {
-        console.log("Failed To Create Bind Group Layout !!!");
-        throw Error("Failed To Create Bind Group Layout !!!");
-    }
-    else
-        console.log("Bind Group Layout Successfully Created");
-
-    return bindGroupLayout;
+    return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
 function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
@@ -998,16 +1025,7 @@ function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, 
     };
 
     //* Step - 1D: Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group !!!");
-        throw Error("Failed To Create Bind Group !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created");
-
-    return bindGroup;
+    return device.createBindGroup(bindGroupDescriptor);
 }
 
 

@@ -126,7 +126,7 @@ function Mesh()
         return(numVertices);
     }
     
-    normalizeVector=function(v)
+    const normalizeVector=function(v)
     {
         // code
         

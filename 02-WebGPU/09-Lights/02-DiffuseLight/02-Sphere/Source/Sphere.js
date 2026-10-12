@@ -2,8 +2,8 @@ const VDG_PI = 3.14159265358979323846;
 function makeSphere(sphereMesh, fRadius, iSlices, iStacks)
 {
     // code
-    drho = parseFloat(VDG_PI) / parseFloat(iStacks);
-    dtheta = 2.0 * parseFloat(VDG_PI) / parseFloat(iSlices);
+    let drho = parseFloat(VDG_PI) / parseFloat(iStacks);
+    let dtheta = 2.0 * parseFloat(VDG_PI) / parseFloat(iSlices);
     ds = 1.0 / parseFloat(iSlices);
     dt = 1.0 / parseFloat(iStacks);
     t = 1.0;

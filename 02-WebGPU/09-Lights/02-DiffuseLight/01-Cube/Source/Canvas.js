@@ -1,3 +1,5 @@
+const { mat4, mat3 } = glMatrix;
+
 //* Global Variables
 var canvas = null;
 var bFullscreen = false;
@@ -159,7 +161,15 @@ function onDeviceLost(info)
     // Code
     console.warn("WebGPU Device Lost : ", info.reason, ", Message : ", info.message);
 
+    if (animationFrameId != null)
+    {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    device = null;
     queue = null;
+    
     render_pipeline = null;
     buffer_hostUniform = null;
     bindGroup_hostUniform = null;
@@ -430,9 +440,23 @@ async function initialize()
     buffer_hostUniform = createUniformBuffer(hostUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
+    if (bindGroupLayout_mvpUniform == null)
+    {
+        console.log("Failed To Create Bind Group Layout For MVP Uniform !!!");
+        throw Error("Failed To Create Bind Group Layout For MVP Uniform !!!");
+    }
+    else
+        console.log("Bind Group Layout For MVP Uniform Successfully Created");
     
     //* Bind Group For MVP Uniform
     bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout_mvpUniform);
+    if (bindGroup_hostUniform == null)
+    {
+        console.log("Failed To Create Bind Group For Host Uniform !!!");
+        throw Error("Failed To Create Bind Group For Host Uniform !!!");
+    }
+    else
+        console.log("Bind Group For Host Uniform Successfully Created");
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Step - 2: Pipeline Layout for MVP Uniform
@@ -567,6 +591,9 @@ async function loadShader(path)
 {
     // Code
     const response = await fetch(path);
+    if (!response.ok)
+       throw Error(`Failed To Load Shader ${path} : ${response.status}`);
+
     return await response.text();
 }
 
@@ -588,7 +615,7 @@ function createVertexBuffer(_data)
     return buffer;
 }
 
-function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformType)
+function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferType)
 {
     // Code
 
@@ -599,7 +626,7 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformTy
         visibility: _shaderStageVisibility,
         buffer: 
         {
-            type: _uniformType
+            type: _bufferType
         }
     };
 
@@ -613,16 +640,7 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformTy
     };
 
     //* Step - 1C: Bind Group Layout
-    const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
-    if (bindGroupLayout == null)
-    {
-        console.log("Failed To Create Bind Group Layout !!!");
-        throw Error("Failed To Create Bind Group Layout !!!");
-    }
-    else
-        console.log("Bind Group Layout Successfully Created");
-
-    return bindGroupLayout;
+    return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
 function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
@@ -676,16 +694,7 @@ function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, 
     };
 
     //* Step - 1D: Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group !!!");
-        throw Error("Failed To Create Bind Group !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created");
-
-    return bindGroup;
+    return device.createBindGroup(bindGroupDescriptor);
 }
 
 function resize()

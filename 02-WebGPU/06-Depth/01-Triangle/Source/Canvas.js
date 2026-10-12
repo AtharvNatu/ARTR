@@ -1,3 +1,5 @@
+const { mat4, mat3 } = glMatrix;
+
 //* Global Variables
 var canvas = null;
 var bFullscreen = false;
@@ -125,6 +127,13 @@ function onDeviceLost(info)
     // Code
     console.warn("WebGPU Device Lost : ", info.reason, ", Message : ", info.message);
 
+    if (animationFrameId != null)
+    {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    device = null;
     queue = null;
 
     buffer_position = null;
@@ -491,6 +500,9 @@ async function loadShader(path)
 {
     // Code
     const response = await fetch(path);
+    if (!response.ok)
+       throw Error(`Failed To Load Shader ${path} : ${response.status}`);
+
     return await response.text();
 }
 

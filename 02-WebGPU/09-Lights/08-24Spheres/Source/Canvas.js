@@ -212,7 +212,15 @@ function onDeviceLost(info)
     // Code
     console.warn("WebGPU Device Lost : ", info.reason, ", Message : ", info.message);
 
+    if (animationFrameId != null)
+    {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    device = null;
     queue = null;
+    
     render_pipeline = null;
     buffer_hostUniform = null;
     bindGroup_hostUniform = null;
@@ -598,6 +606,9 @@ async function loadShader(path)
 {
     // Code
     const response = await fetch(path);
+    if (!response.ok)
+       throw Error(`Failed To Load Shader ${path} : ${response.status}`);
+
     return await response.text();
 }
 

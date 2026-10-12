@@ -1,6 +1,11 @@
 async function loadMesh(_objFilePath)
 {
-    const modelObj = await fetch(_objFilePath).then(response => response.text());
+    const response = await fetch(_objFilePath);
+    if (!response.ok)
+       throw Error(`Failed To Load Mesh ${_objFilePath} : ${response.status}`);
+
+    const modelObj = await response.text();
+
     const parsedObj = parseObj(modelObj);
     const gpuMesh = buildGPUMesh(parsedObj);
 

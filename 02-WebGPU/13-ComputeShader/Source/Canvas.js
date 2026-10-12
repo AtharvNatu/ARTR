@@ -1,3 +1,5 @@
+const { mat4, mat3 } = glMatrix;
+
 //* Global Variables
 var canvas = null;
 var bFullscreen = false;
@@ -607,10 +609,10 @@ async function loadShader(path)
 {
     // Code
     const response = await fetch(path);
-    if (response.ok)
-        return await response.text();
-    else
-        return null;
+    if (!response.ok)
+       throw Error(`Failed To Load Shader ${path} : ${response.status}`);
+
+    return await response.text();
 }
 
 function createBuffer(_dataSize, _usageFlags)
@@ -622,11 +624,7 @@ function createBuffer(_dataSize, _usageFlags)
         usage: _usageFlags
     };
 
-    const buffer = device.createBuffer(bufferDescriptor);
-    if (buffer == null)
-        return null;
-
-    return buffer;
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferType)
