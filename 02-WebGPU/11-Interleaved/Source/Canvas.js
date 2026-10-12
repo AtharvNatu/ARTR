@@ -66,21 +66,9 @@ const hostUniformBufferSize = new ArrayBuffer(
 ).byteLength;
 
 //* Animation Related
-var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome
-                            window.mozRequestAnimationFrame ||             // Mozilla
-                            window.webkitRequestAnimationFrame ||          // Safari
-                            window.oRequestAnimationFrame ||               // Opera
-                            window.msRequestAnimationFrame;                // Edge
+var requestAnimationFrame = window.requestAnimationFrame;
 
-var cancelAnimationFrame = window.cancelAnimationFrame ||                 // Chrome
-                           window.webkitCancelRequestAnimationFrame ||    // Safari  
-                           window.webkitCancelAnimationFrame ||           // Safari
-                           window.mozCancelRequestAnimationFrame ||       // Mozilla
-                           window.mozCancelAnimationFrame ||              // Mozilla
-                           window.oCancelRequestAnimationFrame ||         // Opera
-                           window.oCancelAnimationFrame ||                // Opera
-                           window.msRequestCancelAnimationFrame ||        // Edge
-                           window.msCancelAnimationFrame;                 // Edge
+var cancelAnimationFrame = window.cancelAnimationFrame;
 
 async function main()
 {
@@ -393,7 +381,7 @@ async function initialize()
     else
         console.log("Bind Group Layout For Host Uniform Successfully Created");
 
-    //! Cube - PCNT Buffer, Color Buffer, Uniform Buffer, Bind Group
+    //! Cube - PCNT Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
     buffer_pcnt = createVertexBuffer(vertex_pcnt_cube);
     if (buffer_pcnt == null)

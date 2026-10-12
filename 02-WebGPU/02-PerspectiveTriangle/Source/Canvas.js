@@ -20,21 +20,9 @@ let bindGroup_mvpUniform = null;
 let perspectiveProjectionMatrix = null;
 
 //* Animation Related
-var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome
-                            window.mozRequestAnimationFrame ||             // Mozilla
-                            window.webkitRequestAnimationFrame ||          // Safari
-                            window.oRequestAnimationFrame ||               // Opera
-                            window.msRequestAnimationFrame;                // Edge
+var requestAnimationFrame = window.requestAnimationFrame;
 
-var cancelAnimationFrame = window.cancelAnimationFrame ||                 // Chrome
-                           window.webkitCancelRequestAnimationFrame ||    // Safari  
-                           window.webkitCancelAnimationFrame ||           // Safari
-                           window.mozCancelRequestAnimationFrame ||       // Mozilla
-                           window.mozCancelAnimationFrame ||              // Mozilla
-                           window.oCancelRequestAnimationFrame ||         // Opera
-                           window.oCancelAnimationFrame ||                // Opera
-                           window.msRequestCancelAnimationFrame ||        // Edge
-                           window.msCancelAnimationFrame;                 // Edge
+var cancelAnimationFrame = window.cancelAnimationFrame;
 
 async function main()
 {

@@ -37,21 +37,8 @@ const checkerboardHeight = 64;
 var checkerboard = new Uint8ClampedArray(checkerboardWidth * checkerboardHeight * 4);
 
 //* Animation Related
-var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome
-                            window.mozRequestAnimationFrame ||             // Mozilla
-                            window.webkitRequestAnimationFrame ||          // Safari
-                            window.oRequestAnimationFrame ||               // Opera
-                            window.msRequestAnimationFrame;                // Edge
-
-var cancelAnimationFrame = window.cancelAnimationFrame ||                 // Chrome
-                           window.webkitCancelRequestAnimationFrame ||    // Safari  
-                           window.webkitCancelAnimationFrame ||           // Safari
-                           window.mozCancelRequestAnimationFrame ||       // Mozilla
-                           window.mozCancelAnimationFrame ||              // Mozilla
-                           window.oCancelRequestAnimationFrame ||         // Opera
-                           window.oCancelAnimationFrame ||                // Opera
-                           window.msRequestCancelAnimationFrame ||        // Edge
-                           window.msCancelAnimationFrame;                 // Edge
+var requestAnimationFrame = window.requestAnimationFrame;
+var cancelAnimationFrame = window.cancelAnimationFrame;
 
 async function main()
 {
@@ -321,19 +308,23 @@ async function initialize()
 
     //! Rectangle - Position Buffer, Texcoord Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
-    buffer_position = createVertexBuffer(
-        vertex_position_rectangle,
-        vertex_position_rectangle.byteLength, 
-        vertex_position_rectangle.length, 
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_position = createVertexBuffer(vertex_position_rectangle);
+    if (buffer_position == null)
+    {
+        console.log("Failed To Create Vertex Buffer For Position !!!");
+        throw Error("Failed To Create Vertex Buffer For Position !!!");
+    }
+    else
+        console.log("Vertex Buffer For Position Successfully Created");
 
-    buffer_texcoord = createVertexBuffer(
-        vertex_texcoords_rectangle, 
-        vertex_texcoords_rectangle.byteLength, 
-        vertex_texcoords_rectangle.length, 
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_texcoord = createVertexBuffer(vertex_texcoords_rectangle);
+    if (buffer_texcoord == null)
+    {
+        console.log("Failed To Create Vertex Buffer For Texcoord !!!");
+        throw Error("Failed To Create Vertex Buffer For Texcoord !!!");
+    }
+    else
+        console.log("Vertex Buffer For Texcoord Successfully Created");
 
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
     if (bindGroupLayout_mvpUniform == null)
@@ -431,7 +422,7 @@ async function initialize()
         console.log("Bind Group Successfully Created For Texture and Sampler");
     //! ------------------------------------------------------------------------------------------------------------------
 
-    //* Step - 2: Pipeline Layout for MVP Uniform
+    //* Step - 2: Pipeline Layout for MVP Uniform, Texture Sampler
 
     //* Step - 2A: Pipeline Layout Descriptor
     const pipelineLayoutDescriptor = 

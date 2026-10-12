@@ -81,16 +81,16 @@ fn main(@location(0) positionIn:vec3<f32>, @location(1) normalIn:vec3<f32>) -> V
 
     if (ubo.lightEnabled.x == 1u)
     {
-        let eyeCooordinates:vec4<f32> = ubo.viewMatrix * ubo.modelMatrix * vec4<f32>(positionIn, 1.0);
+        let eyeCoordinates:vec4<f32> = ubo.viewMatrix * ubo.modelMatrix * vec4<f32>(positionIn, 1.0);
         let modelViewMatrix:mat3x3<f32> = mat3FromMat4(ubo.viewMatrix * ubo.modelMatrix);
         let normalMatrix:mat3x3<f32> = transpose(inverse3x3(modelViewMatrix));
 
         output.transformedNormals = normalMatrix * normalIn;
-        output.viewerVector = -eyeCooordinates.xyz;
+        output.viewerVector = -eyeCoordinates.xyz;
 
-        output.lightDirection0 = ubo.lightPosition[0].xyz - eyeCooordinates.xyz;
-        output.lightDirection1 = ubo.lightPosition[1].xyz - eyeCooordinates.xyz;
-        output.lightDirection2 = ubo.lightPosition[2].xyz - eyeCooordinates.xyz;
+        output.lightDirection0 = ubo.lightPosition[0].xyz - eyeCoordinates.xyz;
+        output.lightDirection1 = ubo.lightPosition[1].xyz - eyeCoordinates.xyz;
+        output.lightDirection2 = ubo.lightPosition[2].xyz - eyeCoordinates.xyz;
     }
 
     return output;

@@ -79,13 +79,13 @@ fn main(@location(0) positionIn:vec3<f32>,
     
     if (ubo.lightEnabled.x == 1u)
     {
-        let eyeCooordinates:vec4<f32> = ubo.viewMatrix * ubo.modelMatrix * vec4<f32>(positionIn, 1.0);
+        let eyeCoordinates:vec4<f32> = ubo.viewMatrix * ubo.modelMatrix * vec4<f32>(positionIn, 1.0);
         let modelViewMatrix:mat3x3<f32> = mat3FromMat4(ubo.viewMatrix * ubo.modelMatrix);
         let normalMatrix:mat3x3<f32> = transpose(inverse3x3(modelViewMatrix));
 
         output.transformedNormals = normalMatrix * normalIn;
-        output.lightDirection = ubo.lightPosition.xyz - eyeCooordinates.xyz;
-        output.viewerVector = -eyeCooordinates.xyz;
+        output.lightDirection = ubo.lightPosition.xyz - eyeCoordinates.xyz;
+        output.viewerVector = -eyeCoordinates.xyz;
     }
 
     output.position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4<f32>(positionIn, 1.0);

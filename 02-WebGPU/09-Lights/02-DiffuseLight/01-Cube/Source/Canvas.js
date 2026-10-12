@@ -55,21 +55,9 @@ var angle = 0.0;
 const animationSpeed = 0.5;
 
 //* Animation Related
-var requestAnimationFrame = window.requestAnimationFrame ||                // Chrome
-                            window.mozRequestAnimationFrame ||             // Mozilla
-                            window.webkitRequestAnimationFrame ||          // Safari
-                            window.oRequestAnimationFrame ||               // Opera
-                            window.msRequestAnimationFrame;                // Edge
+var requestAnimationFrame = window.requestAnimationFrame;
 
-var cancelAnimationFrame = window.cancelAnimationFrame ||                 // Chrome
-                           window.webkitCancelRequestAnimationFrame ||    // Safari  
-                           window.webkitCancelAnimationFrame ||           // Safari
-                           window.mozCancelRequestAnimationFrame ||       // Mozilla
-                           window.mozCancelAnimationFrame ||              // Mozilla
-                           window.oCancelRequestAnimationFrame ||         // Opera
-                           window.oCancelAnimationFrame ||                // Opera
-                           window.msRequestCancelAnimationFrame ||        // Edge
-                           window.msCancelAnimationFrame;                 // Edge
+var cancelAnimationFrame = window.cancelAnimationFrame;
 
 async function main()
 {
@@ -446,17 +434,17 @@ async function initialize()
     else
         console.log("Host Uniform Buffer Successfully Created");
 
-    const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
-    if (bindGroupLayout_mvpUniform == null)
+    const bindGroupLayout_hostUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
+    if (bindGroupLayout_hostUniform == null)
     {
-        console.log("Failed To Create Bind Group Layout For MVP Uniform !!!");
-        throw Error("Failed To Create Bind Group Layout For MVP Uniform !!!");
+        console.log("Failed To Create Bind Group Layout For Host Uniform !!!");
+        throw Error("Failed To Create Bind Group Layout For Host Uniform !!!");
     }
     else
-        console.log("Bind Group Layout For MVP Uniform Successfully Created");
+        console.log("Bind Group Layout For Host Uniform Successfully Created");
     
-    //* Bind Group For MVP Uniform
-    bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout_mvpUniform);
+    //* Bind Group For Host Uniform
+    bindGroup_hostUniform = createBindGroup(buffer_hostUniform, 0, hostUniformBufferSize, 0, bindGroupLayout_hostUniform);
     if (bindGroup_hostUniform == null)
     {
         console.log("Failed To Create Bind Group For Host Uniform !!!");
@@ -466,14 +454,14 @@ async function initialize()
         console.log("Bind Group For Host Uniform Successfully Created");
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
-    //* Step - 2: Pipeline Layout for MVP Uniform
+    //* Step - 2: Pipeline Layout for Host Uniform
 
     //* Step - 2A: Pipeline Layout Descriptor
     const pipelineLayoutDescriptor = 
     {
         bindGroupLayouts:
         [
-            bindGroupLayout_mvpUniform
+            bindGroupLayout_hostUniform
         ]
     };
 
@@ -481,11 +469,11 @@ async function initialize()
     const pipelineLayout = device.createPipelineLayout(pipelineLayoutDescriptor);
     if (pipelineLayout == null)
     {
-        console.log("Failed To Create Pipeline Layout For MVP Uniform !!!");
-        throw Error("Failed To Create Pipeline Layout For MVP Uniform !!!");
+        console.log("Failed To Create Pipeline Layout For Host Uniform !!!");
+        throw Error("Failed To Create Pipeline Layout For Host Uniform !!!");
     }
     else
-        console.log("Pipeline Layout For MVP Uniform Successfully Created");
+        console.log("Pipeline Layout For Host Uniform Successfully Created");
 
     //! Render Pipeline
 

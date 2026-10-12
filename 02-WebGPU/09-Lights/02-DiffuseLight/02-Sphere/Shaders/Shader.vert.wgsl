@@ -62,11 +62,11 @@ fn main(@location(0) positionIn : vec3<f32>, @location(1) normalIn : vec3<f32>) 
 
     if (ubo.lightEnabled.x == 1u)
     {
-        let eyeCooordinates:vec4<f32> = ubo.viewMatrix * ubo.modelMatrix * vec4<f32>(positionIn, 1.0);
+        let eyeCoordinates:vec4<f32> = ubo.viewMatrix * ubo.modelMatrix * vec4<f32>(positionIn, 1.0);
         let modelViewMatrix:mat3x3<f32> = mat3FromMat4(ubo.viewMatrix * ubo.modelMatrix);
         let normalMatrix:mat3x3<f32> = transpose(inverse3x3(modelViewMatrix));
         let transformedNormals:vec3<f32> = normalize(normalMatrix * normalIn);
-        let lightDirection:vec3<f32> = normalize(ubo.lightPosition.xyz - eyeCooordinates.xyz);
+        let lightDirection:vec3<f32> = normalize(ubo.lightPosition.xyz - eyeCoordinates.xyz);
 
         output.diffused_light_color =  ubo.lightDiffuse.xyz * ubo.materialDiffuse.xyz * max(dot(lightDirection, transformedNormals), 0.0);
     }
