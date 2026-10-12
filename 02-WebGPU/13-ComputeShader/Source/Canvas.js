@@ -378,10 +378,7 @@ async function initialize()
     const meshBufferSize = MAX_MESH_SIZE * MAX_MESH_SIZE * 4 * 4;
 
     //* CPU Buffer
-    buffer_position_cpu = createBuffer(
-        meshBufferSize,
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_position_cpu = createVertexBuffer(meshBufferSize);
     if (buffer_position_cpu == null)
     {
         console.log("Failed To Create Vertex Buffer For CPU !!!");
@@ -391,10 +388,7 @@ async function initialize()
         console.log("Vertex Buffer For CPU Successfully Created");
 
     //* GPU Buffer
-    buffer_position_gpu = createBuffer(
-        meshBufferSize,
-        GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_position_gpu = createStorageVertexBuffer(meshBufferSize);
     if (buffer_position_gpu == null)
     {
         console.log("Failed To Create Storage | Vertex Buffer For GPU !!!");
@@ -423,7 +417,7 @@ async function initialize()
         console.log("Bind Group Layout For Compute Successfully Created");
 
     //* Uniform Buffer
-    buffer_hostUniform = createUniformBuffer(uniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_hostUniform = createUniformBuffer(uniformBufferSize);
     if (buffer_hostUniform == null)
     {
         console.log("Failed To Create Uniform Buffer !!!");
@@ -615,13 +609,49 @@ async function loadShader(path)
     return await response.text();
 }
 
-function createBuffer(_dataSize, _usageFlags)
+function createVertexBuffer(_data)
 {
     // Code
     const bufferDescriptor = 
     {
-        size: _dataSize,
-        usage: _usageFlags
+        size: _data.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    };
+
+    const buffer = device.createBuffer(bufferDescriptor);
+    if (buffer == null)
+        return null;
+
+    queue.writeBuffer(buffer, 0, _data);
+
+    return buffer;
+}
+
+function createStorageVertexBuffer(_data)
+{
+    // Code
+    const bufferDescriptor = 
+    {
+        size: _data.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    };
+
+    const buffer = device.createBuffer(bufferDescriptor);
+    if (buffer == null)
+        return null;
+
+    queue.writeBuffer(buffer, 0, _data);
+
+    return buffer;
+}
+
+function createUniformBuffer(_uniformBufferSize)
+{
+    // Code
+    const bufferDescriptor = 
+    {
+        size: _uniformBufferSize,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     };
 
     return device.createBuffer(bufferDescriptor);
@@ -653,18 +683,6 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferTyp
 
     //* Step - 1C: Bind Group Layout
     return device.createBindGroupLayout(bindGroupLayoutDescriptor);
-}
-
-function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
-{
-    // Code
-    const bufferDescriptor = 
-    {
-        size: _uniformBufferSize,
-        usage: _uniformBufferUsage
-    };
-
-    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, _bindGroupLayout)
@@ -928,7 +946,7 @@ function uninitialize()
         animationFrameId = null;
     }
 
-    //* Unregister Everything Registered In main()
+    //* Unregister handlers
     window.removeEventListener("keydown", keyDown, false);
     window.removeEventListener("click", mousedown, false);
     window.removeEventListener("resize", resize, false);

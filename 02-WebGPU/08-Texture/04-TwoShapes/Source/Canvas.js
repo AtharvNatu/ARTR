@@ -346,7 +346,7 @@ async function initialize()
         1.0, 0.0,   // Back Left
         0.0, 0.0,   // Back Right
 
-        // Top Face
+        // Left Face
         0.5, 1.0,   // Left Top
         0.0, 0.0,   // Left Left
         1.0, 0.0,   // Left Right
@@ -478,19 +478,34 @@ async function initialize()
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_pyramid = createVertexBuffer(
-        vertex_position_pyramid,
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_position_pyramid = createVertexBuffer(vertex_position_pyramid, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    if (buffer_position_pyramid == null)
+    {
+        console.log("Failed To Create Vertex Buffer For Position For Pyramid !!!");
+        throw Error("Failed To Create Vertex Buffer For Position For Pyramid !!!");
+    }
+    else
+        console.log("Vertex Buffer For Position For Pyramid Successfully Created");
 
-    buffer_texcoord_pyramid = createVertexBuffer(
-        vertex_texcoord_pyramid, 
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_texcoord_pyramid = createVertexBuffer(vertex_texcoord_pyramid, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    if (buffer_texcoord_pyramid == null)
+    {
+        console.log("Failed To Create Vertex Buffer For Texcoords For Pyramid !!!");
+        throw Error("Failed To Create Vertex Buffer For Texcoords For Pyramid !!!");
+    }
+    else
+        console.log("Vertex Buffer For Texcoords For Pyramid Successfully Created");
 
     //* MVP Uniform Buffer
     const mvpUniformBufferSize = 4 * 16;
-    buffer_mvpUniform_pyramid = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform_pyramid = createUniformBuffer(mvpUniformBufferSize);
+    if (buffer_mvpUniform_pyramid == null)
+    {
+        console.log("Failed To Create MVP Uniform Buffer For Pyramid !!!");
+        throw Error("Failed To Create MVP Uniform Buffer For Pyramid !!!");
+    }
+    else
+        console.log("MVP Uniform Buffer For Pyramid Successfully Created");
     
     //* Bind Group For MVP Uniform
     bindGroup_mvpUniform_pyramid = createBindGroup(buffer_mvpUniform_pyramid, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
@@ -507,18 +522,33 @@ async function initialize()
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_cube = createVertexBuffer(
-        vertex_position_cube,
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_position_cube = createVertexBuffer(vertex_position_cube,GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    if (buffer_position_cube == null)
+    {
+        console.log("Failed To Create Vertex Buffer For Position For Cube !!!");
+        throw Error("Failed To Create Vertex Buffer For Position For Cube !!!");
+    }
+    else
+        console.log("Vertex Buffer For Position For Cube Successfully Created");
 
-    buffer_texcoord_cube = createVertexBuffer(
-        vertex_texcoord_cube,  
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_texcoord_cube = createVertexBuffer(vertex_texcoord_cube, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    if (buffer_texcoord_cube == null)
+    {
+        console.log("Failed To Create Vertex Buffer For Texcoords For Cube !!!");
+        throw Error("Failed To Create Vertex Buffer For Texcoords For Cube !!!");
+    }
+    else
+        console.log("Vertex Buffer For Texcoords For Cube Successfully Created");
 
     //* MVP Uniform Buffer
-    buffer_mvpUniform_cube = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform_cube = createUniformBuffer(mvpUniformBufferSize);
+    if (buffer_mvpUniform_cube == null)
+    {
+        console.log("Failed To Create MVP Uniform Buffer For Cube !!!");
+        throw Error("Failed To Create MVP Uniform Buffer For Cube !!!");
+    }
+    else
+        console.log("MVP Uniform Buffer For Cube Successfully Created");
     
     //* Bind Group For MVP Uniform
     bindGroup_mvpUniform_cube = createBindGroup(buffer_mvpUniform_cube, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
@@ -545,6 +575,13 @@ async function initialize()
         1,
         GPUShaderStage.FRAGMENT
     );
+    if (bindGroupLayout_texture_sampler == null)
+    {
+        console.log("Failed To Create Bind Group Layout For Texture and Sampler !!!");
+        throw Error("Failed To Create Bind Group Layout For Texture and Sampler !!!");
+    }
+    else
+        console.log("Bind Group Layout Successfully Created For Texture and Sampler");
 
     //* Texture Sampler Descriptor
     const samplerDescriptor = 
@@ -575,7 +612,14 @@ async function initialize()
 
     //* Texture-Sampler Bind Group
     bindGroup_texture_sampler_pyramid = createBindGroup_texture_sampler(0, texture_stone, 1, sampler_texture, bindGroupLayout_texture_sampler);
-    
+    if (bindGroup_texture_sampler_pyramid == null)
+    {
+        console.log("Failed To Create Bind Group For Texture and Sampler For Stone !!!");
+        throw Error("Failed To Create Bind Group For Texture and Sampler For Stone !!!");
+    }
+    else
+        console.log("Bind Group Successfully Created For Texture and Sampler For Stone");
+
     //! Kundali Texture
     texture_kundali = await loadTexture("../Assets/Vijay_Kundali.png");
     if (texture_kundali == null)
@@ -588,6 +632,14 @@ async function initialize()
    
     //* Texture-Sampler Bind Group
     bindGroup_texture_sampler_cube = createBindGroup_texture_sampler(0, texture_kundali, 1, sampler_texture, bindGroupLayout_texture_sampler);
+    if (bindGroup_texture_sampler_cube == null)
+    {
+        console.log("Failed To Create Bind Group For Texture and Sampler For Kundali !!!");
+        throw Error("Failed To Create Bind Group For Texture and Sampler For Kundali !!!");
+    }
+    else
+        console.log("Bind Group Successfully Created For Texture and Sampler For Kundali");
+    
     //! ------------------------------------------------------------------------------------------------------------------
 
     
@@ -784,25 +836,16 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferTyp
     return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
-function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
+function createUniformBuffer(_uniformBufferSize)
 {
     // Code
     const bufferDescriptor = 
     {
         size: _uniformBufferSize,
-        usage: _uniformBufferUsage
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     };
 
-    let buffer_uniform = device.createBuffer(bufferDescriptor);
-    if (buffer_uniform == null)
-    {
-        console.log("Failed To Create Uniform Buffer !!!");
-        throw Error("Failed To Create Uniform Buffer !!!");
-    }
-    else
-        console.log("Uniform Buffer Successfully Created");
-
-    return buffer_uniform;
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, _bindGroupLayout)
@@ -934,16 +977,7 @@ function createBindGroupLayout_texture_sampler(
     };
 
     //* Create Bind Group Layout
-    const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
-    if (bindGroupLayout == null)
-    {
-        console.log("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Layout Successfully Created For Texture and Sampler");
-
-    return bindGroupLayout;
+    return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
 function createBindGroup_texture_sampler(_textureBindingIndex, _textureId, _samplerBindingIndex, _samplerId, _bindGroupLayout)
@@ -976,16 +1010,7 @@ function createBindGroup_texture_sampler(_textureBindingIndex, _textureId, _samp
     };
 
     //* Create Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created For Texture and Sampler");
-
-    return bindGroup;
+    return device.createBindGroup(bindGroupDescriptor);
 }
 
 function resize()
@@ -1169,6 +1194,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {

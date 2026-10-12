@@ -330,7 +330,14 @@ async function initialize()
 
     //* MVP Uniform Buffer
     const mvpUniformBufferSize = 4 * 16;
-    buffer_mvpUniform_triangle = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform_triangle = createBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    if (buffer_mvpUniform_triangle == null)
+    {
+        console.log("Failed To Create MVP Uniform Buffer For Triangle !!!");
+        throw Error("Failed To Create MVP Uniform Buffer For Triangle !!!");
+    }
+    else
+        console.log("MVP Uniform Buffer Successfully Created For Triangle");
     
     //* Bind Group For MVP Uniform
     bindGroup_mvpUniform_triangle = createBindGroup(buffer_mvpUniform_triangle, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
@@ -367,7 +374,14 @@ async function initialize()
     console.log("Position Data Written To Vertex Position Buffer For Rectangle");
 
     //* MVP Uniform Buffer
-    buffer_mvpUniform_rectangle = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform_rectangle = createBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    if (buffer_mvpUniform_triangle == null)
+    {
+        console.log("Failed To Create MVP Uniform Buffer For Triangle !!!");
+        throw Error("Failed To Create MVP Uniform Buffer For Triangle !!!");
+    }
+    else
+        console.log("MVP Uniform Buffer Successfully Created For Triangle");
     
     //* Bind Group For MVP Uniform
     bindGroup_mvpUniform_rectangle = createBindGroup(buffer_mvpUniform_rectangle, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
@@ -491,6 +505,36 @@ async function loadShader(path)
     return await response.text();
 }
 
+function createVertexBuffer(_data)
+{
+    // Code
+    const bufferDescriptor = 
+    {
+        size: _data.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    };
+
+    const buffer = device.createBuffer(bufferDescriptor);
+    if (buffer == null)
+        return null;
+
+    queue.writeBuffer(buffer, 0, _data);
+
+    return buffer;
+}
+
+function createUniformBuffer(_uniformBufferSize)
+{
+    // Code
+    const bufferDescriptor = 
+    {
+        size: _uniformBufferSize,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    };
+
+    return device.createBuffer(bufferDescriptor);
+}
+
 function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferType)
 {
     // Code
@@ -517,27 +561,6 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferTyp
 
     //* Step - 1C: Bind Group Layout
     return device.createBindGroupLayout(bindGroupLayoutDescriptor);
-}
-
-function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
-{
-    // Code
-    const bufferDescriptor = 
-    {
-        size: _uniformBufferSize,
-        usage: _uniformBufferUsage
-    };
-
-    let buffer_uniform = device.createBuffer(bufferDescriptor);
-    if (buffer_uniform == null)
-    {
-        console.log("Failed To Create Uniform Buffer !!!");
-        throw Error("Failed To Create Uniform Buffer !!!");
-    }
-    else
-        console.log("Uniform Buffer Successfully Created");
-
-    return buffer_uniform;
 }
 
 function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, _bindGroupLayout)
@@ -690,6 +713,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     //* Unconfigure/Destroy Context
     if (context != null)

@@ -641,6 +641,13 @@ function uninitialize()
         animationFrameId = null;
     }
 
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
+
     if (depthTexture)
     {
         depthTexture.destroy();

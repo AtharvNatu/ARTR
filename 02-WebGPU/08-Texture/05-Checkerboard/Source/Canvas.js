@@ -157,7 +157,9 @@ function onDeviceLost(info)
 
     buffer_mvpUniform_straight = null;
     buffer_mvpUniform_oblique = null;
+
     bindGroup_mvpUniform_straight = null;
+    bindGroup_mvpUniform_oblique = null;
 
     render_pipeline = null;
     
@@ -345,7 +347,7 @@ async function initialize()
     const mvpUniformBufferSize = 4 * 16;
 
     //* Straight Uniform Buffer
-    buffer_mvpUniform_straight = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform_straight = createUniformBuffer(mvpUniformBufferSize);
 
     bindGroup_mvpUniform_straight = createBindGroup(buffer_mvpUniform_straight, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
     if (bindGroup_mvpUniform_straight == null)
@@ -357,7 +359,7 @@ async function initialize()
         console.log("Bind Group For MVP Uniform For Straight Quad Successfully Created");
 
     //* Oblique Uniform Buffer
-    buffer_mvpUniform_oblique = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform_oblique = createUniformBuffer(mvpUniformBufferSize);
 
     bindGroup_mvpUniform_oblique = createBindGroup(buffer_mvpUniform_oblique, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
     if (bindGroup_mvpUniform_oblique == null)
@@ -371,14 +373,14 @@ async function initialize()
 
     //! Load Texture
     //! ------------------------------------------------------------------------------------------------------------------
-    texture_checkerboard = await loadTexture();
+    texture_checkerboard = await createCheckerboardTexture();
     if (texture_checkerboard == null)
     {
-        console.log("Failed To Load Checkerboard Texture !!!");
-        throw Error("Failed To Load Checkerboard Texture !!!");
+        console.log("Failed To Create Checkerboard Texture !!!");
+        throw Error("Failed To Create Checkerboard Texture !!!");
     }
     else
-        console.log("Checkerboard Texture Loaded");
+        console.log("Checkerboard Texture Created");
 
     //* Texture Sampler Descriptor
     const samplerDescriptor = 
@@ -410,9 +412,23 @@ async function initialize()
         1,
         GPUShaderStage.FRAGMENT
     );
+    if (bindGroupLayout_texture_sampler == null)
+    {
+        console.log("Failed To Create Bind Group Layout For Texture and Sampler !!!");
+        throw Error("Failed To Create Bind Group Layout For Texture and Sampler !!!");
+    }
+    else
+        console.log("Bind Group Layout Successfully Created For Texture and Sampler");
 
     //* Texture-Sampler Bind Group
     bindGroup_texture_sampler = createBindGroup_texture_sampler(0, texture_checkerboard, 1, sampler_checkerboard, bindGroupLayout_texture_sampler);
+    if (bindGroup_texture_sampler == null)
+    {
+        console.log("Failed To Create Bind Group For Texture and Sampler !!!");
+        throw Error("Failed To Create Bind Group For Texture and Sampler !!!");
+    }
+    else
+        console.log("Bind Group Successfully Created For Texture and Sampler");
     //! ------------------------------------------------------------------------------------------------------------------
 
     //* Step - 2: Pipeline Layout for MVP Uniform
@@ -556,28 +572,34 @@ async function loadShader(path)
     return await response.text();
 }
 
-function createVertexBuffer(_data, _size, _length, _bufferUsage)
+function createVertexBuffer(_data)
 {
     // Code
     const bufferDescriptor = 
     {
-        size: _size,
-        usage: _bufferUsage
+        size: _data.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     };
 
-    buffer = device.createBuffer(bufferDescriptor);
+    const buffer = device.createBuffer(bufferDescriptor);
     if (buffer == null)
-    {
-        console.log("Failed To Create Buffer !!!");
-        throw Error("Failed To Create Buffer !!!");
-    }
-    else
-        console.log("Buffer Successfully Created");
+        return null;
 
-    queue.writeBuffer(buffer, 0, _data, 0, _data.length);
-    console.log("Data Written To Buffer");
+    queue.writeBuffer(buffer, 0, _data);
 
     return buffer;
+}
+
+function createUniformBuffer(_uniformBufferSize)
+{
+    // Code
+    const bufferDescriptor = 
+    {
+        size: _uniformBufferSize,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    };
+
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferType)
@@ -608,25 +630,16 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferTyp
     return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
-function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
+function createUniformBuffer(_uniformBufferSize)
 {
     // Code
     const bufferDescriptor = 
     {
         size: _uniformBufferSize,
-        usage: _uniformBufferUsage
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     };
 
-    let buffer_uniform = device.createBuffer(bufferDescriptor);
-    if (buffer_uniform == null)
-    {
-        console.log("Failed To Create Uniform Buffer !!!");
-        throw Error("Failed To Create Uniform Buffer !!!");
-    }
-    else
-        console.log("Uniform Buffer Successfully Created");
-
-    return buffer_uniform;
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroup(_buffer, _offset, _bufferSize, _binding, _bindGroupLayout)
@@ -659,19 +672,10 @@ function createBindGroup(_buffer, _offset, _bufferSize, _binding, _bindGroupLayo
     };
 
     //* Step - 1D: Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group !!!");
-        throw Error("Failed To Create Bind Group !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created");
-
-    return bindGroup;
+    return device.createBindGroup(bindGroupDescriptor);
 }
 
-async function loadTexture(_texturePath)
+async function createCheckerboardTexture()
 {
     // Code
     const imageData = makeCheckerboard();
@@ -718,12 +722,14 @@ function makeCheckerboard()
     {
         for (let j = 0; j < checkerboardHeight; j++)
         {
-            var c = ((i & 8) ^ (j & 8)) * 255;
+            const c = (((i & 8) === 0) ^ ((j & 8) === 0)) * 255;
+            
+            const index = ((i * checkerboardWidth) + j) * 4;
 
-            checkerboard[((i * 64) + j) * 4 + 0] = c;
-            checkerboard[((i * 64) + j) * 4 + 1] = c;
-            checkerboard[((i * 64) + j) * 4 + 2] = c;
-            checkerboard[((i * 64) + j) * 4 + 3] = 255;
+            checkerboard[index + 0] = c;
+            checkerboard[index + 1] = c;
+            checkerboard[index + 2] = c;
+            checkerboard[index + 3] = 255;
         }
     }
 
@@ -788,16 +794,7 @@ function createBindGroupLayout_texture_sampler(
     };
 
     //* Create Bind Group Layout
-    const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
-    if (bindGroupLayout == null)
-    {
-        console.log("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Layout Successfully Created For Texture and Sampler");
-
-    return bindGroupLayout;
+    return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
 function createBindGroup_texture_sampler(_textureBindingIndex, _textureId, _samplerBindingIndex, _samplerId, _bindGroupLayout)
@@ -830,16 +827,7 @@ function createBindGroup_texture_sampler(_textureBindingIndex, _textureId, _samp
     };
 
     //* Create Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created For Texture and Sampler");
-
-    return bindGroup;
+    return device.createBindGroup(bindGroupDescriptor);
 }
 
 function resize()
@@ -1004,6 +992,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {

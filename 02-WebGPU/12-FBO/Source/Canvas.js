@@ -698,7 +698,7 @@ async function initialize()
         Float32Array.BYTES_PER_ELEMENT * 4          // Key Flags
     ).byteLength;
 
-    buffer_uniform_teapot = createUniformBuffer(teapotUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_uniform_teapot = createUniformBuffer(teapotUniformBufferSize);
     if (buffer_uniform_teapot == null)
     {
         console.log("Failed To Create Uniform Buffer For Teapot !!!");
@@ -709,7 +709,7 @@ async function initialize()
 
     //! Cube UBO
     const cubeUniformBufferSize = Float32Array.BYTES_PER_ELEMENT * 16;
-    buffer_uniform_cube = createUniformBuffer(cubeUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_uniform_cube = createUniformBuffer(cubeUniformBufferSize);
     if (buffer_uniform_cube == null)
     {
         console.log("Failed To Create Uniform Buffer For Cube !!!");
@@ -748,6 +748,13 @@ async function initialize()
         1,
         GPUShaderStage.FRAGMENT
     );
+    if (bindGroupLayout_texture_sampler == null)
+    {
+        console.log("Failed To Create Bind Group Layout For Texture and Sampler !!!");
+        throw Error("Failed To Create Bind Group Layout For Texture and Sampler !!!");
+    }
+    else
+        console.log("Bind Group Layout Successfully Created For Texture and Sampler");
 
     //! Bind Groups
     bindGroup_uniform_teapot = createBindGroup(buffer_uniform_teapot, 0, teapotUniformBufferSize, 0, bindGroupLayout_uniform_teapot);
@@ -762,7 +769,22 @@ async function initialize()
     bindGroup_uniform_cube = createBindGroup(buffer_uniform_cube, 0, cubeUniformBufferSize, 0, bindGroupLayout_uniform_cube);
     
     bindGroup_marble_texture_sampler = createBindGroup_texture_sampler(0, texture_marble, 1, sampler_marble, bindGroupLayout_texture_sampler);
+    if (bindGroup_marble_texture_sampler == null)
+    {
+        console.log("Failed To Create Bind Group For Texture and Sampler For Marble !!!");
+        throw Error("Failed To Create Bind Group For Texture and Sampler For Marble !!!");
+    }
+    else
+        console.log("Bind Group Successfully Created For Texture and Sampler For Marble");
+    
     bindGroup_teapot_texture_sampler = createBindGroup_texture_sampler(0, texture_teapot_color, 1, sampler_teapot, bindGroupLayout_texture_sampler);
+    if (bindGroup_teapot_texture_sampler == null)
+    {
+        console.log("Failed To Create Bind Group For Texture and Sampler For Teapot !!!");
+        throw Error("Failed To Create Bind Group For Texture and Sampler For Teapot !!!");
+    }
+    else
+        console.log("Bind Group Successfully Created For Texture and Sampler For Teapot");
 
     //* Teapot Pipeline Layout
     const pipelineLayoutDescriptor_teapot = 
@@ -1125,16 +1147,7 @@ function createBindGroupLayout_texture_sampler(
     };
 
     //* Create Bind Group Layout
-    const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
-    if (bindGroupLayout == null)
-    {
-        console.log("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Layout Successfully Created For Texture and Sampler");
-
-    return bindGroupLayout;
+    return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
 function createBindGroup_texture_sampler(_textureBindingIndex, _textureId, _samplerBindingIndex, _samplerId, _bindGroupLayout)
@@ -1167,16 +1180,7 @@ function createBindGroup_texture_sampler(_textureBindingIndex, _textureId, _samp
     };
 
     //* Create Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created For Texture and Sampler");
-
-    return bindGroup;
+    return device.createBindGroup(bindGroupDescriptor);
 }
 
 function resize()
@@ -1389,6 +1393,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {

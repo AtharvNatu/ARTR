@@ -312,16 +312,25 @@ async function initialize()
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Position Buffer
-    buffer_position_pyramid = createVertexBuffer(
-        vertex_position_pyramid,
-        vertex_position_pyramid.byteLength, 
-        vertex_position_pyramid.length, 
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_position_pyramid = createVertexBuffer(vertex_position_pyramid, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    if (buffer_position_pyramid == null)
+    {
+        console.log("Failed To Create Vertex Buffer For Pyramid Position !!!");
+        throw Error("Failed To Create Vertex Buffer For Pyramid Position !!!");
+    }
+    else
+        console.log("Vertex Buffer For Pyramid Position Successfully Created");
 
     //* MVP Uniform Buffer
     const mvpUniformBufferSize = 4 * 16;
-    buffer_mvpUniform_pyramid = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform_pyramid = createUniformBuffer(mvpUniformBufferSize);
+    if (buffer_mvpUniform_pyramid == null)
+    {
+        console.log("Failed To Create MVP Uniform Buffer For Pyramid !!!");
+        throw Error("Failed To Create MVP Uniform Buffer For Pyramid !!!");
+    }
+    else
+        console.log("MVP Uniform Buffer Successfully Created For Pyramid");
     
     //* Bind Group For MVP Uniform
     bindGroup_mvpUniform_pyramid = createBindGroup(buffer_mvpUniform_pyramid, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
@@ -448,28 +457,34 @@ async function loadShader(path)
     return await response.text();
 }
 
-function createVertexBuffer(_data, _size, _length, _bufferUsage)
+function createVertexBuffer(_data)
 {
     // Code
     const bufferDescriptor = 
     {
-        size: _size,
-        usage: _bufferUsage
+        size: _data.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     };
 
-    buffer = device.createBuffer(bufferDescriptor);
+    const buffer = device.createBuffer(bufferDescriptor);
     if (buffer == null)
-    {
-        console.log("Failed To Create Buffer !!!");
-        throw Error("Failed To Create Buffer !!!");
-    }
-    else
-        console.log("Buffer Successfully Created");
+        return null;
 
-    queue.writeBuffer(buffer, 0, _data, 0, _data.length);
-    console.log("Data Written To Buffer");
+    queue.writeBuffer(buffer, 0, _data);
 
     return buffer;
+}
+
+function createUniformBuffer(_uniformBufferSize)
+{
+    // Code
+    const bufferDescriptor = 
+    {
+        size: _uniformBufferSize,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    };
+
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferType)
@@ -498,27 +513,6 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferTyp
 
     //* Step - 1C: Bind Group Layout
     return device.createBindGroupLayout(bindGroupLayoutDescriptor);
-}
-
-function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
-{
-    // Code
-    const bufferDescriptor = 
-    {
-        size: _uniformBufferSize,
-        usage: _uniformBufferUsage
-    };
-
-    let buffer_uniform = device.createBuffer(bufferDescriptor);
-    if (buffer_uniform == null)
-    {
-        console.log("Failed To Create Uniform Buffer !!!");
-        throw Error("Failed To Create Uniform Buffer !!!");
-    }
-    else
-        console.log("Uniform Buffer Successfully Created");
-
-    return buffer_uniform;
 }
 
 function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, _bindGroupLayout)
@@ -704,6 +698,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {

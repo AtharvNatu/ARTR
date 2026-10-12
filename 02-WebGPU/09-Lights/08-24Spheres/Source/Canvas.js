@@ -1,3 +1,5 @@
+const { mat4, mat3 } = glMatrix;
+
 //* Global Variables
 var canvas = null;
 var bFullscreen = false;
@@ -408,9 +410,15 @@ async function initialize()
     else
         console.log("Elements Index Buffer Successfully Created");
 
-
     //* Uniform Buffer
-    buffer_hostUniform = createUniformBuffer(hostUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_hostUniform = createUniformBuffer(hostUniformBufferSize);
+    if (buffer_hostUniform == null)
+    {
+        console.log("Failed To Create Host Uniform Buffer !!!");
+        throw Error("Failed To Create Host Uniform Buffer !!!");
+    }
+    else
+        console.log("Host Uniform Buffer Successfully Created");
 
     const bindGroupLayout = createBindGroupLayout(0, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, "uniform", false, 0);
     if (bindGroupLayout == null)
@@ -680,25 +688,16 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _uniformTy
     return bindGroupLayout;
 }
 
-function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
+function createUniformBuffer(_uniformBufferSize)
 {
     // Code
     const bufferDescriptor = 
     {
         size: _uniformBufferSize,
-        usage: _uniformBufferUsage
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     };
 
-    let buffer_uniform = device.createBuffer(bufferDescriptor);
-    if (buffer_uniform == null)
-    {
-        console.log("Failed To Create Uniform Buffer !!!");
-        throw Error("Failed To Create Uniform Buffer !!!");
-    }
-    else
-        console.log("Uniform Buffer Successfully Created");
-
-    return buffer_uniform;
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _bindGroupBinding, _bindGroupLayout)
@@ -978,6 +977,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {

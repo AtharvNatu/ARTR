@@ -309,7 +309,14 @@ async function initialize()
 
     //* MVP Uniform Buffer
     const mvpUniformBufferSize = 4 * 16;
-    buffer_mvpUniform = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform = createUniformBuffer(mvpUniformBufferSize);
+    if (buffer_mvpUniform == null)
+    {
+        console.log("Failed To Create MVP Uniform Buffer !!!");
+        throw Error("Failed To Create MVP Uniform Buffer !!!");
+    }
+    else
+        console.log("MVP Uniform Buffer Successfully Created");
     
     //* Bind Group For MVP Uniform
     bindGroup_mvpUniform = createBindGroup(buffer_mvpUniform, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
@@ -470,25 +477,16 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferTyp
     return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
-function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
+function createUniformBuffer(_uniformBufferSize)
 {
     // Code
     const bufferDescriptor = 
     {
         size: _uniformBufferSize,
-        usage: _uniformBufferUsage
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     };
 
-    let buffer_uniform = device.createBuffer(bufferDescriptor);
-    if (buffer_uniform == null)
-    {
-        console.log("Failed To Create Uniform Buffer !!!");
-        throw Error("Failed To Create Uniform Buffer !!!");
-    }
-    else
-        console.log("Uniform Buffer Successfully Created");
-
-    return buffer_uniform;
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, _bindGroupLayout)
@@ -658,6 +656,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {

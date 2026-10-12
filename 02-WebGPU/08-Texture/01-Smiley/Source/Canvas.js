@@ -310,23 +310,34 @@ async function initialize()
 
     //! Rectangle - Position Buffer, Texcoord Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
-    buffer_position = createVertexBuffer(
-        vertex_position_rectangle,
-        vertex_position_rectangle.byteLength, 
-        vertex_position_rectangle.length, 
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_position = createVertexBuffer(vertex_position_rectangle, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    if (buffer_position == null)
+    {
+        console.log("Failed To Create Vertex Buffer For Position !!!");
+        throw Error("Failed To Create Vertex Buffer For Position !!!");
+    }
+    else
+        console.log("Vertex Buffer For Position Successfully Created");
 
-    buffer_texcoord = createVertexBuffer(
-        vertex_texcoords_rectangle, 
-        vertex_texcoords_rectangle.byteLength, 
-        vertex_texcoords_rectangle.length, 
-        GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    );
+    buffer_texcoord = createVertexBuffer(vertex_texcoords_rectangle, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    if (buffer_texcoord == null)
+    {
+        console.log("Failed To Create Vertex Buffer For Texcoords !!!");
+        throw Error("Failed To Create Vertex Buffer For Texcoords !!!");
+    }
+    else
+        console.log("Vertex Buffer For Texcoords Successfully Created");
 
     //* MVP Uniform Buffer
     const mvpUniformBufferSize = 4 * 16;
-    buffer_mvpUniform = createUniformBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform = createUniformBuffer(mvpUniformBufferSize);
+    if (buffer_mvpUniform == null)
+    {
+        console.log("Failed To Create MVP Uniform Buffer !!!");
+        throw Error("Failed To Create MVP Uniform Buffer !!!");
+    }
+    else
+        console.log("MVP Uniform Buffer Successfully Created");
 
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
     if (bindGroupLayout_mvpUniform == null)
@@ -387,9 +398,24 @@ async function initialize()
         1,
         GPUShaderStage.FRAGMENT
     );
+    if (bindGroupLayout_texture_sampler == null)
+    {
+        console.log("Failed To Create Bind Group Layout For Texture and Sampler !!!");
+        throw Error("Failed To Create Bind Group Layout For Texture and Sampler !!!");
+    }
+    else
+        console.log("Bind Group Layout Successfully Created For Texture and Sampler");
+
 
     //* Texture-Sampler Bind Group
     bindGroup_texture_sampler = createBindGroup_texture_sampler(0, texture_smiley, 1, sampler_smiley, bindGroupLayout_texture_sampler);
+    if (bindGroup_texture_sampler == null)
+    {
+        console.log("Failed To Create Bind Group For Texture and Sampler !!!");
+        throw Error("Failed To Create Bind Group For Texture and Sampler !!!");
+    }
+    else
+        console.log("Bind Group Successfully Created For Texture and Sampler");
     //! ------------------------------------------------------------------------------------------------------------------
 
     //* Step - 2: Pipeline Layout for MVP Uniform
@@ -533,28 +559,34 @@ async function loadShader(path)
     return await response.text();
 }
 
-function createVertexBuffer(_data, _size, _length, _bufferUsage)
+function createVertexBuffer(_data)
 {
     // Code
     const bufferDescriptor = 
     {
-        size: _size,
-        usage: _bufferUsage
+        size: _data.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     };
 
-    buffer = device.createBuffer(bufferDescriptor);
+    const buffer = device.createBuffer(bufferDescriptor);
     if (buffer == null)
-    {
-        console.log("Failed To Create Buffer !!!");
-        throw Error("Failed To Create Buffer !!!");
-    }
-    else
-        console.log("Buffer Successfully Created");
+        return null;
 
-    queue.writeBuffer(buffer, 0, _data, 0, _data.length);
-    console.log("Data Written To Buffer");
+    queue.writeBuffer(buffer, 0, _data);
 
     return buffer;
+}
+
+function createUniformBuffer(_uniformBufferSize)
+{
+    // Code
+    const bufferDescriptor = 
+    {
+        size: _uniformBufferSize,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    };
+
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferType)
@@ -585,25 +617,16 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferTyp
     return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
-function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
+function createUniformBuffer(_uniformBufferSize)
 {
     // Code
     const bufferDescriptor = 
     {
         size: _uniformBufferSize,
-        usage: _uniformBufferUsage
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     };
 
-    let buffer_uniform = device.createBuffer(bufferDescriptor);
-    if (buffer_uniform == null)
-    {
-        console.log("Failed To Create Uniform Buffer !!!");
-        throw Error("Failed To Create Uniform Buffer !!!");
-    }
-    else
-        console.log("Uniform Buffer Successfully Created");
-
-    return buffer_uniform;
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createBindGroup(_buffer, _offset, _bufferSize, _binding, _bindGroupLayout)
@@ -636,16 +659,7 @@ function createBindGroup(_buffer, _offset, _bufferSize, _binding, _bindGroupLayo
     };
 
     //* Step - 1D: Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group !!!");
-        throw Error("Failed To Create Bind Group !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created");
-
-    return bindGroup;
+    return device.createBindGroup(bindGroupDescriptor);
 }
 
 async function loadTexture(_texturePath)
@@ -744,16 +758,7 @@ function createBindGroupLayout_texture_sampler(
     };
 
     //* Create Bind Group Layout
-    const bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
-    if (bindGroupLayout == null)
-    {
-        console.log("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group Layout For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Layout Successfully Created For Texture and Sampler");
-
-    return bindGroupLayout;
+    return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
 function createBindGroup_texture_sampler(_textureBindingIndex, _textureId, _samplerBindingIndex, _samplerId, _bindGroupLayout)
@@ -786,16 +791,7 @@ function createBindGroup_texture_sampler(_textureBindingIndex, _textureId, _samp
     };
 
     //* Create Bind Group
-    bindGroup = device.createBindGroup(bindGroupDescriptor);
-    if (bindGroup == null)
-    {
-        console.log("Failed To Create Bind Group For Texture and Sampler !!!");
-        throw Error("Failed To Create Bind Group For Texture and Sampler !!!");
-    }
-    else
-        console.log("Bind Group Successfully Created For Texture and Sampler");
-
-    return bindGroup;
+    return device.createBindGroup(bindGroupDescriptor);
 }
 
 function resize()
@@ -934,6 +930,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {
