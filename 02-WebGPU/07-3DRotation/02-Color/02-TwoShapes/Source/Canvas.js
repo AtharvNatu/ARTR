@@ -458,7 +458,7 @@ async function initialize()
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_pyramid = createVertexBuffer(vertex_position_pyramid, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position_pyramid = createVertexBuffer(vertex_position_pyramid);
     if (buffer_position_pyramid == null)
     {
         console.log("Failed To Create Vertex Buffer For Pyramid Position !!!");
@@ -467,7 +467,7 @@ async function initialize()
     else
         console.log("Vertex Buffer For Pyramid Position Successfully Created");
 
-    buffer_color_pyramid = createVertexBuffer(vertex_color_pyramid, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_color_pyramid = createVertexBuffer(vertex_color_pyramid);
     if (buffer_color_pyramid == null)
     {
         console.log("Failed To Create Vertex Buffer For Pyramid Color !!!");
@@ -503,7 +503,7 @@ async function initialize()
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_cube = createVertexBuffer(vertex_position_cube, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position_cube = createVertexBuffer(vertex_position_cube);
     if (buffer_position_cube == null)
     {
         console.log("Failed To Create Vertex Buffer For CPosition !!!");
@@ -512,7 +512,7 @@ async function initialize()
     else
         console.log("Vertex Buffer For Cube Position Successfully Created");
 
-    buffer_color_cube = createVertexBuffer(vertex_color_cube, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_color_cube = createVertexBuffer(vertex_color_cube);
     if (buffer_color_cube == null)
     {
         console.log("Failed To Create Vertex Buffer For Cube Color !!!");
@@ -828,7 +828,7 @@ function resize()
     }
 
     if (perspectiveProjectionMatrix != null)
-        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()
@@ -965,6 +965,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {

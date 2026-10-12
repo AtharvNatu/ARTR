@@ -329,7 +329,7 @@ async function initialize()
 
     //! Rectangle - Position Buffer, Texcoord Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
-    buffer_position = createVertexBuffer(vertex_position_rectangle, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position = createVertexBuffer(vertex_position_rectangle);
     if (buffer_position == null)
     {
         console.log("Failed To Create Vertex Buffer For Position !!!");
@@ -338,7 +338,7 @@ async function initialize()
     else
         console.log("Vertex Buffer For Position Successfully Created");
 
-    buffer_texcoord = createVertexBuffer(vertex_texcoords_rectangle, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_texcoord = createVertexBuffer(vertex_texcoords_rectangle);
     if (buffer_texcoord == null)
     {
         console.log("Failed To Create Vertex Buffer For Texcoords !!!");
@@ -903,7 +903,7 @@ function resize()
     }
 
     if (perspectiveProjectionMatrix != null)
-        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()

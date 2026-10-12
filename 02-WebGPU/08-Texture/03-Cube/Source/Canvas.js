@@ -410,11 +410,11 @@ async function initialize()
     else
         console.log("Bind Group Layout For MVP Uniform Successfully Created");
 
-    //! Cube - Position Buffer, Color Buffer, Uniform Buffer, Bind Group
+    //! Cube - Position Buffer, Texcoord Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_cube = createVertexBuffer(vertex_position_cube, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position_cube = createVertexBuffer(vertex_position_cube);
     if (buffer_position_cube == null)
     {
         console.log("Failed To Create Vertex Buffer For Position !!!");
@@ -423,7 +423,7 @@ async function initialize()
     else
         console.log("Vertex Buffer For Position Successfully Created");
 
-    buffer_texcoord_cube = createVertexBuffer(vertex_texcoord_cube, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_texcoord_cube = createVertexBuffer(vertex_texcoord_cube);
     if (buffer_texcoord_cube == null)
     {
         console.log("Failed To Create Vertex Buffer For Texcoords !!!");
@@ -919,7 +919,7 @@ function resize()
     }
 
     if (perspectiveProjectionMatrix != null)
-        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()

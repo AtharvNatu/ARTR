@@ -331,7 +331,7 @@ async function initialize()
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_triangle = createVertexBuffer(vertex_position_triangle, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position_triangle = createVertexBuffer(vertex_position_triangle);
     if (buffer_position_triangle == null)
     {
         console.log("Failed To Create Vertex Buffer For Triangle Position !!!");
@@ -340,7 +340,7 @@ async function initialize()
     else
         console.log("Vertex Buffer For Triangle Position Successfully Created");
 
-    buffer_color_triangle = createVertexBuffer(vertex_color_triangle, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_color_triangle = createVertexBuffer(vertex_color_triangle);
     if (buffer_color_triangle == null)
     {
         console.log("Failed To Create Vertex Buffer For Triangle Color !!!");
@@ -375,7 +375,7 @@ async function initialize()
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_rectangle = createVertexBuffer(vertex_position_rectangle, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position_rectangle = createVertexBuffer(vertex_position_rectangle);
     if (buffer_position_rectangle == null)
     {
         console.log("Failed To Create Vertex Buffer For Rectangle Position !!!");
@@ -384,7 +384,7 @@ async function initialize()
     else
         console.log("Vertex Buffer For Rectangle Position Successfully Created");
 
-    buffer_color_rectangle = createVertexBuffer(vertex_color_rectangle, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_color_rectangle = createVertexBuffer(vertex_color_rectangle);
     if (buffer_color_rectangle == null)
     {
         console.log("Failed To Create Vertex Buffer For Rectangle Color !!!");
@@ -652,7 +652,7 @@ function resize()
     }
 
     if (perspectiveProjectionMatrix != null)
-        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()

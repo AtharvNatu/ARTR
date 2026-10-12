@@ -391,8 +391,7 @@ async function initialize()
         0.0,   1.0,   0.0,  1.0,  
         0.0,   1.0,   0.0,  1.0
     ]);
-
-    //! Common Bind Group Layout For Pyramid and Cube
+    
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
     if (bindGroupLayout_mvpUniform == null)
     {
@@ -406,7 +405,7 @@ async function initialize()
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_cube = createVertexBuffer(vertex_position_cube, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position_cube = createVertexBuffer(vertex_position_cube);
     if (buffer_position_cube == null)
     {
         console.log("Failed To Create Vertex Buffer For Cube Position !!!");
@@ -415,7 +414,7 @@ async function initialize()
     else
         console.log("Vertex Buffer For Triangle Position Successfully Created");
 
-    buffer_color_cube = createVertexBuffer(vertex_color_cube, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_color_cube = createVertexBuffer(vertex_color_cube);
     if (buffer_color_cube == null)
     {
         console.log("Failed To Create Vertex Buffer For Cube Color !!!");
@@ -732,7 +731,7 @@ function resize()
     }
 
     if (perspectiveProjectionMatrix != null)
-        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()
@@ -842,6 +841,13 @@ function uninitialize()
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+
+    //* Unregister handlers
+    window.removeEventListener("keydown", keyDown, false);
+    window.removeEventListener("click", mousedown, false);
+    window.removeEventListener("resize", resize, false);
+    document.removeEventListener("fullscreenchange", onFullScreenChange);
+    document.removeEventListener("webkitfullscreenchange", onFullScreenChange);
 
     if (depthTexture)
     {

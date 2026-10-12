@@ -330,7 +330,7 @@ async function initialize()
 
     //* MVP Uniform Buffer
     const mvpUniformBufferSize = 4 * 16;
-    buffer_mvpUniform_triangle = createBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform_triangle = createUniformBuffer(mvpUniformBufferSize);
     if (buffer_mvpUniform_triangle == null)
     {
         console.log("Failed To Create MVP Uniform Buffer For Triangle !!!");
@@ -374,14 +374,14 @@ async function initialize()
     console.log("Position Data Written To Vertex Position Buffer For Rectangle");
 
     //* MVP Uniform Buffer
-    buffer_mvpUniform_rectangle = createBuffer(mvpUniformBufferSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    buffer_mvpUniform_rectangle = createUniformBuffer(mvpUniformBufferSize);
     if (buffer_mvpUniform_triangle == null)
     {
-        console.log("Failed To Create MVP Uniform Buffer For Triangle !!!");
-        throw Error("Failed To Create MVP Uniform Buffer For Triangle !!!");
+        console.log("Failed To Create MVP Uniform Buffer For Rectangle !!!");
+        throw Error("Failed To Create MVP Uniform Buffer For Rectangle !!!");
     }
     else
-        console.log("MVP Uniform Buffer Successfully Created For Triangle");
+        console.log("MVP Uniform Buffer Successfully Created For Rectangle");
     
     //* Bind Group For MVP Uniform
     bindGroup_mvpUniform_rectangle = createBindGroup(buffer_mvpUniform_rectangle, 0, mvpUniformBufferSize, 0, bindGroupLayout_mvpUniform);
@@ -611,7 +611,7 @@ function resize()
     }
 
     if (perspectiveProjectionMatrix != null)
-        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()

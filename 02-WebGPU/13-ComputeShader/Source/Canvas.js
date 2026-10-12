@@ -378,7 +378,7 @@ async function initialize()
     const meshBufferSize = MAX_MESH_SIZE * MAX_MESH_SIZE * 4 * 4;
 
     //* CPU Buffer
-    buffer_position_cpu = createVertexBuffer(meshBufferSize);
+    buffer_position_cpu = createBuffer(meshBufferSize, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
     if (buffer_position_cpu == null)
     {
         console.log("Failed To Create Vertex Buffer For CPU !!!");
@@ -388,7 +388,7 @@ async function initialize()
         console.log("Vertex Buffer For CPU Successfully Created");
 
     //* GPU Buffer
-    buffer_position_gpu = createStorageVertexBuffer(meshBufferSize);
+    buffer_position_gpu = createBuffer(meshBufferSize, GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
     if (buffer_position_gpu == null)
     {
         console.log("Failed To Create Storage | Vertex Buffer For GPU !!!");
@@ -609,40 +609,17 @@ async function loadShader(path)
     return await response.text();
 }
 
-function createVertexBuffer(_data)
+//* Compute Shader uses a different version of createVertexBuffer() compared to other samples
+function createBuffer(_dataSize, _usageFlags)
 {
     // Code
     const bufferDescriptor = 
     {
-        size: _data.byteLength,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+        size: _dataSize,
+        usage: _usageFlags
     };
 
-    const buffer = device.createBuffer(bufferDescriptor);
-    if (buffer == null)
-        return null;
-
-    queue.writeBuffer(buffer, 0, _data);
-
-    return buffer;
-}
-
-function createStorageVertexBuffer(_data)
-{
-    // Code
-    const bufferDescriptor = 
-    {
-        size: _data.byteLength,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    };
-
-    const buffer = device.createBuffer(bufferDescriptor);
-    if (buffer == null)
-        return null;
-
-    queue.writeBuffer(buffer, 0, _data);
-
-    return buffer;
+    return device.createBuffer(bufferDescriptor);
 }
 
 function createUniformBuffer(_uniformBufferSize)
@@ -760,7 +737,7 @@ function resize()
     }
 
     if (perspectiveProjectionMatrix != null)
-        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()

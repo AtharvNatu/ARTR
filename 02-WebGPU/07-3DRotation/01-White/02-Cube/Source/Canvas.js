@@ -332,8 +332,6 @@ async function initialize()
        -1.0, -1.0, -1.0,  1.0   // Bottom Left
     ]);
 
-
-    //! Common Bind Group Layout For Pyramid and Cube
     const bindGroupLayout_mvpUniform = createBindGroupLayout(0, GPUShaderStage.VERTEX, "uniform");
     if (bindGroupLayout_mvpUniform == null)
     {
@@ -347,7 +345,7 @@ async function initialize()
     //* ---------------------------------------------------------------------------------------------------------------------------------
     
     //* Position Buffer
-    buffer_position_cube = createVertexBuffer(vertex_position_cube, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position_cube = createVertexBuffer(vertex_position_cube);
     if (buffer_position_cube == null)
     {
         console.log("Failed To Create Vertex Buffer For Cube Position !!!");
@@ -633,7 +631,7 @@ function resize()
     }
 
     if (perspectiveProjectionMatrix != null)
-        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()

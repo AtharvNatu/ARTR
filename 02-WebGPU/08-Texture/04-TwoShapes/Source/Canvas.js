@@ -474,11 +474,11 @@ async function initialize()
     else
         console.log("Bind Group Layout For MVP Uniform Successfully Created");
 
-    //! Pyramid - Position Buffer, Color Buffer, Uniform Buffer, Bind Group
+    //! Pyramid - Position Buffer, Texcoord Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_pyramid = createVertexBuffer(vertex_position_pyramid, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position_pyramid = createVertexBuffer(vertex_position_pyramid);
     if (buffer_position_pyramid == null)
     {
         console.log("Failed To Create Vertex Buffer For Position For Pyramid !!!");
@@ -487,7 +487,7 @@ async function initialize()
     else
         console.log("Vertex Buffer For Position For Pyramid Successfully Created");
 
-    buffer_texcoord_pyramid = createVertexBuffer(vertex_texcoord_pyramid, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_texcoord_pyramid = createVertexBuffer(vertex_texcoord_pyramid);
     if (buffer_texcoord_pyramid == null)
     {
         console.log("Failed To Create Vertex Buffer For Texcoords For Pyramid !!!");
@@ -518,11 +518,11 @@ async function initialize()
         console.log("Bind Group For MVP Uniform For Pyramid Successfully Created");
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
-    //! Cube - Position Buffer, Color Buffer, Uniform Buffer, Bind Group
+    //! Cube - Position Buffer, Texcoord Buffer, Uniform Buffer, Bind Group
     //* ---------------------------------------------------------------------------------------------------------------------------------
 
     //* Vertex Buffers
-    buffer_position_cube = createVertexBuffer(vertex_position_cube,GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_position_cube = createVertexBuffer(vertex_position_cube);
     if (buffer_position_cube == null)
     {
         console.log("Failed To Create Vertex Buffer For Position For Cube !!!");
@@ -531,7 +531,7 @@ async function initialize()
     else
         console.log("Vertex Buffer For Position For Cube Successfully Created");
 
-    buffer_texcoord_cube = createVertexBuffer(vertex_texcoord_cube, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+    buffer_texcoord_cube = createVertexBuffer(vertex_texcoord_cube);
     if (buffer_texcoord_cube == null)
     {
         console.log("Failed To Create Vertex Buffer For Texcoords For Cube !!!");
@@ -784,26 +784,20 @@ async function loadShader(path)
     return await response.text();
 }
 
-function createVertexBuffer(_data, _bufferUsage)
+function createVertexBuffer(_data)
 {
     // Code
     const bufferDescriptor = 
     {
         size: _data.byteLength,
-        usage: _bufferUsage
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     };
 
-    buffer = device.createBuffer(bufferDescriptor);
+    const buffer = device.createBuffer(bufferDescriptor);
     if (buffer == null)
-    {
-        console.log("Failed To Create Buffer !!!");
-        throw Error("Failed To Create Buffer !!!");
-    }
-    else
-        console.log("Buffer Successfully Created");
+        return null;
 
     queue.writeBuffer(buffer, 0, _data);
-    console.log("Data Written To Buffer");
 
     return buffer;
 }
@@ -1055,7 +1049,7 @@ function resize()
     }
 
     if (perspectiveProjectionMatrix != null)
-        mat4.perspective(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()
