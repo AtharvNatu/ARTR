@@ -77,7 +77,7 @@ fn main(@location(0) positionIn:vec3<f32>,
     output.lightDirection = vec3<f32>(0.0);
     output.viewerVector = vec3<f32>(0.0);
     
-    if (ubo.lightEnabled.x == 1u)
+    if (ubo.keyFlags.x == 1u)
     {
         let eyeCoordinates:vec4<f32> = ubo.viewMatrix * ubo.modelMatrix * vec4<f32>(positionIn, 1.0);
         let modelViewMatrix:mat3x3<f32> = mat3FromMat4(ubo.viewMatrix * ubo.modelMatrix);

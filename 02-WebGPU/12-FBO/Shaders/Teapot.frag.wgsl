@@ -48,13 +48,21 @@ fn main(output:VertexOutput) -> @location(0) vec4<f32>
     phong_ads_light = ambient + diffuse + specular;
 
     if (ubo.keyFlags.x == 1 && ubo.keyFlags.y == 1)
-        color = vec4<f32>(phong_ads_light * textureSample(uMarbleTexture, uMarbleSampler, output.texcoords), 1.0);
+    {
+        color = vec4(phong_ads_light * textureSample(uMarbleTexture, uMarbleSampler, output.texcoords).rgb, 1.0);
+    }    
     else if (ubo.keyFlags.x == 1 && ubo.keyFlags.y == 0)
-        color = vec4<f32>(phong_ads_light, 1.0);
+    {
+        color = vec4(phong_ads_light, 1.0);
+    }    
     else if (ubo.keyFlags.x == 0 && ubo.keyFlags.y == 1)
-        color = vec4<f32>(textureSample(uMarbleTexture, uMarbleSampler, output.texcoords), 1.0);
+    {
+        color = vec4(textureSample(uMarbleTexture, uMarbleSampler, output.texcoords).rgb, 1.0);
+    }    
     else
+    {
         color = vec4(1.0, 1.0, 1.0, 1.0);
+    }    
 
     return color;
 }

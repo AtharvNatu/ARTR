@@ -75,7 +75,6 @@ const animationSpeed = 0.5;
 
 //* Animation Related
 var requestAnimationFrame = window.requestAnimationFrame;
-
 var cancelAnimationFrame = window.cancelAnimationFrame;
 
 async function main()
@@ -143,7 +142,7 @@ async function main()
     console.log("---------------------------------------");
 
     //* Step - 4 : Listener To Handle Lost Devices
-    document.addEventListener("uncapturederror", onUncapturedError);
+    device.addEventListener("uncapturederror", onUncapturedError);
     device.lost.then(onDeviceLost);
 
     // Initialize
@@ -289,7 +288,18 @@ async function initialize()
     context.configure(canvasConfiguration);
 
     //* Step - 9 : Define the clear color
+
+    // White background for black cube
     clearColor = 
+    { 
+        r: 1.0,
+        g: 1.0,
+        b: 1.0,
+        a: 1.0
+    };
+
+    // Black cube background for teapot
+    clearColor_fbo = 
     { 
         r: 0.0,
         g: 0.0,
@@ -415,16 +425,16 @@ async function initialize()
         const single_texcoord = 
         [
             [
-                teapotTexcoords[(i + 0) * 2 + 0], 
-                teapotTexcoords[(i + 0) * 2 + 1] 
+                teapotTexCoords[(i + 0) * 2 + 0], 
+                teapotTexCoords[(i + 0) * 2 + 1] 
             ],
             [
-                teapotTexcoords[(i + 1) * 2 + 0], 
-                teapotTexcoords[(i + 1) * 2 + 1] 
+                teapotTexCoords[(i + 1) * 2 + 0], 
+                teapotTexCoords[(i + 1) * 2 + 1] 
             ],
             [
-                teapotTexcoords[(i + 2) * 2 + 0], 
-                teapotTexcoords[(i + 2) * 2 + 1] 
+                teapotTexCoords[(i + 2) * 2 + 0], 
+                teapotTexCoords[(i + 2) * 2 + 1] 
             ]
         ];
 
@@ -444,7 +454,7 @@ async function initialize()
     else
         console.log("Teapot Position Buffer Created");
 
-    buffer_teapot_texcoords = createVertexBuffer(teapotMeshData.texcoordsArray);
+    buffer_teapot_texcoords = createVertexBuffer(teapotMeshData.texCoordsArray);
     if (buffer_teapot_texcoords == null)
     {
         console.log("Failed To Create Teapot Texcoords Buffer !!!");
@@ -652,13 +662,13 @@ async function initialize()
         console.log("Texture For Teapot Depth Created Successfully");
 
     //* Teapot Texture Sampler Descriptor
-    const samplerDescriptor_teapot = 
+    const samplerDescriptor = 
     {
         magFilter: "linear",
         minFilter: "linear"
     };
 
-    sampler_teapot = device.createSampler(samplerDescriptor_teapot);
+    sampler_teapot = device.createSampler(samplerDescriptor);
     if (sampler_teapot == null)
     {
         console.log("Failed To Create Sampler For Teapot !!!");
@@ -666,6 +676,15 @@ async function initialize()
     }
     else
         console.log("Sampler For Teapot Created Successfully");
+
+    sampler_marble = device.createSampler(samplerDescriptor);
+    if (sampler_marble == null)
+    {
+        console.log("Failed To Create Sampler For Marble !!!");
+        throw Error("Failed To Create Sampler For Marble !!!");
+    }
+    else
+        console.log("Sampler For Marble Created Successfully");
 
     //! Teapot UBO
 
@@ -755,6 +774,13 @@ async function initialize()
         console.log("Bind Group For Teapot Uniform Successfully Created");
 
     bindGroup_uniform_cube = createBindGroup(buffer_uniform_cube, 0, cubeUniformBufferSize, 0, bindGroupLayout_uniform_cube);
+    if (bindGroup_uniform_cube == null)
+    {
+        console.log("Failed To Create Bind Group For Cube Uniform !!!");
+        throw Error("Failed To Create Bind Group For Cube Uniform !!!");
+    }
+    else
+        console.log("Bind Group For Cube Uniform Successfully Created");
     
     bindGroup_marble_texture_sampler = createBindGroup_texture_sampler(0, texture_marble, 1, sampler_marble, bindGroupLayout_texture_sampler);
     if (bindGroup_marble_texture_sampler == null)
@@ -816,25 +842,25 @@ async function initialize()
 
     //* Step - 1 : Pipeline Descriptor / PSO
 
-    //* Step - 1A: Vertex Buffer Layout
-    const positionVertexAttribute = 
+    //! Step - 1A: Vertex Attributes
+
+    //* Position Attribute - Teapot
+    const positionVertexAttribute_teapot = 
     {
         shaderLocation: 0,  //* Maps to location(0) in Vertex Shader
         offset: 0,
         format: "float32x3"
     };
 
-    const positionVertexBufferLayout = 
+    //* Position Attribute - Cube
+    const positionVertexAttribute_cube = 
     {
-        attributes: 
-        [
-            positionVertexAttribute
-        ],
-        arrayStride: Float32Array.BYTES_PER_ELEMENT * 3,
-        stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
+        shaderLocation: 0,  //* Maps to location(0) in Vertex Shader
+        offset: 0,
+        format: "float32x4"
     };
 
-    //! Normal Attribute
+    //* Normal Attribute - Teapot
     const normalVertexAttribute = 
     {
         shaderLocation: 1,  //* Maps to location(1) in Vertex Shader
@@ -842,6 +868,47 @@ async function initialize()
         format: "float32x3"
     };
 
+    //* Texcoord Attribute - Teapot
+    const texcoordVertexAttribute_teapot = 
+    {
+        shaderLocation: 2,  //* Maps to location(2) in Vertex Shader
+        offset: 0,
+        format: "float32x2"
+    };
+
+    //* Texcoord Attribute - Cube
+    const texcoordVertexAttribute_cube = 
+    {
+        shaderLocation: 1,  //* Maps to location(1) in Vertex Shader
+        offset: 0,
+        format: "float32x2"
+    };
+
+    //! Vertex Buffer Layouts
+
+    //* Position Layout - Teapot
+    const positionVertexBufferLayout_teapot = 
+    {
+        attributes: 
+        [
+            positionVertexAttribute_teapot
+        ],
+        arrayStride: Float32Array.BYTES_PER_ELEMENT * 3,
+        stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
+    };
+
+    //* Position Layout - Cube
+    const positionVertexBufferLayout_cube = 
+    {
+        attributes: 
+        [
+            positionVertexAttribute_cube
+        ],
+        arrayStride: Float32Array.BYTES_PER_ELEMENT * 4,
+        stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
+    };
+
+    //* Normal Layout - Teapot
     const normalVertexBufferLayout = 
     {
         attributes: 
@@ -849,34 +916,83 @@ async function initialize()
             normalVertexAttribute
         ],
         arrayStride: Float32Array.BYTES_PER_ELEMENT * 3,
-        stepMode: "vertex"  // Jump vertex by vertex, not instance by instance
+        stepMode: "vertex"
+    };
+
+    //* Texcoord Layout - Teapot
+    const texcoordVertexBufferLayout_teapot = 
+    {
+        attributes: 
+        [
+            texcoordVertexAttribute_teapot
+        ],
+        arrayStride: Float32Array.BYTES_PER_ELEMENT * 2,
+        stepMode: "vertex"
+    };
+
+    //* Texcoord Layout - Teapot
+    const texcoordVertexBufferLayout_cube = 
+    {
+        attributes: 
+        [
+            texcoordVertexAttribute_cube
+        ],
+        arrayStride: Float32Array.BYTES_PER_ELEMENT * 2,
+        stepMode: "vertex"
     };
 
     //* Step - 1B: Vertex Shader State
-    const vertexShaderState = 
+    const vertexShaderState_teapot = 
     {
-        module: shaderModule_vertexShader,
+        module: shaderModule_vertexShader_teapot,
         entryPoint: "main",
         buffers: 
         [
-            positionVertexBufferLayout,
-            normalVertexBufferLayout
+            positionVertexBufferLayout_teapot,
+            normalVertexBufferLayout,
+            texcoordVertexBufferLayout_teapot
+        ]
+    };
+
+    const vertexShaderState_cube = 
+    {
+        module: shaderModule_vertexShader_cube,
+        entryPoint: "main",
+        buffers: 
+        [
+            positionVertexBufferLayout_cube,
+            texcoordVertexBufferLayout_cube
         ]
     };
 
     //* Step - 1C: Fragment Shader State
-    const colorTargetState = 
+    const colorTargetState_teapot = 
+    {
+        format: "rgba8unorm"
+    };
+
+    const fragmentShaderState_teapot = 
+    {
+        module: shaderModule_fragmentShader_teapot,
+        entryPoint: "main",
+        targets:
+        [
+            colorTargetState_teapot
+        ]
+    };
+
+    const colorTargetState_cube = 
     {
         format: canvasFormat
     };
 
-    const fragmentShaderState = 
+    const fragmentShaderState_cube = 
     {
-        module: shaderModule_fragmentShader,
+        module: shaderModule_fragmentShader_cube,
         entryPoint: "main",
         targets:
         [
-            colorTargetState
+            colorTargetState_cube
         ]
     };
 
@@ -897,26 +1013,47 @@ async function initialize()
     };
 
     //* Step - 1E: PSO
-    const pipelineDescriptor = 
+    const pipelineDescriptor_teapot = 
     {
-        layout: pipelineLayout,
-        vertex: vertexShaderState,
-        fragment: fragmentShaderState,
+        layout: pipelineLayout_teapot,
+        vertex: vertexShaderState_teapot,
+        fragment: fragmentShaderState_teapot,
         primitive: primitiveState,
         depthStencil: depthStencilState
     };
 
-    render_pipeline = device.createRenderPipeline(pipelineDescriptor);
-    if (render_pipeline == null)
+    render_pipeline_teapot = device.createRenderPipeline(pipelineDescriptor_teapot);
+    if (render_pipeline_teapot == null)
     {
-        console.log("Failed To Create Render Pipeline !!!");
-        throw Error("Failed To Create Render Pipeline !!!");
+        console.log("Failed To Create Render Pipeline For Teapot !!!");
+        throw Error("Failed To Create Render Pipeline For Teapot !!!");
     }
     else
-        console.log("Render Pipeline Successfully Created");
+        console.log("Render Pipeline For Teapot Successfully Created");
+
+    const pipelineDescriptor_cube = 
+    {
+        layout: pipelineLayout_cube,
+        vertex: vertexShaderState_cube,
+        fragment: fragmentShaderState_cube,
+        primitive: primitiveState,
+        depthStencil: depthStencilState
+    };
+
+    render_pipeline_cube = device.createRenderPipeline(pipelineDescriptor_cube);
+    if (render_pipeline_cube == null)
+    {
+        console.log("Failed To Create Render Pipeline For Cube !!!");
+        throw Error("Failed To Create Render Pipeline For Cube !!!");
+    }
+    else
+        console.log("Render Pipeline For Cube Successfully Created");
 
     //* Initialize Projection Matrix
     perspectiveProjectionMatrix = mat4.create();
+    perspectiveProjectionMatrix_fbo = mat4.create();
+
+    mat4.perspectiveZO(perspectiveProjectionMatrix_fbo, degreeToRadians(45.0), FBO_WIDTH / FBO_HEIGHT, 0.1, 100.0);
 }
 
 async function loadShader(path)
@@ -993,13 +1130,13 @@ function createBindGroupLayout(_bindingIndex, _shaderStageVisibility, _bufferTyp
     return device.createBindGroupLayout(bindGroupLayoutDescriptor);
 }
 
-function createUniformBuffer(_uniformBufferSize, _uniformBufferUsage)
+function createUniformBuffer(_uniformBufferSize)
 {
     // Code
     const bufferDescriptor = 
     {
         size: _uniformBufferSize,
-        usage: _uniformBufferUsage
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     };
 
     return device.createBuffer(bufferDescriptor);
@@ -1037,7 +1174,6 @@ function createBindGroup(_uniformBuffer, _offset, _uniformBufferSize, _binding, 
     //* Step - 1D: Bind Group
     return device.createBindGroup(bindGroupDescriptor);
 }
-
 
 async function loadTexture(_texturePath)
 {
@@ -1212,7 +1348,8 @@ function resize()
         }
     }
 
-    mat4.perspectiveZO(perspectiveProjectionMatrix, 45.0, parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
+    if (perspectiveProjectionMatrix != null)
+        mat4.perspectiveZO(perspectiveProjectionMatrix, degreeToRadians(45.0), parseFloat(canvas.width) / parseFloat(canvas.height), 0.1, 100.0);
 }
 
 function display()
@@ -1221,7 +1358,118 @@ function display()
     if (device == null)
         return;
 
-    //* Step - 10 : Get Command Encoder Of The Device (Created per frame due to async nature)
+    //! Transformations
+    teapotUniformData.modelMatrix = mat4.create();
+    teapotUniformData.viewMatrix = mat4.create();
+    
+    mat4.translate(teapotUniformData.modelMatrix, teapotUniformData.modelMatrix, [0.0, 0.0, -1.5]);
+    mat4.rotateY(teapotUniformData.modelMatrix, teapotUniformData.modelMatrix, degreeToRadians(angleTeapot));
+    
+    teapotUniformData.projectionMatrix = perspectiveProjectionMatrix_fbo;
+
+    if (bLight)
+        teapotUniformData.keyFlags[0] = 1;
+    else
+        teapotUniformData.keyFlags[0] = 0;
+
+    if (bTexture)
+        teapotUniformData.keyFlags[1] = 1;
+    else
+        teapotUniformData.keyFlags[1] = 0;
+
+    //! Update Uniform Buffer
+
+    // MVP Matrices         : 64 + 64 + 64       =  192
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        0, 
+        teapotUniformData.modelMatrix
+    );
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16, 
+        teapotUniformData.viewMatrix
+    );
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 + 
+        Float32Array.BYTES_PER_ELEMENT * 16, 
+        teapotUniformData.projectionMatrix
+    );
+
+    // Light Vectors        : 16 + 16 + 16 + 16  =  64
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3,
+        teapotUniformData.lightAmbient
+    );
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 1, 
+        teapotUniformData.lightDiffuse
+    );
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 2, 
+        teapotUniformData.lightSpecular
+    );
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 3, 
+        teapotUniformData.lightPosition
+    );
+
+    // Material Vectors     : 16 + 16 + 16 + 16  =  64
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 4,   
+        teapotUniformData.materialAmbient
+    );
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 5,  
+        teapotUniformData.materialDiffuse
+    );
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 6, 
+        teapotUniformData.materialSpecular
+    );
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 7, 
+        teapotUniformData.materialShininess
+    );
+
+    // Key Flags : 16
+    queue.writeBuffer(
+        buffer_uniform_teapot, 
+        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
+        Float32Array.BYTES_PER_ELEMENT * 4 * 8,  
+        teapotUniformData.keyFlags
+    );
+
+    //! Cube Transformations
+    const cubeModelViewMatrix = mat4.create();
+    const cubeMVPMatrix = mat4.create();
+
+    mat4.translate(cubeModelViewMatrix, cubeModelViewMatrix, [0.0, 0.0, -5.0]);
+    mat4.rotateX(cubeModelViewMatrix, cubeModelViewMatrix, degreeToRadians(angleCube));
+    mat4.rotateY(cubeModelViewMatrix, cubeModelViewMatrix, degreeToRadians(angleCube));
+    mat4.rotateZ(cubeModelViewMatrix, cubeModelViewMatrix, degreeToRadians(angleCube));
+
+    mat4.multiply(cubeMVPMatrix, perspectiveProjectionMatrix, cubeModelViewMatrix);
+
+    queue.writeBuffer(buffer_uniform_cube, 0, cubeMVPMatrix);
+
+     //* Step - 10 : Get Command Encoder Of The Device (Created per frame due to async nature)
     const commandEncoder = device.createCommandEncoder();
     if (commandEncoder == null)
     {
@@ -1230,7 +1478,15 @@ function display()
     }
 
     //* Step - 11 : Create Renderpass Color Attachment
-    const renderPassColorAttachment = 
+    const renderPassColorAttachment_teapot = 
+    {
+        view: texture_teapot_color.createView(),
+        clearValue: clearColor_fbo,
+        loadOp: "clear",
+        storeOp: "store"
+    };
+
+    const renderPassColorAttachment_cube = 
     {
         view: context.getCurrentTexture().createView(),
         clearValue: clearColor,
@@ -1239,7 +1495,18 @@ function display()
     };
 
     //* Create Renderpass Depth Attachment
-    const renderPassDepthAttachment = 
+    const renderPassDepthAttachment_teapot = 
+    {
+        view: texture_teapot_depth.createView(),
+        depthClearValue: 1.0,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+        stencilClearValue: 0,
+        stencilLoadOp: "clear",
+        stencilStoreOp: "store"
+    };
+
+    const renderPassDepthAttachment_cube = 
     {
         view: depthTexture.createView(),
         depthClearValue: 1.0,
@@ -1251,118 +1518,52 @@ function display()
     };
 
     //* Step - 12 : Create Renderpass Descriptor (GPURenderPassDescriptor)
-    const renderPassDescriptor = 
+    const renderPassDescriptor_teapot = 
     {
-        colorAttachments: [renderPassColorAttachment],
-        depthStencilAttachment:  renderPassDepthAttachment
+        colorAttachments: [renderPassColorAttachment_teapot],
+        depthStencilAttachment:  renderPassDepthAttachment_teapot
     };
-    
-    //! Transformations
-    hostUniformData.modelMatrix = mat4.create();
-    hostUniformData.modelMatrix = mat4.translate(hostUniformData.modelMatrix, hostUniformData.modelMatrix, [0.0, 0.0, -6.0]);
-    hostUniformData.viewMatrix = mat4.create();
-    hostUniformData.projectionMatrix = perspectiveProjectionMatrix;
 
-    if (bLight)
-        hostUniformData.lightEnabled[0] = 1;
-    else
-        hostUniformData.lightEnabled[0] = 0;
-
-    //! Update Uniform Buffer
-
-    // MVP Matrices         : 64 + 64 + 64       =  192
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        0, 
-        hostUniformData.modelMatrix
-    );
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16, 
-        hostUniformData.viewMatrix
-    );
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 + 
-        Float32Array.BYTES_PER_ELEMENT * 16, 
-        hostUniformData.projectionMatrix
-    );
-
-    // Light Vectors        : 16 + 16 + 16 + 16  =  64
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3,
-        hostUniformData.lightAmbient
-    );
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 1, 
-        hostUniformData.lightDiffuse
-    );
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 2, 
-        hostUniformData.lightSpecular
-    );
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 3, 
-        hostUniformData.lightPosition
-    );
-
-    // Material Vectors     : 16 + 16 + 16 + 16  =  64
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 4,   
-        hostUniformData.materialAmbient
-    );
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 5,  
-        hostUniformData.materialDiffuse
-    );
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 6, 
-        hostUniformData.materialSpecular
-    );
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 7, 
-        hostUniformData.materialShininess
-    );
-
-    // Light Enabled Vector : 16
-    queue.writeBuffer(
-        buffer_hostUniform, 
-        Float32Array.BYTES_PER_ELEMENT * 16 * 3 +
-        Float32Array.BYTES_PER_ELEMENT * 4 * 8,  
-        hostUniformData.lightEnabled
-    );
-
-    //* Step - 13 : Begin The Render Pass
-    const renderPassEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    const renderPassDescriptor_cube = 
     {
-        renderPassEncoder.setPipeline(render_pipeline);
-        renderPassEncoder.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
-        renderPassEncoder.setScissorRect(0, 0, canvas.width, canvas.height);
-        renderPassEncoder.setVertexBuffer(0, buffer_position);
-        renderPassEncoder.setVertexBuffer(1, buffer_normal);
-        renderPassEncoder.setIndexBuffer(buffer_elements, "uint16");
-        renderPassEncoder.setBindGroup(0, bindGroup_hostUniform);
-        renderPassEncoder.drawIndexed(numMeshIndices);
+        colorAttachments: [renderPassColorAttachment_cube],
+        depthStencilAttachment:  renderPassDepthAttachment_cube
+    };
+
+    //! Teapot Render Pass
+    const renderPassEncoder_teapot = commandEncoder.beginRenderPass(renderPassDescriptor_teapot);
+    {
+        renderPassEncoder_teapot.setPipeline(render_pipeline_teapot);
+        renderPassEncoder_teapot.setViewport(0, 0, FBO_WIDTH, FBO_HEIGHT, 0.0, 1.0);    //* Must be equal to teapot texture size
+        renderPassEncoder_teapot.setScissorRect(0, 0, FBO_WIDTH, FBO_HEIGHT);
+        renderPassEncoder_teapot.setVertexBuffer(0, buffer_teapot_position);
+        renderPassEncoder_teapot.setVertexBuffer(1, buffer_teapot_normals);
+        renderPassEncoder_teapot.setVertexBuffer(2, buffer_teapot_texcoords);
+        renderPassEncoder_teapot.setIndexBuffer(buffer_teapot_elements, "uint16");
+        renderPassEncoder_teapot.setBindGroup(0, bindGroup_uniform_teapot);
+        renderPassEncoder_teapot.setBindGroup(1, bindGroup_marble_texture_sampler);
+        renderPassEncoder_teapot.drawIndexed(num_teapot_indices);
     }
-    renderPassEncoder.end();
+    renderPassEncoder_teapot.end();
+
+    //! Cube Render Pass
+    const renderPassEncoder_cube = commandEncoder.beginRenderPass(renderPassDescriptor_cube);
+    {
+        renderPassEncoder_cube.setPipeline(render_pipeline_cube);
+        renderPassEncoder_cube.setViewport(0, 0, canvas.width, canvas.height, 0.0, 1.0);
+        renderPassEncoder_cube.setScissorRect(0, 0, canvas.width, canvas.height);
+        renderPassEncoder_cube.setVertexBuffer(0, buffer_cube_position);
+        renderPassEncoder_cube.setVertexBuffer(1, buffer_cube_texcoords);
+        renderPassEncoder_cube.setBindGroup(0, bindGroup_uniform_cube);
+        renderPassEncoder_cube.setBindGroup(1, bindGroup_teapot_texture_sampler);
+        renderPassEncoder_cube.draw(36);
+    }
+    renderPassEncoder_cube.end();
 
     //* Step - 14 : Finish The Command Encoder And Submit To Queue
     queue.submit([commandEncoder.finish()]);
+
+    update();
 
     //! Animation Loop
     animationFrameId = requestAnimationFrame(display);
@@ -1371,6 +1572,15 @@ function display()
 function update()
 {
     // Code
+    if (bAnimate)
+        angleTeapot += animationSpeed;
+
+    angleCube += animationSpeed;
+}
+
+function degreeToRadians(degrees)
+{
+    return (degrees * (Math.PI / 180.0));
 }
 
 function uninitialize()
@@ -1408,17 +1618,33 @@ function uninitialize()
         device.destroy();
         device = null;
         queue = null;
-        render_pipeline = null;
-        buffer_hostUniform = null;
-        bindGroup_hostUniform = null;
-        buffer_position = null;
-        buffer_normal = null;
-        buffer_texcoords = null;
-        buffer_elements = null;
-        sphere = null;
+
+        // Teapot Related
+        texture_teapot_color = null;
+        texture_teapot_depth = null;
+        texture_marble = null;
+        sampler_marble = null;
+        sampler_teapot = null;
+        render_pipeline_teapot = null;
+        buffer_uniform_teapot = null;
+        bindGroup_uniform_teapot = null;
+        bindGroup_marble_texture_sampler = null;
+        buffer_teapot_position = null;
+        buffer_teapot_normals = null;
+        buffer_teapot_texcoords = null;
+        buffer_teapot_elements = null;
+
+        // Cube Related
+        render_pipeline_cube = null;
+        buffer_uniform_cube = null;
+        bindGroup_uniform_cube = null;
+        bindGroup_teapot_texture_sampler = null;
+        buffer_cube_position = null;
+        buffer_cube_texcoords = null;
     }
 
     perspectiveProjectionMatrix = null;
+    perspectiveProjectionMatrix_fbo = null;
 }
 
 function keyDown(event)
@@ -1434,6 +1660,16 @@ function keyDown(event)
         case 'l':
         case 'L':
             bLight = !bLight;
+        break;
+
+        case 'a':
+        case 'A':
+            bAnimate = !bAnimate;
+        break;
+
+        case 't':
+        case 'T':
+            bTexture = !bTexture;
         break;
 
         case 'q':
