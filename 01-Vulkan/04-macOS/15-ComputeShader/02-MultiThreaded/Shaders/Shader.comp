@@ -1,0 +1,50 @@
+#version 460 core
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+//* Output Buffer
+layout(std430, binding = 1) buffer heightBuffer
+{
+    float height[];
+};
+
+//* Push Constants
+layout(push_constant) uniform PushConstants
+{
+    int width;
+    int height;
+    float time;
+} pushData;
+
+shared float sinU[16];
+shared float cosV[16];
+
+void main()
+{
+    // Code
+    uvec2 g_id = gl_GlobalInvocationID.xy;
+    uvec2 l_id = gl_LocalInvocationID.xy;
+
+    const float frequency = 4.0;
+
+    //* 1st row of the workgroup fills the column sine values
+    if (l_id.y == 0u)
+    {
+        float u = float(g_id.x) / float(pushData.width) * 2.0 - 1.0;
+        sinU[l_id.x] = sin(u * frequency + pushData.time);
+    }
+
+    //* 1st column of the workgroup fills the row cos values
+    if (l_id.x == 0u)
+    {
+        float v = float(g_id.y) / float(pushData.height) * 2.0 - 1.0;
+        cosV[l_id.y] = cos(v * frequency + pushData.time);
+    }
+
+    barrier();
+
+    if (g_id.x >= uint(pushData.width) || g_id.y >= uint(pushData.height))
+        return;
+
+    height[g_id.y * uint(pushData.width) + g_id.x] = sinU[l_id.x] * cosV[l_id.y] * 0.5;
+}
