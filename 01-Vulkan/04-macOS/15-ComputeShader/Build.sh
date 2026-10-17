@@ -28,6 +28,7 @@ echo "--------------------------------------------------------------------------
 echo "Compiling Cocoa + MoltenVk Source Code And Linking Frameworks ..."
 echo "--------------------------------------------------------------------------------"
 clang++ \
+    -O3 \
     -Wno-deprecated-declarations \
     -arch "$ARCH" \
     -I"$GLM_INCLUDE_PATH" \

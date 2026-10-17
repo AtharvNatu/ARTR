@@ -1,9 +1,9 @@
 // Header Files
-#include "vulkan/vulkan_core.h"
 #import <Foundation/Foundation.h>
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CVDisplayLink.h>    // For CoreVideo
 #import <QuartzCore/CAMetalLayer.h>     // Metal-Based Core Animation Layer
+#include <sys/sysctl.h>                 // For sysctlbyname()
 
 //! Vulkan Related MoltenVk Header
 #include <MoltenVK/mvk_vulkan.h>
@@ -176,6 +176,7 @@ float* pPosition = NULL;
 
 VertexData vertexData_position;
 VertexData vertexData_indirect_buffer;
+BOOL bVertexMemoryCoherent = NO;    //! Managed (Non-Coherent) : Macs with Discrete GPUs need explicit flush
 
 char selectedColor = 'O';
 float fAnimationSpeed = 0.0f;
@@ -198,6 +199,10 @@ VkPipelineLayout vkPipelineLayout_compute = VK_NULL_HANDLE;             // Compu
 VkPipeline vkPipeline_compute = VK_NULL_HANDLE;                         // Compute Pipeline for Sinewave
 
 BOOL bUseCompute = NO;
+
+//* Device Names For Caption Bar
+char gszGpuName[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE] = "Unknown GPU";
+char gszCpuName[256] = "Unknown CPU";
 
 // Global Function Declarations
 CVReturn DisplayLinkCallback(CVDisplayLinkRef, const CVTimeStamp*, const CVTimeStamp*, CVOptionFlags, CVOptionFlags*, void*);
@@ -1118,26 +1123,15 @@ int main(int argc, char* argv[])
 
         dispatch_async(dispatch_get_main_queue(), ^
         {
-            if (bUseCompute)
-            {
-                NSString *title =
-                [NSString stringWithFormat: 
-                    @"Atharv Natu : macOS : Vulkan Compute Shader | Device : GPU | FPS : %.2f | Mesh Size : %u x %u",
-                    fps,
-                    meshWidth,
-                    meshHeight];
-                [[self window] setTitle:title];
-            }
-            else 
-            {
-                NSString *title =
-                [NSString stringWithFormat: 
-                    @"Atharv Natu : macOS : Vulkan Compute Shader | Device : CPU | FPS : %.2f | Mesh Size : %u x %u",
-                    fps,
-                    meshWidth,
-                    meshHeight];
-                [[self window] setTitle:title];
-            }
+            NSString *title =
+            [NSString stringWithFormat: 
+                @"Atharv Natu : macOS : Vulkan Compute Shader | Device : %s (%s) | FPS : %.2f | Mesh Size : %u x %u",
+                bUseCompute ? "GPU" : "CPU",
+                bUseCompute ? gszGpuName : gszCpuName,
+                fps,
+                meshWidth,
+                meshHeight];
+            [[self window] setTitle:title];
         });
     }
 }
@@ -2200,6 +2194,17 @@ int main(int argc, char* argv[])
     //* Step - 8
     vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice_selected, &vkPhysicalDeviceMemoryProperties);
 
+    //! Store GPU and CPU Name
+    VkPhysicalDeviceProperties vkPhysicalDeviceProperties_selected;
+    memset((void*)&vkPhysicalDeviceProperties_selected, 0, sizeof(VkPhysicalDeviceProperties));
+    vkGetPhysicalDeviceProperties(vkPhysicalDevice_selected, &vkPhysicalDeviceProperties_selected);
+    strncpy(gszGpuName, vkPhysicalDeviceProperties_selected.deviceName, sizeof(gszGpuName) - 1);
+    gszGpuName[sizeof(gszGpuName) - 1] = '\0';
+
+    size_t cpuNameSize = sizeof(gszCpuName);
+    if (sysctlbyname("machdep.cpu.brand_string", gszCpuName, &cpuNameSize, NULL, 0) != 0)
+        strcpy(gszCpuName, "Unknown CPU");
+
     //* Step - 9
     VkPhysicalDeviceFeatures vkPhysicalDeviceFeatures;
     memset((void*)&vkPhysicalDeviceFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
@@ -3168,6 +3173,8 @@ int main(int argc, char* argv[])
                 {
                     vkMemoryAllocateInfo.memoryTypeIndex = i;
                     foundMatchingMemoryType_vertex = VK_TRUE;
+                    if (vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+                        bVertexMemoryCoherent = YES;
                     break;
                 } 
             }
@@ -3215,6 +3222,18 @@ int main(int argc, char* argv[])
         fprintf(gpFile, "%s() => vkMapMemory() Failed For vertexData_position : %d\n", __func__, vkResult);
 
     memcpy(data, pPosition, meshArraySize * sizeof(float));
+
+    if (!bVertexMemoryCoherent)
+    {
+        VkMappedMemoryRange vkMappedMemoryRange;
+        memset((void*)&vkMappedMemoryRange, 0, sizeof(VkMappedMemoryRange));
+        vkMappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        vkMappedMemoryRange.pNext = NULL;
+        vkMappedMemoryRange.memory = vertexData_position.vkDeviceMemory;
+        vkMappedMemoryRange.offset = 0;
+        vkMappedMemoryRange.size = VK_WHOLE_SIZE;
+        vkFlushMappedMemoryRanges(vkDevice, 1, &vkMappedMemoryRange);
+    }
 
     vkUnmapMemory(vkDevice, vertexData_position.vkDeviceMemory);
 

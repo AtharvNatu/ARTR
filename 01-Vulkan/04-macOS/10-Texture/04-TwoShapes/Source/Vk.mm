@@ -1,5 +1,4 @@
 // Header Files
-#include "vulkan/vulkan_core.h"
 #import <Foundation/Foundation.h>
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CVDisplayLink.h>    // For CoreVideo
