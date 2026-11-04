@@ -1,0 +1,43 @@
+clear
+
+SOURCE_PATH=Source
+BIN_DIR=Bin
+
+echo
+echo "--------------------------------------------------------------------------------"
+echo "Creating Directory Layout ..."
+echo "--------------------------------------------------------------------------------"
+mkdir -p "$BIN_DIR"
+
+rm -rf "$BIN_DIR/Window.app"
+mkdir -p "$BIN_DIR/Window.app/Contents/MacOS"
+mkdir -p "$BIN_DIR/Window.app/Contents/Resources"
+cp Assets/* "$BIN_DIR/Window.app/Contents/Resources"
+
+echo
+echo "--------------------------------------------------------------------------------"
+echo "Compiling Cocoa + Metal Source Code And Linking Frameworks ..."
+echo "--------------------------------------------------------------------------------"
+clang \
+    -Wno-deprecated-declarations \
+    -arch x86_64 -arch arm64 \
+    -o "$BIN_DIR/Window.app/Contents/MacOS/Window" \
+    "$SOURCE_PATH/Window.m" \
+    -framework Foundation \
+    -framework Cocoa \
+    -framework Metal \
+    -framework MetalKit
+    
+if [ $? -ne 0 ]; then
+    echo "Compilation Failed !!!"
+    exit 1
+fi
+
+echo
+echo "--------------------------------------------------------------------------------"
+echo "Opening Application ..."
+echo "--------------------------------------------------------------------------------"
+open "$BIN_DIR/Window.app"
+
+
+
